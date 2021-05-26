@@ -3,8 +3,7 @@ name: Subscribe
 on:
   workflow_dispatch:
     
-  schedule:
-    - cron: "*/6 * * * *"
+  repository_dispatch:
    
 jobs:
   FR2T:
