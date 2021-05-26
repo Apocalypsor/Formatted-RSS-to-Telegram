@@ -1,0 +1,102 @@
+rss:
+  - name: 每日精品限免 / 促销应用
+    url: https://rss.dov.moe/appstore/xianmian
+    telegram:
+      disable_web_page_preview: true
+    rules:
+      - obj: summary
+        type: regex
+        matcher: 原价：(.+) -> 现价：(.+)
+        dest: price
+      - obj: summary
+        type: regex
+        matcher: 平台：(.+)
+        dest: platform
+      - obj: summary
+        type: regex
+        matcher: \n *(.+)$
+        dest: description
+    text: |
+      🧬 App优惠：*{{ title }}*
+
+      🚀 价格：{{ price[1] }} —\> {{ price[2] }}
+
+      🚀 平台：{{ platform }}
+
+      🚀 描述：{% if description == "<br />" %}无{% else %}{{ description }}{% endif %}
+
+      ⛱ 下载链接：{{ link }}
+
+      \#App优惠
+
+  - name: Youtube 订阅
+    url:
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
+    rules:
+      - obj: authors
+        type: func
+        matcher: |
+          def func(placeholder):
+              tmp_list = []
+              for p in placeholder:
+                  tmp_list.append(p["name"])
+
+              return " / ".join(tmp_list)
+        dest: author_list
+    text: |
+      🎥 订阅更新：*{{ title }}*
+
+      🏆 Youtuber：*{{ author_list }}*
+
+      🎯 直达链接：{{ link }}
+
+      \#Apocalypsor的Youtube订阅
+
+  - name: Bilibili 视频订阅
+    url: https://rss.dov.moe/bilibili/followings/video/2975898
+    rules:
+      - obj: authors
+        type: func
+        matcher: |
+          def func(placeholder):
+              tmp_list = []
+              for p in placeholder:
+                  tmp_list.append(p["name"])
+
+              return " / ".join(tmp_list)
+        dest: author_list
+    text: |
+      📺 订阅更新：*{{ title }}*
+
+      🆙 UP主：*{{ author_list }}*
+
+      ✨ 直达链接：{{ link }}
+
+      \#Apocalypsor的B站订阅
+
+  - name: Bilibili 追番订阅
+    url: https://rss.dov.moe/bilibili/user/bangumi/2975898
+    telegram:
+      disable_web_page_preview: true
+    rules:
+      - obj: title
+        type: regex
+        matcher: ^(\[.+?\])?(.+?)((（僅)|$)
+        dest: tag
+    text: |
+      🌟 更新剧集：*{{ title }}*
+
+      💡 直达链接：{{ link }}
+
+      \#Apocalypsor的动漫订阅 \#{{ tag[2] }}

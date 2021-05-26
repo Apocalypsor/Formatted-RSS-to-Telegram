@@ -1,0 +1,30 @@
+name: Purge-Database
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "44 2 */30 * *"
+
+jobs:
+  Purge:
+    name: Purge Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          pip install pipenv
+          pipenv lock --requirements > requirements.txt
+          pip install -r requirements.txt
+      - name: Purge
+        env:
+          DATABASE: ${{ secrets.DATABASE }}
+          EXPIRE_TIME: ${{ secrets.EXPIRE_TIME }}
+        run: |
+          python ./clean.py || echo 'Check your configuration.'
