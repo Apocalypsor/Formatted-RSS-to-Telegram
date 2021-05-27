@@ -22,7 +22,7 @@ def sendToTelegram(tg, text):
         time.sleep(30)
         sendToTelegram(tg, text)
     else:
-        print("\nError: failed to sending message:")
+        print("\nError: failed to send the message:")
         print(text)
         print(r.json()["description"] + "\n")
         return False
@@ -40,7 +40,11 @@ def editToTelegram(tg, message_id, text):
 
     r = postData(url, data=payload)
 
-    if r.json()["ok"] or "exactly the same" in r.json()["description"]:
+    if r.json()["ok"] or "exactly the same" in r.json()["description"] or "message to edit not found" in r.json()[
+        "description"]:
         return True
     else:
+        print("\nError: failed to edit the message:")
+        print(text)
+        print(r.json()["description"] + "\n")
         return False
