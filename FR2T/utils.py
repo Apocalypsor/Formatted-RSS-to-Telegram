@@ -1,6 +1,6 @@
+import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-import requests
 
 
 def postData(url, data, headers=None, retry=5, timeout=10):
