@@ -108,7 +108,36 @@ rss:
 
       💡 直达链接：{{ link }}
 
-      \#Apocalypsor的动漫订阅 \#{{ tag[2] }}
+      \#Apocalypsor的动漫订阅  \#{{ tag[2] }}
+
+  - name: Github 订阅
+    url:
+      - https://github.com/Fndroid/clash_for_windows_pkg/releases.atom
+      - https://github.com/Dreamacro/clash/commits/dev.atom
+      - https://github.com/geekdada/surgio/commits/master.atom
+      - https://github.com/DivineEngine/Profiles/commits/master.atom
+      - https://github.com/Apocalypsor/My-Scoop-Bucket/commits/master.atom
+      - https://github.com/blackmatrix7/ios_rule_script/commits/master.atom
+      - https://github.com/fluid-dev/hexo-theme-fluid/releases.atom
+      - https://github.com/cloudreve/Cloudreve/releases.atom
+      - https://github.com/WangNingkai/OLAINDEX/commits/6.0.atom
+      - https://github.com/miniflux/v2/releases.atom
+    telegram:
+      disable_web_page_preview: true
+    rules:
+      - obj: content.0.base
+        type: regex
+        matcher: https:\/\/github.com\/(.+?)\/(.+?)\/.+
+        dest: repo
+    filters:
+      - obj: title
+        matcher: Last updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}
+    text: |
+      🌀 项目更新：*{{ repo[1] }}/{{ repo[2] }}*
+
+      🐎 更新内容：[{{ title }}]({{ link }})
+
+      \#Apocalypsor的Github人订阅  \#{{ repo[2] }}
 
   - name: 少数派
     url: https://sspai.com/feed

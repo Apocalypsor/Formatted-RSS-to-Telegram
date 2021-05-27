@@ -170,25 +170,34 @@ def handleRSS(rss, url, telegram, db, user_agent):
                         exec(tmp_func)
                         result[rule["dest"]] = loc["tmp_return"]
 
-            template = Template(rss["text"])
+            send = True
 
-            args = dict(**result, **content, rss_name=rss["name"], rss_url=rss["url"])
-            escapeAll(telegram["parse_mode"], args)
+            if rss.get("filters"):
+                for filter in rss["filters"]:
+                    obj = objParser(content, filter["obj"])
+                    if re.search(filter["matcher"], obj):
+                        send = False
 
-            text = template.render(args)
+            if send:
+                template = Template(rss["text"])
 
-            id1_hash = hashlib.md5(url.encode()).hexdigest()
+                args = dict(**result, **content, rss_name=rss["name"], rss_url=rss["url"])
+                escapeAll(telegram["parse_mode"], args)
 
-            id2 = content.get("id") or content.get("guid") or content.get("link")
-            id2_hash = hashlib.md5(id2.encode()).hexdigest()
+                text = template.render(args)
 
-            id = id1_hash + id2_hash
+                id1_hash = hashlib.md5(url.encode()).hexdigest()
 
-            tmp_tg = copy.deepcopy(telegram)
-            if rss.get("telegram"):
-                tmp_tg.update(rss["telegram"])
+                id2 = content.get("id") or content.get("guid") or content.get("link")
+                id2_hash = hashlib.md5(id2.encode()).hexdigest()
 
-            handleText(rss["name"], id, text, tmp_tg, db)
+                id = id1_hash + id2_hash
+
+                tmp_tg = copy.deepcopy(telegram)
+                if rss.get("telegram"):
+                    tmp_tg.update(rss["telegram"])
+
+                handleText(rss["name"], id, text, tmp_tg, db)
 
 
 def handleText(name, id, text, tg, db):
@@ -197,7 +206,6 @@ def handleText(name, id, text, tg, db):
     text_posted = db[name].find_one({"text": text_hash})
 
     if not text_posted:
-        time.sleep(1)
 
         id_posted = db[name].find_one({"id": id})
         if id_posted:

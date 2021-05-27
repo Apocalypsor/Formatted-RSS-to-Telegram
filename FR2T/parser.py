@@ -9,6 +9,9 @@ def objParser(obj: dict, url: str):
     paths = url.split(".")
 
     for p in paths:
+        if p.isdigit():
+            p = int(p)
+
         obj = obj[p]
 
     return obj
