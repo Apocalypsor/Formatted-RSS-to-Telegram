@@ -21,10 +21,10 @@ class FR2T:
         self.loadConfig()
 
     def loadConfig(self):
-        with open(self.rss_path, "r", encoding='UTF-8') as c:
+        with open(self.rss_path, "r", encoding="UTF-8") as c:
             self.config = yaml.safe_load(c)
 
-        with open(self.config_path, "r", encoding='UTF-8') as c:
+        with open(self.config_path, "r", encoding="UTF-8") as c:
             rss_config = yaml.safe_load(c)
 
             self.database_url = (
@@ -220,7 +220,11 @@ def handleText(name, id, text, tg, db):
                 )
 
                 print(rdb.matched_count)
-                print("Edited 1 message: ID {} TEXT {} in {}".format(id_posted["message"], text_hash, name))
+                print(
+                    "Edited 1 message: ID {} TEXT {} in {}".format(
+                        id_posted["message"], text_hash, name
+                    )
+                )
         else:
             message_id = sendToTelegram(tg, text)
             if message_id:
