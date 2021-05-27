@@ -1,6 +1,6 @@
 import time
 
-from utils import postData
+from .utils import postData
 
 
 def sendToTelegram(tg, text):
