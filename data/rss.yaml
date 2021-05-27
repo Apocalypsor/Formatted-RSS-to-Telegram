@@ -137,7 +137,7 @@ rss:
 
       🐎 更新内容：[{{ title }}]({{ link }})
 
-      \#Apocalypsor的Github人订阅  \#{{ repo[2] }}
+      \#Apocalypsor的Github订阅  \#{{ repo[2] }}
 
   - name: 少数派
     url: https://sspai.com/feed
