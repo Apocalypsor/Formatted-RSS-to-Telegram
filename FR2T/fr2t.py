@@ -66,9 +66,21 @@ class FR2T:
 
         copyreg.pickle(ssl.SSLContext, save_sslcontext)
 
+        tmp_rss = []
+
+        for r in self.config["rss"]:
+            url = r.get("url")
+            if isinstance(url, str):
+                tmp_rss.append(r)
+            elif isinstance(url, list):
+                for u in url:
+                    tmp_r = copy.deepcopy(r)
+                    tmp_r["url"] = u
+                    tmp_rss.append(tmp_r)
+
         args = [
             (r, self.telegram, self.database_url, self.user_agent)
-            for r in self.config["rss"]
+            for r in tmp_rss
         ]
 
         with Pool(8) as p:
@@ -116,18 +128,8 @@ def mixInput(mix_args):
 def runProcess(rss, telegram, database_url, user_agent):
     client = MongoClient(database_url)
     db = client["RSS"]
+    url = rss["url"]
 
-    if rss.get("name") and rss.get("url"):
-        if isinstance(rss["url"], str):
-            handleRSS(rss, rss["url"], telegram, db, user_agent)
-        elif isinstance(rss["url"], list):
-            for url in set(rss["url"]):
-                handleRSS(rss, url, telegram, db, user_agent)
-        else:
-            print("{}: Error URL!".format(rss["name"]))
-
-
-def handleRSS(rss, url, telegram, db, user_agent):
     rss_content = rssParser(url, user_agent)
     if not rss_content:
         expired_url = db["Expire"].find_one({"url": url})
