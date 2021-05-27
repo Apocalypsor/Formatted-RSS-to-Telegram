@@ -27,25 +27,15 @@ class FR2T:
         with open(self.config_path, "r", encoding="UTF-8") as c:
             rss_config = yaml.safe_load(c)
 
-            self.database_url = (
-                os.environ["DATABASE"]
-                if os.getenv("DATABASE")
-                else rss_config["database_url"]
+            self.database_url = os.getenv("DATABASE") or rss_config["database_url"]
+            self.expire_time = (
+                os.getenv("EXPIRE_TIME") or rss_config.get("expire_time") or "30d"
             )
-
-            if os.getenv("EXPIRE_TIME"):
-                self.expire_time = os.environ["EXPIRE_TIME"]
-            elif rss_config["expire_time"]:
-                self.expire_time = rss_config["expire_time"]
-            else:
-                self.expire_time = "30d"
-
-            if os.getenv("USER-AGENT"):
-                self.user_agent = os.environ["USER-AGENT"]
-            elif rss_config["user-agent"]:
-                self.user_agent = rss_config["user-agent"]
-            else:
-                self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+            self.user_agent = (
+                os.getenv("USER-AGENT")
+                or rss_config.get("user-agent")
+                or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+            )
 
             self.telegram = rss_config["telegram"]
 
@@ -57,14 +47,15 @@ class FR2T:
 
             self.telegram.update(telegram_update)
 
-            if not self.telegram["disable_notification"]:
-                self.telegram["disable_notification"] = "false"
-
-            if not self.telegram["disable_web_page_preview"]:
-                self.telegram["disable_web_page_preview"] = "false"
-
-            if not self.telegram["parse_mode"]:
-                self.telegram["parse_mode"] = "MarkdownV2"
+            self.telegram["disable_notification"] = (
+                self.telegram.get("disable_notification") or "false"
+            )
+            self.telegram["disable_web_page_preview"] = (
+                self.telegram.get("disable_web_page_preview") or "false"
+            )
+            self.telegram["parse_mode"] = (
+                self.telegram.get("parse_mode") or "MarkdownV2"
+            )
 
     def run(self):
         def save_sslcontext(obj):
@@ -123,13 +114,14 @@ def runProcess(rss, telegram, database_url, user_agent):
     client = MongoClient(database_url)
     db = client["RSS"]
 
-    if isinstance(rss["url"], str):
-        handleRSS(rss, rss["url"], telegram, db, user_agent)
-    elif isinstance(rss["url"], list):
-        for url in set(rss["url"]):
-            handleRSS(rss, url, telegram, db, user_agent)
-    else:
-        print("{}: Error URL!".format(rss["name"]))
+    if rss.get("name") and rss.get("url"):
+        if isinstance(rss["url"], str):
+            handleRSS(rss, rss["url"], telegram, db, user_agent)
+        elif isinstance(rss["url"], list):
+            for url in set(rss["url"]):
+                handleRSS(rss, url, telegram, db, user_agent)
+        else:
+            print("{}: Error URL!".format(rss["name"]))
 
 
 def handleRSS(rss, url, telegram, db, user_agent):
@@ -147,9 +139,7 @@ def handleRSS(rss, url, telegram, db, user_agent):
                     {"$set": {"expired": expired_url["expired"] + 1}},
                 )
         else:
-            new_expired_url = {"url": url, "expired": 1}
-
-            db["Expire"].insert_one(new_expired_url)
+            db["Expire"].insert_one({"url": url, "expired": 1})
     else:
         db["Expire"].update_one(
             {"url": url},
@@ -158,45 +148,43 @@ def handleRSS(rss, url, telegram, db, user_agent):
         for content in rss_content:
             result = {}
 
-            for rule in rss["rules"]:
-                obj = objParser(content, rule["obj"])
-                if not rule.get("type"):
-                    rule["type"] = "regex"
+            if rss.get("rules"):
+                for rule in rss["rules"]:
+                    obj = objParser(content, rule["obj"])
 
-                if rule["type"] == "regex":
-                    matcher = re.compile(rule["matcher"])
-                    matched = matcher.search(obj)
+                    if not rule.get("type") or rule["type"] == "regex":
+                        matcher = re.compile(rule["matcher"])
+                        matched = matcher.search(obj)
 
-                    if len(matched.groups()) == 1:
-                        matched = matched.groups()[0]
-                    else:
-                        tmp = list(matched.groups())
-                        tmp.insert(0, matched.group())
-                        matched = tmp
+                        if len(matched.groups()) == 1:
+                            matched = matched.groups()[0]
+                        else:
+                            tmp_matched = list(matched.groups())
+                            tmp_matched.insert(0, matched.group())
+                            matched = tmp_matched
 
-                    result[rule["dest"]] = matched
-                elif rule["type"] == "func":
-                    loc = locals()
-                    tmp_func = rule["matcher"] + "\ntmp_return = func(obj)\n"
-                    exec(tmp_func)
-                    result[rule["dest"]] = loc["tmp_return"]
+                        result[rule["dest"]] = matched
+                    elif rule["type"] == "func":
+                        loc = locals()
+                        tmp_func = rule["matcher"] + "\ntmp_return = func(obj)\n"
+                        exec(tmp_func)
+                        result[rule["dest"]] = loc["tmp_return"]
 
             template = Template(rss["text"])
 
-            args = dict(**result, **content)
+            args = dict(**result, **content, rss_name=rss["name"], rss_url=rss["url"])
             escapeAll(telegram["parse_mode"], args)
 
             text = template.render(args)
 
             id1_hash = hashlib.md5(url.encode()).hexdigest()
 
-            id2 = content["id"] if "id" in content else content["guid"]
+            id2 = content.get("id") or content.get("guid") or content.get("link")
             id2_hash = hashlib.md5(id2.encode()).hexdigest()
 
             id = id1_hash + id2_hash
 
             tmp_tg = copy.deepcopy(telegram)
-
             if rss.get("telegram"):
                 tmp_tg.update(rss["telegram"])
 
@@ -214,12 +202,11 @@ def handleText(name, id, text, tg, db):
         id_posted = db[name].find_one({"id": id})
         if id_posted:
             if editToTelegram(tg, id_posted["message"], text):
-                rdb = db[name].update_one(
+                db[name].update_one(
                     {"_id": id_posted["_id"]},
                     {"$set": {"text": text_hash, "edit_time": time.time()}},
                 )
 
-                print(rdb.matched_count)
                 print(
                     "Edited 1 message: ID {} TEXT {} in {}".format(
                         id_posted["message"], text_hash, name
@@ -228,15 +215,15 @@ def handleText(name, id, text, tg, db):
         else:
             message_id = sendToTelegram(tg, text)
             if message_id:
-                post = {
-                    "id": id,
-                    "message": message_id,
-                    "text": text_hash,
-                    "create_time": time.time(),
-                    "edit_time": time.time(),
-                }
-
-                db[name].insert_one(post)
+                db[name].insert_one(
+                    {
+                        "id": id,
+                        "message": message_id,
+                        "text": text_hash,
+                        "create_time": time.time(),
+                        "edit_time": time.time(),
+                    }
+                )
 
                 print(f"Sent 1 message: {text_hash} in {name}")
 

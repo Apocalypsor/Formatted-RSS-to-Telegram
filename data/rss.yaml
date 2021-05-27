@@ -1,3 +1,12 @@
+template:
+  WebSubTemplate: &WebSubTemplate
+    text: |
+      🌐 更新文章：*{{ title }}*
+
+      💡 直达链接：{{ link }}
+
+      \#Apocalypsor的个人订阅 \#{{ rss_name }}
+
 rss:
   - name: 每日精品限免 / 促销应用
     url: https://rss.dov.moe/appstore/xianmian
@@ -100,3 +109,15 @@ rss:
       💡 直达链接：{{ link }}
 
       \#Apocalypsor的动漫订阅 \#{{ tag[2] }}
+
+  - name: 少数派
+    url: https://sspai.com/feed
+    <<: *WebSubTemplate
+
+  - name: 小众软件
+    url: https://www.appinn.com/feed/
+    <<: *WebSubTemplate
+
+  - name: 趣乐子
+    url: https://www.7lez.com/?feed=rss2
+    <<: *WebSubTemplate

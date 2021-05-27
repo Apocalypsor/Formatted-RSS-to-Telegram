@@ -2,9 +2,7 @@ import feedparser
 
 
 def rssParser(url: str, user_agent: str):
-    d = feedparser.parse(url, agent=user_agent)["entries"]
-
-    return d
+    return feedparser.parse(url, agent=user_agent)["entries"]
 
 
 def objParser(obj: dict, url: str):
