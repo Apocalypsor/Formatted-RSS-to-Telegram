@@ -1,8 +1,8 @@
 import feedparser
 
 
-def rssParser(url: str):
-    d = feedparser.parse(url)["entries"]
+def rssParser(url: str, user_agent: str):
+    d = feedparser.parse(url, agent=user_agent)["entries"]
 
     return d
 

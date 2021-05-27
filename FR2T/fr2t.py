@@ -20,18 +20,35 @@ class FR2T:
         self.rss_path = rss_path
         self.loadConfig()
 
-
     def loadConfig(self):
-        with open(self.rss_path, "r") as c:
+        with open(self.rss_path, "r", encoding='UTF-8') as c:
             self.config = yaml.safe_load(c)
 
-        with open(self.config_path, "r") as c:
+        with open(self.config_path, "r", encoding='UTF-8') as c:
             rss_config = yaml.safe_load(c)
 
-            self.database_url = os.environ["DATABASE"] if os.getenv("DATABASE") else rss_config["database_url"]
-            self.expire_time = os.environ["EXPIRE_TIME"] if os.getenv("EXPIRE_TIME") else rss_config["expire_time"]
+            self.database_url = (
+                os.environ["DATABASE"]
+                if os.getenv("DATABASE")
+                else rss_config["database_url"]
+            )
+
+            if os.getenv("EXPIRE_TIME"):
+                self.expire_time = os.environ["EXPIRE_TIME"]
+            elif rss_config["expire_time"]:
+                self.expire_time = rss_config["expire_time"]
+            else:
+                self.expire_time = "30d"
+
+            if os.getenv("USER-AGENT"):
+                self.user_agent = os.environ["USER-AGENT"]
+            elif rss_config["user-agent"]:
+                self.user_agent = rss_config["user-agent"]
+            else:
+                self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
 
             self.telegram = rss_config["telegram"]
+
             telegram_update = {}
             for up in self.telegram:
                 up_v = os.getenv("TG_" + up.upper())
@@ -39,6 +56,7 @@ class FR2T:
                     telegram_update[up] = up_v
 
             self.telegram.update(telegram_update)
+
             if not self.telegram["disable_notification"]:
                 self.telegram["disable_notification"] = "false"
 
@@ -54,7 +72,10 @@ class FR2T:
 
         copyreg.pickle(ssl.SSLContext, save_sslcontext)
 
-        args = [(r, self.telegram, self.database_url) for r in self.config["rss"]]
+        args = [
+            (r, self.telegram, self.database_url, self.user_agent)
+            for r in self.config["rss"]
+        ]
 
         with Pool(8) as p:
             p.map(mixInput, args)
@@ -74,7 +95,7 @@ class FR2T:
             days = int(self.expire_time.strip("d"))
 
         if self.expire_time.endswith("h"):
-            hours = (self.expire_time.strip("h"))
+            hours = self.expire_time.strip("h")
 
         expired_time = now_time - datetime.timedelta(days=days, hours=hours)
         expired_timestamp = datetime.datetime.timestamp(expired_time)
@@ -86,7 +107,7 @@ class FR2T:
         for col_name in col_list:
             print(f"开始清理: {col_name}")
             col = db[col_name]
-            purge_rule = {"create_time": { "$lt": expired_timestamp }}
+            purge_rule = {"create_time": {"$lt": expired_timestamp}}
 
             deleted_result = col.delete_many(purge_rule)
             deleted_num += deleted_result.deleted_count
@@ -95,29 +116,45 @@ class FR2T:
 
 
 def mixInput(mix_args):
-    runProcess(mix_args[0], mix_args[1], mix_args[2])
+    runProcess(*mix_args)
 
 
-def runProcess(rss, telegram, database_url):
+def runProcess(rss, telegram, database_url, user_agent):
     client = MongoClient(database_url)
     db = client["RSS"]
 
     if isinstance(rss["url"], str):
-        handleRSS(rss, rss["url"], telegram, db)
+        handleRSS(rss, rss["url"], telegram, db, user_agent)
     elif isinstance(rss["url"], list):
         for url in set(rss["url"]):
-            handleRSS(rss, url, telegram, db)
+            handleRSS(rss, url, telegram, db, user_agent)
     else:
         print("{}: Error URL!".format(rss["name"]))
 
 
-def handleRSS(rss, url, telegram, db):
-    rss_content = rssParser(url)
+def handleRSS(rss, url, telegram, db, user_agent):
+    rss_content = rssParser(url, user_agent)
     if not rss_content:
-        msg = escapeText(telegram["parse_mode"], url)
-        print(f"订阅 {url} 已失效")
-        sendToTelegram(telegram, f"订阅 {msg} 已失效\n\n\#提醒")
+        expired_url = db["Expire"].find_one({"url": url})
+        if expired_url:
+            if expired_url["expired"] > 10:
+                msg = escapeText(telegram["parse_mode"], url)
+                print(f"订阅 {url} 已失效")
+                sendToTelegram(telegram, f"订阅 {msg} 已失效\n\n\#提醒")
+            else:
+                db["Expire"].update_one(
+                    {"_id": expired_url["_id"]},
+                    {"$set": {"expired": expired_url["expired"] + 1}},
+                )
+        else:
+            new_expired_url = {"url": url, "expired": 1}
+
+            db["Expire"].insert_one(new_expired_url)
     else:
+        db["Expire"].update_one(
+            {"url": url},
+            {"$set": {"expired": 0}},
+        )
         for content in rss_content:
             result = {}
 
@@ -177,12 +214,13 @@ def handleText(name, id, text, tg, db):
         id_posted = db[name].find_one({"id": id})
         if id_posted:
             if editToTelegram(tg, id_posted["message"], text):
-                db[name].update_one(
-                    {"_id": str(id_posted["_id"])},
+                rdb = db[name].update_one(
+                    {"_id": id_posted["_id"]},
                     {"$set": {"text": text_hash, "edit_time": time.time()}},
                 )
 
-                print("Edited 1 message: in", name)
+                print(rdb.matched_count)
+                print("Edited 1 message: ID {} TEXT {} in {}".format(id_posted["message"], text_hash, name))
         else:
             message_id = sendToTelegram(tg, text)
             if message_id:
@@ -196,7 +234,7 @@ def handleText(name, id, text, tg, db):
 
                 db[name].insert_one(post)
 
-                print("Sent 1 message in:", name)
+                print(f"Sent 1 message: {text_hash} in {name}")
 
 
 def sendToTelegram(tg, text):
@@ -236,7 +274,7 @@ def editToTelegram(tg, message_id, text):
 
     r = postData(url, data=payload)
 
-    if r.json()["ok"]:
+    if r.json()["ok"] or "exactly the same" in r.json()["description"]:
         return True
     else:
         return False
