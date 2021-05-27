@@ -1,17 +1,19 @@
-from .parser import rssParser, objParser
-from .utils import postData, escapeAll, escapeText
-from jinja2 import Template
-from pymongo import MongoClient
+import copy
+import copyreg
 import datetime
 import hashlib
-import time
-import re
-import yaml
-from multiprocessing import Pool
-import ssl
-import copyreg
-import copy
 import os
+import re
+import ssl
+import time
+from multiprocessing import Pool
+
+import yaml
+from jinja2 import Template
+from pymongo import MongoClient
+
+from .parser import rssParser, objParser
+from .utils import postData, escapeAll, escapeText
 
 
 class FR2T:
@@ -181,7 +183,9 @@ def handleRSS(rss, url, telegram, db, user_agent):
             if send:
                 template = Template(rss["text"])
 
-                args = dict(**result, **content, rss_name=rss["name"], rss_url=rss["url"])
+                args = dict(
+                    **result, **content, rss_name=rss["name"], rss_url=rss["url"]
+                )
                 escapeAll(telegram["parse_mode"], args)
 
                 text = template.render(args)
