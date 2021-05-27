@@ -18,10 +18,15 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install dependencies
-        run: |
-          pip install pipenv
-          pipenv lock --requirements > requirements.txt
-          pip install -r requirements.txt
+        run: python -m pip install --upgrade pipenv wheel
+      - uses: actions/cache@v2
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-
+      - name: Install dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install
       - name: Subscribe
         env:
           DATABASE: ${{ secrets.DATABASE }}
@@ -31,5 +36,4 @@ jobs:
           TG_DISABLE_WEB_PAGE_PREVIEW: ${{ secrets.TG_DISABLE_WEB_PAGE_PREVIEW }}
           TG_PARSE_MODE: ${{ secrets.TG_PARSE_MODE }}
           EXPIRE_TIME: ${{ secrets.EXPIRE_TIME }}
-        run: |
-          python ./main.py || echo 'Check your configuration.'
+        run: pipenv run python ./main.py || echo 'Check your configuration.'
