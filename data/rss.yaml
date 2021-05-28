@@ -52,6 +52,7 @@ rss:
       - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
       - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
       - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
     rules:
       - obj: authors
         type: func
