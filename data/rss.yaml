@@ -32,7 +32,7 @@ rss:
 
       🚀 平台：{{ platform }}
 
-      🚀 描述：{% if description == "<br />" %}无{% else %}{{ description }}{% endif %}
+      🚀 描述：{% if "<" in description %}无{% else %}{{ description }}{% endif %}
 
       🎯 下载链接：[点击此处]({{ link }})
 
