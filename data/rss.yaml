@@ -40,19 +40,19 @@ rss:
 
   - name: Youtube 订阅
     url:
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
-      # - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
+      - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
     rules:
       - obj: authors
         type: func
