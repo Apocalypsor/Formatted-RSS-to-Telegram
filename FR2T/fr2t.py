@@ -101,7 +101,7 @@ class FR2T:
             days = int(self.expire_time.strip("d"))
 
         if self.expire_time.endswith("h"):
-            hours = self.expire_time.strip("h")
+            hours = int(self.expire_time.strip("h"))
 
         expired_time = now_time - datetime.timedelta(days=days, hours=hours)
         expired_timestamp = datetime.datetime.timestamp(expired_time)
