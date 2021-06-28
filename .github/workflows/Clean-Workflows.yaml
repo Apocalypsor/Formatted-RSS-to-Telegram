@@ -36,5 +36,5 @@ jobs:
         env:
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
-          EXPIRE_TIME: '1h'
+          EXPIRE_TIME: '0h'
         run: pipenv run python run.py
