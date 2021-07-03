@@ -25,6 +25,9 @@ rss:
         type: regex
         matcher: \n *(.+)$
         dest: description
+    filters:
+      - obj: title
+        matcher: 降价
     text: |
       🧬 App优惠：*{{ title }}*
 
@@ -38,40 +41,40 @@ rss:
 
       \#App优惠
 
-  - name: Youtube 订阅
-    url:
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
-      - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
-    rules:
-      - obj: authors
-        type: func
-        matcher: |
-          def func(placeholder):
-              tmp_list = []
-              for p in placeholder:
-                  tmp_list.append(p["name"])
+  # - name: Youtube 订阅
+  #   url:
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
+  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
+  #   rules:
+  #     - obj: authors
+  #       type: func
+  #       matcher: |
+  #         def func(placeholder):
+  #             tmp_list = []
+  #             for p in placeholder:
+  #                 tmp_list.append(p["name"])
 
-              return " / ".join(tmp_list)
-        dest: author_list
-    text: |
-      🎥 订阅更新：*{{ title }}*
+  #             return " / ".join(tmp_list)
+  #       dest: author_list
+  #   text: |
+  #     🎥 订阅更新：*{{ title }}*
 
-      🏆 Youtuber：*{{ author_list }}*
+  #     🏆 Youtuber：*{{ author_list }}*
 
-      🎯 直达链接：[点击此处]({{ link }})
+  #     🎯 直达链接：[点击此处]({{ link }})
 
-      \#Apocalypsor的Youtube订阅
+  #     \#Apocalypsor的Youtube订阅
 
   - name: Bilibili 视频订阅
     url: https://rss.dov.moe/bilibili/followings/video/2975898
