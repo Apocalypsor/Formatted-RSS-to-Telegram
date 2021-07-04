@@ -10,8 +10,6 @@ template:
 rss:
   - name: 每日精品限免 / 促销应用
     url: https://rss.dov.moe/appstore/xianmian
-    telegram:
-      disable_web_page_preview: true
     rules:
       - obj: summary
         type: regex
@@ -100,8 +98,6 @@ rss:
 
   - name: Bilibili 追番订阅
     url: https://rss.dov.moe/bilibili/user/bangumi/2975898
-    telegram:
-      disable_web_page_preview: true
     rules:
       - obj: title
         type: regex
@@ -127,8 +123,6 @@ rss:
       - https://github.com/WangNingkai/OLAINDEX/commits/6.0.atom
       - https://github.com/curtinlv/JD-Script/commits/main.atom
       - https://github.com/miniflux/v2/releases.atom
-    telegram:
-      disable_web_page_preview: true
     rules:
       - obj: content.0.base
         type: regex
