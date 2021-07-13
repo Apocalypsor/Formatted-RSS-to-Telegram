@@ -146,10 +146,6 @@ rss:
     url: https://www.appinn.com/feed/
     <<: *WebSubTemplate
 
-  - name: 爱范儿
-    url: http://ifanr.com/feed
-    <<: *WebSubTemplate
-
   - name: 半佛仙人
     url: https://raw.githubusercontent.com/hellodword/wechat-feeds/feeds/MzI2MzE2NDczMw%3D%3D.xml
     <<: *WebSubTemplate
