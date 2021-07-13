@@ -61,27 +61,32 @@ class FR2T:
             )
 
     def run(self):
-        def save_sslcontext(obj):
+        def saveSSLContext(obj):
             return obj.__class__, (obj.protocol,)
 
-        copyreg.pickle(ssl.SSLContext, save_sslcontext)
+        copyreg.pickle(ssl.SSLContext, saveSSLContext)
+
+        client = MongoClient(self.database_url)
+        db = client["RSS"]
+
+        all_sub = db.list_collection_names()
 
         tmp_rss = []
 
         for r in self.config["rss"]:
             url = r.get("url")
+            new_sub = r["name"] not in all_sub
             if isinstance(url, str):
+                r["new_sub"] = new_sub
                 tmp_rss.append(r)
             elif isinstance(url, list):
                 for u in url:
                     tmp_r = copy.deepcopy(r)
                     tmp_r["url"] = u
+                    tmp_r["new_sub"] = new_sub
                     tmp_rss.append(tmp_r)
 
-        args = [
-            (r, self.telegram, self.database_url, self.user_agent)
-            for r in tmp_rss
-        ]
+        args = [(r, self.telegram, self.database_url, self.user_agent) for r in tmp_rss]
 
         with Pool(8) as p:
             p.map(mixInput, args)
@@ -129,6 +134,8 @@ def runProcess(rss, telegram, database_url, user_agent):
     client = MongoClient(database_url)
     db = client["RSS"]
     url = rss["url"]
+
+    new_sub = rss["new_sub"]
 
     rss_content = rssParser(url, user_agent)
     if not rss_content:
@@ -204,31 +211,52 @@ def runProcess(rss, telegram, database_url, user_agent):
                 if rss.get("telegram"):
                     tmp_tg.update(rss["telegram"])
 
-                handleText(rss["name"], id, text, tmp_tg, db)
+                handleText(rss["name"], id, text, tmp_tg, db, new_sub)
 
 
-def handleText(name, id, text, tg, db):
+def handleText(name, id, text, tg, db, new_sub=False):
     text_hash = hashlib.md5(text.encode()).hexdigest()
 
-    text_posted = db[name].find_one({"text": text_hash})
-
-    if not text_posted:
+    if not db[name].find_one({"text": text_hash}):
 
         id_posted = db[name].find_one({"id": id})
         if id_posted:
-            if editToTelegram(tg, id_posted["message"], text):
-                db[name].update_one(
-                    {"_id": id_posted["_id"]},
-                    {"$set": {"text": text_hash, "edit_time": time.time()}},
-                )
-
-                print(
-                    "Edited 1 message: ID {} TEXT {} in {}".format(
-                        id_posted["message"], text_hash, name
+            if id_posted["message"] != -1:
+                edit_result = editToTelegram(tg, id_posted["message"], text)
+                if edit_result == 2:
+                    db[name].update_one(
+                        {"_id": id_posted["_id"]},
+                        {"$set": {"text": text_hash, "edit_time": time.time()}},
                     )
-                )
+
+                    print(
+                        "Edited 1 message: ID {} TEXT {} in {}".format(
+                            id_posted["message"], text_hash, name
+                        )
+                    )
+                elif edit_result == 1:
+                    db[name].update_one(
+                        {"_id": id_posted["_id"]},
+                        {
+                            "$set": {
+                                "message": -1,
+                                "text": text_hash,
+                                "edit_time": time.time(),
+                            }
+                        },
+                    )
+
+                    print(
+                        "Edited 1 message: ID {} TEXT {} in {} (doesn't exist)".format(
+                            id_posted["message"], text_hash, name
+                        )
+                    )
         else:
-            message_id = sendToTelegram(tg, text)
+            if new_sub:
+                message_id = -1
+            else:
+                message_id = sendToTelegram(tg, text)
+
             if message_id:
                 db[name].insert_one(
                     {

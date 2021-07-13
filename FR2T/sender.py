@@ -40,9 +40,12 @@ def editToTelegram(tg, message_id, text):
 
     r = postData(url, data=payload)
 
-    if r.json()["ok"] or "exactly the same" in r.json()["description"] or "message to edit not found" in r.json()[
-        "description"]:
-        return True
+    if r.json()["ok"] or "exactly the same" in r.json()["description"]:
+        # print(r.json())
+        return 2
+    elif "message to edit not found" in r.json()["description"]:
+        # print(r.json())
+        return 1
     else:
         print("\nError: failed to edit the message:")
         print(text)
