@@ -39,40 +39,51 @@ rss:
 
       \#App优惠
 
-  # - name: Youtube 订阅
-  #   url:
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCMUnInmOkrWN4gof9KlhNmQ
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UC2tQpW0dPiyWPebwBSksJ_g
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCIF_gt4BfsWyM_2GOcKXyEQ
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCpPswAyGzdRwWmiW5oTNnvA
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UChNxH3wxiElBSAdAyMfNhJQ
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCnmeiFVqv64lAmVaw2PUm7w
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCtFcF_I558yCsGkP_5SdJHA
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCsvn_Po0SmunchJYOWpOxMg
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UC0vBXGSyV14uvJ4hECDOl0Q
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCJQJ4GjTiq5lmn8czf8oo0Q
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCsLWG2t7n9LFsvH0wR2rtpw
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UCplkk3J5wrEl0TNrthHjq4Q
-  #     - https://www.youtube.com/feeds/videos.xml?channel_id=UClr57MMpeX6m_p6hvvhu1Fw
-  #   rules:
-  #     - obj: authors
-  #       type: func
-  #       matcher: |
-  #         def func(placeholder):
-  #             tmp_list = []
-  #             for p in placeholder:
-  #                 tmp_list.append(p["name"])
+  - name: Youtube 订阅
+    url:
+      - https://rss.dov.moe/youtube/channel/UCMUnInmOkrWN4gof9KlhNmQ
+      - https://rss.dov.moe/youtube/channel/UC2tQpW0dPiyWPebwBSksJ_g
+      - https://rss.dov.moe/youtube/channel/UCIF_gt4BfsWyM_2GOcKXyEQ
+      - https://rss.dov.moe/youtube/channel/UCpPswAyGzdRwWmiW5oTNnvA
+      - https://rss.dov.moe/youtube/channel/UChNxH3wxiElBSAdAyMfNhJQ
+      - https://rss.dov.moe/youtube/channel/UCnmeiFVqv64lAmVaw2PUm7w
+      - https://rss.dov.moe/youtube/channel/UCtFcF_I558yCsGkP_5SdJHA
+      - https://rss.dov.moe/youtube/channel/UCsvn_Po0SmunchJYOWpOxMg
+      - https://rss.dov.moe/youtube/channel/UC0vBXGSyV14uvJ4hECDOl0Q
+      - https://rss.dov.moe/youtube/channel/UCsLWG2t7n9LFsvH0wR2rtpw
+      - https://rss.dov.moe/youtube/channel/UClr57MMpeX6m_p6hvvhu1Fw
+    rules:
+      - obj: title_detail
+        type: func
+        matcher: |
+          def func(placeholder):
+              author_dict = {
+                  "UCMUnInmOkrWN4gof9KlhNmQ": "老高與小茉 Mr & Mrs Gao",
+                  "UC2tQpW0dPiyWPebwBSksJ_g": "脑洞乌托邦",
+                  "UCIF_gt4BfsWyM_2GOcKXyEQ": "啾啾鞋",
+                  "UCpPswAyGzdRwWmiW5oTNnvA": "BIGDONGDONG",
+                  "UChNxH3wxiElBSAdAyMfNhJQ": "春茶",
+                  "UCnmeiFVqv64lAmVaw2PUm7w": "163 braces",
+                  "UCtFcF_I558yCsGkP_5SdJHA": "owoかや",
+                  "UCsvn_Po0SmunchJYOWpOxMg": "videogamedunkey",
+                  "UC0vBXGSyV14uvJ4hECDOl0Q": "Techquickie",
+                  "UCsLWG2t7n9LFsvH0wR2rtpw": "GEM鄧紫棋",
+                  "UClr57MMpeX6m_p6hvvhu1Fw": "BugCat Capoo",
+              }
 
-  #             return " / ".join(tmp_list)
-  #       dest: author_list
-  #   text: |
-  #     🎥 订阅更新：*{{ title }}*
+              channel_id = placeholder["base"].split("/")[-1]
+              author = author_dict.get(channel_id) or "未知"
 
-  #     🏆 Youtuber：*{{ author_list }}*
+              return author
+        dest: author
+    text: |
+      🎥 订阅更新：*{{ title }}*
 
-  #     🎯 直达链接：[点击此处]({{ link }})
+      🏆 Youtuber：*{{ author }}*
 
-  #     \#Apocalypsor的Youtube订阅
+      🎯 直达链接：[点击此处]({{ link }})
+
+      \#Apocalypsor的Youtube订阅
 
   - name: Bilibili 视频订阅
     url: https://rss.dov.moe/bilibili/followings/video/2975898
