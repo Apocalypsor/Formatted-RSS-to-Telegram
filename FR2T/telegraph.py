@@ -1,5 +1,8 @@
 from html_telegraph_poster import TelegraphPoster
-from html_telegraph_poster.errors import TelegraphContentTooBigError, TelegraphFloodWaitError
+from html_telegraph_poster.errors import (
+    TelegraphContentTooBigError,
+    TelegraphFloodWaitError,
+)
 from html_telegraph_poster.utils import DocumentPreprocessor
 
 
@@ -15,8 +18,12 @@ def generateTelegraph(access_token, title, author, content):
         return res["url"]
     except TelegraphContentTooBigError:
         print(f"Cannot generate Telegraph for {title}: Content too big.")
-        return generateTelegraph(access_token, title, author,
-                                 content="Failed to generate Telegraph: content too big. Please visit the original link.")
+        return generateTelegraph(
+            access_token,
+            title,
+            author,
+            content="Failed to generate Telegraph: content too big. Please visit the original link.",
+        )
     except TelegraphFloodWaitError:
         print(f"Cannot generate Telegraph for {title}: Exceed API limits.")
         return False

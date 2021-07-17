@@ -32,8 +32,7 @@ class FR2T:
         )
 
         self.telegraph_access_token = (
-                os.getenv("TELEGRAPH_ACCESS_TOKEN")
-                or self.config["telegraph_access_token"]
+                os.getenv("TELEGRAPH_ACCESS_TOKEN") or self.config["telegraph_access_token"]
         )
 
         self.telegram = self.config["telegram"]
@@ -52,9 +51,7 @@ class FR2T:
         self.telegram["disable_web_page_preview"] = (
                 self.telegram.get("disable_web_page_preview") or "false"
         )
-        self.telegram["parse_mode"] = (
-                self.telegram.get("parse_mode") or "MarkdownV2"
-        )
+        self.telegram["parse_mode"] = self.telegram.get("parse_mode") or "MarkdownV2"
 
     def run(self):
         pickleSSL()

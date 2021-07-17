@@ -33,4 +33,6 @@ jobs:
         env:
           DATABASE: ${{ secrets.DATABASE }}
           EXPIRE_TIME: ${{ secrets.EXPIRE_TIME }}
+          RSS_CONFIG: ${{ secrets.RSS_CONFIG}}
+          AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN}}
         run: pipenv run python ./clean.py || echo 'Check your configuration.'
