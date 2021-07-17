@@ -1,0 +1,45 @@
+name: Subscribe
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+
+  workflow_dispatch:
+   
+jobs:
+  FR2T:
+    name: Formatted RSS to Telegram
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install pipenv
+        run: python -m pip install --upgrade pipenv wheel
+      - name: Cache pipenv
+        uses: actions/cache@v2
+        id: cache-pipenv
+        with:
+          path: ~/.local/share/virtualenvs
+          key: ${{ runner.os }}-pipenv-v1-${{ hashFiles('Pipfile.lock') }}
+          restore-keys: ${{ runner.os }}-pipenv-v1-
+      - name: Install dependencies
+        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+        run: pipenv install
+      - name: Subscribe
+        env:
+          DATABASE: ${{ secrets.DATABASE }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          TG_DISABLE_NOTIFICATION: ${{ secrets.TG_DISABLE_NOTIFICATION }}
+          TG_DISABLE_WEB_PAGE_PREVIEW: ${{ secrets.TG_DISABLE_WEB_PAGE_PREVIEW }}
+          TG_PARSE_MODE: ${{ secrets.TG_PARSE_MODE }}
+          EXPIRE_TIME: ${{ secrets.EXPIRE_TIME }}
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN}}
+          RSS_CONFIG: ${{ secrets.RSS_CONFIG}}
+          AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN}}
+        run: pipenv run python ./main.py || echo 'Check your configuration.'

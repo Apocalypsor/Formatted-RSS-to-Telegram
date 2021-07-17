@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+feedparser = "*"
+pyyaml = "*"
+jinja2 = "*"
+requests = "*"
+pymongo = "*"
+dnspython = "*"
+morss = { editable = true, git = "https://github.com/pictuga/morss" }
+install = "*"
+html-telegraph-poster = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3"

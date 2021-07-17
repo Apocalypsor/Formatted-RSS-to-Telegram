@@ -1,0 +1,116 @@
+template:
+  WebSubTemplate: &WebSubTemplate
+    text: |
+      🌐 更新文章：*{{ title }}*
+
+      🎯 直达链接：[点击此处]({{ link }})
+
+      \#{{ rss_name }}
+
+  ArticleSubTemplate: &ArticleSubTemplate
+    telegraph: true
+    text: |
+      🌐 更新文章：*{{ title }}*
+
+      🎯 直达链接：[点击此处]({{ link }}) \| [预览]({{ telegraph}})
+
+      \#{{ rss_name }}
+
+rss:
+  - name: 每日精品限免 / 促销应用
+    url: https://rss.dov.moe/appstore/xianmian
+    rules:
+      - obj: summary
+        type: regex
+        matcher: 原价：(.+) -> 现价：(.+)
+        dest: price
+      - obj: summary
+        type: regex
+        matcher: 平台：(.+)
+        dest: platform
+      - obj: summary
+        type: regex
+        matcher: \n *(.+)$
+        dest: description
+    filters:
+      - obj: title
+        type: out
+        matcher: 降价
+    text: |
+      🧬 App优惠：*{{ title }}*
+
+      🚀 价格：{{ price[1] }} —\> {{ price[2] }}
+
+      🚀 平台：{{ platform }}
+
+      🚀 描述：{% if "<" in description %}无{% else %}{{ description }}{% endif %}
+
+      🎯 下载链接：[点击此处]({{ link }})
+
+      \#App优惠
+
+  - name: Youtube 订阅
+    url:
+      - https://rss.dov.moe/youtube/channel/UCMUnInmOkrWN4gof9KlhNmQ
+      - https://rss.dov.moe/youtube/channel/UC2tQpW0dPiyWPebwBSksJ_g
+    rules:
+      - obj: title_detail
+        type: func
+        matcher: |
+          def func(placeholder):
+              author_dict = {
+                  "UCMUnInmOkrWN4gof9KlhNmQ": "老高與小茉 Mr & Mrs Gao",
+                  "UC2tQpW0dPiyWPebwBSksJ_g": "脑洞乌托邦",
+              }
+
+              channel_id = placeholder["base"].split("/")[-1]
+              author = author_dict.get(channel_id) or "未知"
+
+              return author
+        dest: author
+    text: |
+      🎥 订阅更新：*{{ title }}*
+
+      🏆 Youtuber：*{{ author }}*
+
+      🎯 直达链接：[点击此处]({{ link }})
+
+      \#Youtube订阅
+
+  - name: Github 订阅
+    url:
+      - https://github.com/Fndroid/clash_for_windows_pkg/releases.atom
+      - https://github.com/Dreamacro/clash/commits/dev.atom
+    rules:
+      - obj: content.0.base
+        type: regex
+        matcher: https:\/\/github.com\/(.+?)\/(.+?)\/.+
+        dest: repo
+    filters:
+      - obj: title
+        type: out
+        matcher: Last updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}
+    text: |
+      🌈 项目更新：*{{ repo[1] }}/{{ repo[2] }}*
+
+      ✈️ 更新内容：[{{ title }}]({{ link }})
+
+      \#Github订阅  \#{{ repo[2] }}
+
+  - name: 少数派
+    url: https://sspai.com/feed
+    content:
+      obj: summary
+      matcher: |
+        def func(placeholder):
+            return placeholder.split("关联阅读：")[0].split("你可能错过的好文章")[0].split("📰")[0]
+    <<: *ArticleSubTemplate
+
+  - name: 爱范儿
+    url: https://www.ifanr.com/feed
+    <<: *ArticleSubTemplate
+
+  - name: 半佛仙人
+    url: http://freerss.qnmlgb.tech/wsmp/5c4522c5497ff46abab31dcd.xml
+    fulltext: true
+    <<: *ArticleSubTemplate
