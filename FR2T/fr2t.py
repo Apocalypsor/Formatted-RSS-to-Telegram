@@ -18,24 +18,23 @@ from .utils import default_user_agent, escapeAll, escapeText, execFunc, pickleSS
 
 class FR2T:
     def __init__(self, config, rss):
-        self.config = config
         self.rss = rss
 
-        self.database_url = os.getenv("DATABASE") or self.config["database_url"]
+        self.database_url = os.getenv("DATABASE") or config["database_url"]
         self.expire_time = (
-                os.getenv("EXPIRE_TIME") or self.config["expire_time"] or "30d"
+                os.getenv("EXPIRE_TIME") or config["expire_time"] or "30d"
         )
         self.user_agent = (
                 os.getenv("USER-AGENT")
-                or self.config.get("user-agent")
+                or config.get("user-agent")
                 or default_user_agent
         )
 
         self.telegraph_access_token = (
-                os.getenv("TELEGRAPH_ACCESS_TOKEN") or self.config["telegraph_access_token"]
+                os.getenv("TELEGRAPH_ACCESS_TOKEN") or config["telegraph_access_token"]
         )
 
-        self.telegram = self.config["telegram"]
+        self.telegram = config["telegram"]
 
         telegram_update = {}
         for up in self.telegram:
