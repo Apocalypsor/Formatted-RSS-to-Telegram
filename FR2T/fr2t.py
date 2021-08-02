@@ -19,22 +19,18 @@ from .utils import default_user_agent, escapeAll, escapeText, execFunc, pickleSS
 class FR2T:
     def __init__(self, config, rss):
         self.rss = rss
-
         self.database_url = os.getenv("DATABASE") or config["database_url"]
-        self.expire_time = (
-                os.getenv("EXPIRE_TIME") or config["expire_time"] or "30d"
-        )
+        self.expire_time = os.getenv("EXPIRE_TIME") or config["expire_time"] or "30d"
         self.user_agent = (
-                os.getenv("USER-AGENT")
-                or config.get("user-agent")
-                or default_user_agent
+                os.getenv("USER-AGENT") or config.get("user-agent") or default_user_agent
         )
-
         self.telegraph_access_token = (
                 os.getenv("TELEGRAPH_ACCESS_TOKEN") or config["telegraph_access_token"]
         )
-
         self.telegram = config["telegram"]
+        self.telegram.setdefault("disable_notification", "false")
+        self.telegram.setdefault("disable_web_page_preview", "false")
+        self.telegram.setdefault("parse_mode", "MarkdownV2")
 
         telegram_update = {}
         for up in self.telegram:
@@ -44,24 +40,14 @@ class FR2T:
 
         self.telegram.update(telegram_update)
 
-        self.telegram["disable_notification"] = (
-                self.telegram.get("disable_notification") or "false"
-        )
-        self.telegram["disable_web_page_preview"] = (
-                self.telegram.get("disable_web_page_preview") or "false"
-        )
-        self.telegram["parse_mode"] = self.telegram.get("parse_mode") or "MarkdownV2"
-
     def run(self):
-        pickleSSL()
-
-        client = MongoClient(self.database_url)
-        db = client["RSS"]
+        db = MongoClient(self.database_url)["RSS"]
 
         all_sub = db.list_collection_names()
 
         tmp_rss = []
 
+        # If url is a list, split rss into multiple lists
         for r in self.rss["rss"]:
             url = r.get("url")
             new_sub = r["name"] not in all_sub
@@ -87,7 +73,7 @@ class FR2T:
         ]
 
         with Pool(8) as p:
-            p.map(RunProcess, args)
+            p.map(ProcessRSS, args)
 
         print("Finished!")
 
@@ -95,23 +81,22 @@ class FR2T:
         now_time = datetime.datetime.now()
         days = hours = 0
         if self.expire_time.endswith("y"):
-            days = int(self.expire_time.strip("y")) * 365
+            days = int(self.expire_time.rstrip("y")) * 365
 
         if self.expire_time.endswith("m"):
-            days = int(self.expire_time.strip("m")) * 30
+            days = int(self.expire_time.rstrip("m")) * 30
 
         if self.expire_time.endswith("d"):
-            days = int(self.expire_time.strip("d"))
+            days = int(self.expire_time.rstrip("d"))
 
         if self.expire_time.endswith("h"):
-            hours = int(self.expire_time.strip("h"))
+            hours = int(self.expire_time.rstrip("h"))
 
         expired_time = now_time - datetime.timedelta(days=days, hours=hours)
         expired_timestamp = datetime.datetime.timestamp(expired_time)
 
         deleted_num = 0
-        client = MongoClient(self.database_url)
-        db = client["RSS"]
+        db = MongoClient(self.database_url)["RSS"]
         col_list = db.list_collection_names()
         for col_name in col_list:
             print(f"开始清理: {col_name}")
@@ -124,7 +109,7 @@ class FR2T:
         print(f"已删除 {deleted_num} 个记录！")
 
 
-class RunProcess:
+class ProcessRSS:
     def __init__(self, mix_args):
         (
             self.rss,
@@ -138,11 +123,10 @@ class RunProcess:
         self.new_sub = self.rss["new_sub"]
 
         pickleSSL()
-        self.runProcess()
+        self.main()
 
-    def runProcess(self):
-        client = MongoClient(self.database_url)
-        db = client["RSS"]
+    def main(self):
+        db = MongoClient(self.database_url)["RSS"]
 
         if self.rss.get("fulltext"):
             rss_content = rssFullParser(self.url)
@@ -163,12 +147,10 @@ class RunProcess:
 
                     id = self.handleID(content)
 
-                    client = MongoClient(self.database_url)
-                    db = client["RSS"]
-                    id_posted = db[self.rss["name"]].find_one({"id": id})
+                    posted = db[self.rss["name"]].find_one({"id": id})
 
                     telegraph_url, telegraph_content = self.handleTelegraph(
-                        id_posted,
+                        posted,
                         content,
                     )
 
@@ -192,33 +174,32 @@ class RunProcess:
                         if self.rss.get("telegram"):
                             tmp_tg.update(self.rss["telegram"])
 
-                        self.handleText(id, id_posted, text, tmp_tg, telegraph_url)
+                        self.handleText(id, posted, text, tmp_tg, telegraph_url)
 
-    def handleText(self, id, id_posted, text, tg, telegraph_url=""):
-        client = MongoClient(self.database_url)
-        db = client["RSS"]
+    def handleText(self, id, posted, text, tg, telegraph_url=""):
+        db = MongoClient(self.database_url)["RSS"]
 
         name = self.rss["name"]
         text_hash = hashlib.md5(text.encode()).hexdigest()
 
-        if id_posted:
-            if id_posted["text"] != text_hash and id_posted["message"] != -1:
-                edit_result = editToTelegram(tg, id_posted["message"], text)
+        if posted:
+            if posted["text"] != text_hash and posted["message"] != -1:
+                edit_result = editToTelegram(tg, posted["message"], text)
                 if edit_result == 2:
                     db[name].update_one(
-                        {"_id": id_posted["_id"]},
+                        {"_id": posted["_id"]},
                         {"$set": {"text": text_hash, "edit_time": time.time()}},
                     )
 
                     print(
                         "Edited 1 message: ID {} TEXT {} in {}".format(
-                            id_posted["message"], text_hash, name
+                            posted["message"], text_hash, name
                         )
                     )
 
                 elif edit_result == 1:
                     db[name].update_one(
-                        {"_id": id_posted["_id"]},
+                        {"_id": posted["_id"]},
                         {
                             "$set": {
                                 "message": -1,
@@ -230,7 +211,7 @@ class RunProcess:
 
                     print(
                         "Edited 1 message: ID {} TEXT {} in {} (doesn't exist)".format(
-                            id_posted["message"], text_hash, name
+                            posted["message"], text_hash, name
                         )
                     )
                 else:
@@ -238,7 +219,7 @@ class RunProcess:
 
             if telegraph_url:
                 db[name].update_one(
-                    {"_id": id_posted["_id"]},
+                    {"_id": posted["_id"]},
                     {
                         "$set": {
                             "telegraph_url": telegraph_url,
@@ -270,8 +251,7 @@ class RunProcess:
 
     def handleExpire(self):
         url = self.url
-        client = MongoClient(self.database_url)
-        db = client["RSS"]
+        db = MongoClient(self.database_url)["RSS"]
 
         expired_url = db["Expire"].find_one({"url": url})
         if expired_url:
@@ -335,7 +315,7 @@ class RunProcess:
 
         return id1_hash + id2_hash
 
-    def handleTelegraph(self, id_posted, content):
+    def handleTelegraph(self, posted, content):
         def __generateTelegraph(
                 title, telegraph_author, content, telegraph_access_token
         ):
@@ -357,23 +337,22 @@ class RunProcess:
                 obj = objParser(content, self.rss["content"]["obj"])
                 telegraph_content = execFunc(obj, self.rss["content"]["matcher"])
             else:
-                telegraph_content = content["content"][0]["value"]
+                telegraph_content = content["content"][0]["value"] if content.get("content") else content["summary"]
 
             telegraph_author = content.get("author") or "Anonymous"
 
             telegraph_author_title = content["title"]
 
-            if id_posted:
-                if not id_posted.get("telegraph_url"):
-                    telegraph_url = __generateTelegraph(
-                        telegraph_author_title,
-                        telegraph_author,
-                        telegraph_content,
-                        self.telegraph_access_token,
-                    )
+            post_flag = False
+            if posted:
+                if not posted.get("telegraph_url"):
+                    post_flag = True
                 else:
-                    telegraph_url = id_posted["telegraph_url"]
+                    telegraph_url = posted["telegraph_url"]
             else:
+                post_flag = True
+
+            if post_flag:
                 telegraph_url = __generateTelegraph(
                     telegraph_author_title,
                     telegraph_author,
