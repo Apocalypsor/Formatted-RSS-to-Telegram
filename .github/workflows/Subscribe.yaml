@@ -2,7 +2,7 @@ name: Subscribe
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/6 * * * *"
 
   workflow_dispatch:
    
@@ -10,7 +10,7 @@ jobs:
   FR2T:
     name: Formatted RSS to Telegram
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 6
     steps:
       - name: Checkout
         uses: actions/checkout@v2
