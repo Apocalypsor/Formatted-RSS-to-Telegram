@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 /.idea/
 /test/*.json
-/test/test.py
+/test.py

@@ -1,6 +1,6 @@
 import hashlib
 
-from base import SenderBase
+from .base import SenderBase
 from ..utils import postData, default_user_agent
 
 

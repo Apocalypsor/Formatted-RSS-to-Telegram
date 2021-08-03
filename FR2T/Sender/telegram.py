@@ -3,7 +3,7 @@ import time
 
 from jinja2 import Template
 
-from base import SenderBase
+from .base import SenderBase
 from ..utils import postData
 
 

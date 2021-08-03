@@ -38,7 +38,9 @@ jobs:
           TG_DISABLE_NOTIFICATION: ${{ secrets.TG_DISABLE_NOTIFICATION }}
           TG_DISABLE_WEB_PAGE_PREVIEW: ${{ secrets.TG_DISABLE_WEB_PAGE_PREVIEW }}
           TG_PARSE_MODE: ${{ secrets.TG_PARSE_MODE }}
-          EXPIRE_TIME: ${{ secrets.EXPIRE_TIME }}
+          MASTODON_BASE_URL: ${{ secrets.MASTODON_BASE_URL }}
+          MASTODON_CLIENT_ID: ${{ secrets.MASTODON_CLIENT_ID }}
+          MASTODON_CLIENT_SECRET: ${{ secrets.MASTODON_CLIENT_SECRET }}
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN}}
           RSS_CONFIG: ${{ secrets.RSS_CONFIG}}
           AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN}}
