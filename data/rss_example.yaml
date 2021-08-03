@@ -1,20 +1,12 @@
 template:
-  WebSubTemplate: &WebSubTemplate
-    text: |
-      🌐 更新文章：*{{ title }}*
-
-      🎯 直达链接：[点击此处]({{ link }})
-
-      \#{{ rss_name }}
-
   ArticleSubTemplate: &ArticleSubTemplate
     telegraph: true
     text: |
       🌐 更新文章：*{{ title }}*
 
-      🎯 直达链接：[点击此处]({{ link }}) \| [预览]({{ telegraph}})
+      🎯 直达链接：[点击此处]({{ link }}) | [预览]({{ telegraph}})
 
-      \#{{ rss_name }}
+      #{{ rss_name }}
 
 rss:
   - name: 每日精品限免 / 促销应用
@@ -47,7 +39,7 @@ rss:
 
       🎯 下载链接：[点击此处]({{ link }})
 
-      \#App优惠
+      #App优惠
 
   - name: Youtube 订阅
     url:
@@ -68,6 +60,12 @@ rss:
 
               return author
         dest: author
+    sender:
+      telegram:
+        chat_id:
+        disable_notification:
+        disable_web_page_preview:
+    sendto: telegram
     text: |
       🎥 订阅更新：*{{ title }}*
 
@@ -75,7 +73,7 @@ rss:
 
       🎯 直达链接：[点击此处]({{ link }})
 
-      \#Youtube订阅
+      #Youtube订阅
 
   - name: Github 订阅
     url:
@@ -90,12 +88,22 @@ rss:
       - obj: title
         type: out
         matcher: Last updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}
+    sender:
+      telegram:
+        chat_id:
+        disable_notification:
+        disable_web_page_preview:
+      mastodon:
+        authorization_code:
+    sendto:
+      - telegram
+      - mastodon
     text: |
       🌈 项目更新：*{{ repo[1] }}/{{ repo[2] }}*
 
       ✈️ 更新内容：[{{ title }}]({{ link }})
 
-      \#Github订阅  \#{{ repo[2] }}
+      #Github订阅  \#{{ repo[2] }}
 
   - name: 少数派
     url: https://sspai.com/feed

@@ -12,3 +12,8 @@ telegram:
   disable_notification:
   disable_web_page_preview:
   parse_mode:
+
+mastodon:
+  client_id:
+  client_secret:
+  authorization_code:

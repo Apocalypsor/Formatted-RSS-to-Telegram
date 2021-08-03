@@ -4,6 +4,7 @@ import hashlib
 import os
 import random
 import re
+import sys
 import time
 from multiprocessing import Pool
 
@@ -11,9 +12,9 @@ from jinja2 import Template
 from pymongo import MongoClient
 
 from .parser import rssParser, rssFullParser, objParser
-from .sender import editToTelegram, sendToTelegram
+from .sender import loadSender, validateSender, initSender
 from .telegraph import generateTelegraph
-from .utils import default_user_agent, escapeAll, escapeText, execFunc, pickleSSL
+from .utils import default_user_agent, execFunc, pickleSSL
 
 
 class FR2T:
@@ -27,53 +28,56 @@ class FR2T:
         self.telegraph_access_token = (
                 os.getenv("TELEGRAPH_ACCESS_TOKEN") or config["telegraph_access_token"]
         )
-        self.telegram = config["telegram"]
-        self.telegram.setdefault("disable_notification", "false")
-        self.telegram.setdefault("disable_web_page_preview", "false")
-        self.telegram.setdefault("parse_mode", "MarkdownV2")
 
-        telegram_update = {}
-        for up in self.telegram:
-            up_v = os.getenv("TG_" + up.upper())
-            if up_v:
-                telegram_update[up] = up_v
+        self.valid_send, self.sender = validateSender(loadSender(config))
 
-        self.telegram.update(telegram_update)
+        if self.valid_send == "no_valid":
+            sys.exit("No Valid Sender!")
 
     def run(self):
         db = MongoClient(self.database_url)["RSS"]
 
         all_sub = db.list_collection_names()
 
-        tmp_rss = []
-
+        tmp_rss1 = tmp_rss2 = []
         # If url is a list, split rss into multiple lists
         for r in self.rss["rss"]:
             url = r.get("url")
-            new_sub = r["name"] not in all_sub
             if isinstance(url, str):
-                r["new_sub"] = new_sub
-                tmp_rss.append(r)
+                tmp_rss1.append(r)
             elif isinstance(url, list):
                 for u in url:
-                    tmp_r = copy.deepcopy(r)
-                    tmp_r["url"] = u
-                    tmp_r["new_sub"] = new_sub
-                    tmp_rss.append(tmp_r)
+                    r["url"] = u
+                    tmp_rss1.append(r)
 
-        args = [
-            (
-                r,
-                self.telegram,
-                self.database_url,
-                self.user_agent,
-                self.telegraph_access_token,
+        # Valid sender in rss
+        for r in tmp_rss1:
+            r["new_sub"] = r["name"] not in all_sub
+            if self.valid_send != "multiple_valid":
+                r["sendto"] = [self.valid_send]
+            else:
+                if not r.get("sendto"):
+                    r["sendto"] = [self.sender.keys()[0]]
+                else:
+                    if isinstance(r["sendto"], str):
+                        r["sendto"] = [r["sendto"]]
+
+            tmp_sender = copy.deepcopy(self.sender)
+            for sd in r["sender"]:
+                tmp_sender[sd].update(r["sender"][sd])
+
+            r["sender"] = tmp_sender
+
+            r["database_url"] = r.get("database_url") or self.database_url
+            r["user_agent"] = r.get("user_agent") or self.user_agent
+            r["telegraph_access_token"] = (
+                    r.get("telegraph_access_token") or self.telegraph_access_token
             )
-            for r in tmp_rss
-        ]
+
+            tmp_rss2.append(r)
 
         with Pool(8) as p:
-            p.map(ProcessRSS, args)
+            p.map(ProcessRSS, tmp_rss2)
 
         print("Finished!")
 
@@ -110,36 +114,29 @@ class FR2T:
 
 
 class ProcessRSS:
-    def __init__(self, mix_args):
-        (
-            self.rss,
-            self.telegram,
-            self.database_url,
-            self.user_agent,
-            self.telegraph_access_token,
-        ) = mix_args
-
-        self.url = self.rss["url"]
-        self.new_sub = self.rss["new_sub"]
+    def __init__(self, rss):
+        self.rss = rss
 
         pickleSSL()
         self.main()
 
     def main(self):
-        db = MongoClient(self.database_url)["RSS"]
+        db = MongoClient(self.rss["database_url"])["RSS"]
 
         if self.rss.get("fulltext"):
-            rss_content = rssFullParser(self.url)
+            rss_content = rssFullParser(self.rss["url"])
         else:
-            rss_content = rssParser(self.url, self.user_agent)
+            rss_content = rssParser(self.rss["url"], self.rss["user_agent"])
 
         if not rss_content:
             self.handleExpire()
         else:
             db["Expire"].update_one(
-                {"url": self.url},
+                {"url": self.rss["url"]},
                 {"$set": {"expired": 0}},
             )
+
+            id_map = set()
 
             for content in rss_content:
                 if self.handleFilter(content):
@@ -147,118 +144,160 @@ class ProcessRSS:
 
                     id = self.handleID(content)
 
-                    posted = db[self.rss["name"]].find_one({"id": id})
+                    if id not in id_map:
+                        id_map.add(id)
 
-                    telegraph_url, telegraph_content = self.handleTelegraph(
-                        posted,
-                        content,
-                    )
+                        posted = db[self.rss["name"]].find_one({"id": id})
 
-                    if telegraph_url != False:
-                        result["telegraph"] = telegraph_url
-
-                        template = Template(self.rss["text"])
-
-                        args = dict(
-                            **result,
-                            **content,
-                            rss_name=self.rss["name"],
-                            rss_url=self.rss["url"],
-                            rss_content=telegraph_content,
+                        telegraph_url, telegraph_content = self.handleTelegraph(
+                            posted,
+                            content,
                         )
-                        escapeAll(self.telegram["parse_mode"], args)
 
-                        text = template.render(args)
+                        if telegraph_url != False:
+                            result["telegraph"] = telegraph_url
 
-                        tmp_tg = copy.deepcopy(self.telegram)
-                        if self.rss.get("telegram"):
-                            tmp_tg.update(self.rss["telegram"])
+                            # To calculate text hash, ignore characters needing to be escaped
+                            template = Template(self.rss["text"])
 
-                        self.handleText(id, posted, text, tmp_tg, telegraph_url)
+                            args = dict(
+                                **result,
+                                **content,
+                                rss_name=self.rss["name"],
+                                rss_url=self.rss["url"],
+                                rss_content=telegraph_content,
+                            )
 
-    def handleText(self, id, posted, text, tg, telegraph_url=""):
-        db = MongoClient(self.database_url)["RSS"]
+                            text = template.render(args)
+                            text_hash = hashlib.md5(text.encode()).hexdigest()
 
-        name = self.rss["name"]
-        text_hash = hashlib.md5(text.encode()).hexdigest()
+                            # Collection structure：
+                            #   - _id: ObjectId
+                            #   - create_time: Double
+                            #   - edit_time: Double
+                            #   - id: String
+                            #   - text: String
+                            #   - text_hash: String
+                            #   - telegraph_url: String
+                            #   - telegram_text_hash: String
+                            #   - telegram_message_id: Int32
+                            #   - telegram_exist: Int32 (1 or 0)
+                            #   - telegram_send_success: Int32 (1 or 0)
+                            #   ...
 
-        if posted:
-            if posted["text"] != text_hash and posted["message"] != -1:
-                edit_result = editToTelegram(tg, posted["message"], text)
-                if edit_result == 2:
-                    db[name].update_one(
-                        {"_id": posted["_id"]},
-                        {"$set": {"text": text_hash, "edit_time": time.time()}},
-                    )
+                            set_data = (
+                                {"telegraph_url": telegraph_url}
+                                if not posted.get("telegraph_url") and telegraph_url
+                                else {}
+                            )
 
-                    print(
-                        "Edited 1 message: ID {} TEXT {} in {}".format(
-                            posted["message"], text_hash, name
-                        )
-                    )
+                            if posted:
+                                set_data.update({"edit_time": time.time()})
 
-                elif edit_result == 1:
-                    db[name].update_one(
-                        {"_id": posted["_id"]},
-                        {
-                            "$set": {
-                                "message": -1,
-                                "text": text_hash,
-                                "edit_time": time.time(),
-                            }
-                        },
-                    )
+                                if posted["text_hash"] != text_hash:
+                                    set_data["text"] = text
+                                    set_data["text_hash"] = text_hash
 
-                    print(
-                        "Edited 1 message: ID {} TEXT {} in {} (doesn't exist)".format(
-                            posted["message"], text_hash, name
-                        )
-                    )
-                else:
-                    return
+                                for st in self.rss["sendto"]:
+                                    sen = initSender(st, self.rss["sender"][st])
+                                    msg = sen.render(self.rss["text"], args)
 
-            if telegraph_url:
-                db[name].update_one(
-                    {"_id": posted["_id"]},
-                    {
-                        "$set": {
-                            "telegraph_url": telegraph_url,
-                        }
-                    },
-                )
+                                    if not posted[st + "_send_success"]:
+                                        result_id = sen.send(msg)
+                                        if result_id:
+                                            set_data[st + "_text_hash"] = text_hash
+                                            set_data[st + "_message_id"] = result_id
+                                            set_data[st + "_exist"] = 1
+                                            set_data[st + "_send_success"] = 1
 
-        else:
-            if self.new_sub:
-                message_id = -1
-            else:
-                message_id = sendToTelegram(tg, text)
+                                            print(
+                                                "{} sent 1 message: TEXT {} in {}.".format(
+                                                    st.capitalize(),
+                                                    posted[st + "_text_hash"],
+                                                    self.rss["name"],
+                                                )
+                                            )
 
-            if message_id:
-                insert_data = {
-                    "id": id,
-                    "message": message_id,
-                    "text": text_hash,
-                    "create_time": time.time(),
-                    "edit_time": time.time(),
-                }
+                                    elif (
+                                            posted[st + "_exist"]
+                                            and posted[st + "_text_hash"] != text_hash
+                                    ):
+                                        edit_result = sen.edit(
+                                            posted[st + "_message_id"], msg
+                                        )
+                                        if edit_result == 2:
+                                            set_data[st + "_text_hash"] = text_hash
+                                            print(
+                                                "{} edited 1 message: TEXT {} in {}.".format(
+                                                    st.capitalize(),
+                                                    text_hash,
+                                                    self.rss["name"],
+                                                )
+                                            )
 
-                if telegraph_url:
-                    insert_data["telegraph_url"] = telegraph_url
+                                        elif edit_result == 1:
+                                            set_data[st + "_exist"] = 0
+                                            print(
+                                                "{} edited 1 message: TEXT {} in {} (doesn't exist).".format(
+                                                    st.capitalize(),
+                                                    text_hash,
+                                                    self.rss["name"],
+                                                )
+                                            )
 
-                db[name].insert_one(insert_data)
+                                db[self.rss["name"]].update_one(
+                                    {"_id": posted["_id"]},
+                                    {"$set": set_data},
+                                )
 
-                print(f"Sent 1 message: {text_hash} in {name}")
+                            else:
+                                set_data.update(
+                                    {
+                                        "id": id,
+                                        "text": text,
+                                        "text_hash": text_hash,
+                                        "create_time": time.time(),
+                                        "edit_time": time.time(),
+                                    }
+                                )
+
+                                if self.rss["new_sub"]:
+                                    for st in self.rss["sendto"]:
+                                        set_data[st + "_text_hash"] = text_hash
+                                        set_data[st + "_message_id"] = -1
+                                        set_data[st + "_exist"] = 0
+                                        set_data[st + "_send_success"] = 1
+                                else:
+                                    for st in self.rss["sendto"]:
+                                        sen = initSender(st, self.rss["sender"][st])
+                                        msg = sen.render(self.rss["text"], args)
+                                        result_id = sen.send(msg)
+
+                                        set_data[st + "_text_hash"] = text_hash
+                                        set_data[st + "_message_id"] = result_id or -1
+                                        set_data[st + "_exist"] = int(bool(result_id))
+                                        set_data[st + "_send_success"] = int(
+                                            bool(result_id)
+                                        )
+
+                                        print(
+                                            "{} sent 1 message: TEXT {} in {}.".format(
+                                                st.capitalize(),
+                                                posted[st + "_text_hash"],
+                                                self.rss["name"],
+                                            )
+                                        )
+
+                                db[self.rss["name"]].insert_one(set_data)
 
     def handleExpire(self):
-        url = self.url
-        db = MongoClient(self.database_url)["RSS"]
+        url = self.rss["url"]
+        db = MongoClient(self.rss["database_url"])["RSS"]
 
         expired_url = db["Expire"].find_one({"url": url})
         if expired_url:
             if expired_url["expired"] > 100:
-                msg = escapeText(self.telegram["parse_mode"], url)
                 print(f"订阅 {url} 已失效")
-                sendToTelegram(self.telegram, f"订阅 {msg} 已失效\n\n\#提醒")
             else:
                 db["Expire"].update_one(
                     {"_id": expired_url["_id"]},
@@ -308,7 +347,7 @@ class ProcessRSS:
         return result
 
     def handleID(self, content):
-        id1_hash = hashlib.md5(self.url.encode()).hexdigest()
+        id1_hash = hashlib.md5(self.rss["url"].encode()).hexdigest()
 
         id2 = content.get("id") or content.get("guid") or content.get("link")
         id2_hash = hashlib.md5(id2.encode()).hexdigest()
@@ -332,12 +371,16 @@ class ProcessRSS:
 
         telegraph_url = telegraph_content = ""
 
-        if self.rss.get("telegraph") and self.telegraph_access_token:
+        if self.rss.get("telegraph") and self.rss.get("telegraph_access_token"):
             if self.rss.get("content"):
                 obj = objParser(content, self.rss["content"]["obj"])
                 telegraph_content = execFunc(obj, self.rss["content"]["matcher"])
             else:
-                telegraph_content = content["content"][0]["value"] if content.get("content") else content["summary"]
+                telegraph_content = (
+                    content["content"][0]["value"]
+                    if content.get("content")
+                    else content["summary"]
+                )
 
             telegraph_author = content.get("author") or "Anonymous"
 
@@ -357,7 +400,7 @@ class ProcessRSS:
                     telegraph_author_title,
                     telegraph_author,
                     telegraph_content,
-                    self.telegraph_access_token,
+                    self.rss["telegraph_access_token"],
                 )
 
         return telegraph_url, telegraph_content

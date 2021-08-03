@@ -73,51 +73,14 @@ def getConfigFile(config_path, rss_path):
     return config, rss
 
 
-def escapeText(mode, text):
-    escaped_chara = ()
+def dictDeleteNone(_dict):
+    for key, value in list(_dict.items()):
+        if isinstance(value, dict):
+            dictDeleteNone(value)
+        elif value is None:
+            del _dict[key]
+        elif isinstance(value, list):
+            for v_i in value:
+                dictDeleteNone(v_i)
 
-    if mode.lower() == "markdownv2":
-        escaped_chara = (
-            "_",
-            "*",
-            "[",
-            "]",
-            "(",
-            ")",
-            "~",
-            "`",
-            ">",
-            "#",
-            "+",
-            "-",
-            "=",
-            "|",
-            "{",
-            "}",
-            ".",
-            "!",
-        )
-
-    elif mode.lower() == "markdown":
-        escaped_chara = ("_", "*", "`", "[")
-
-    for e in escaped_chara:
-        text = text.replace(e, "\\" + e)
-
-    return text
-
-
-def escapeAll(mode, obj):
-    if isinstance(obj, str):
-        escaped = escapeText(mode, obj)
-        return escaped
-
-    elif isinstance(obj, list):
-        for o in range(len(obj)):
-            obj[o] = escapeAll(mode, obj[o])
-        return obj
-
-    elif isinstance(obj, dict):
-        for k, v in obj.items():
-            obj[k] = escapeAll(mode, v)
-        return obj
+    return _dict
