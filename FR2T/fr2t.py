@@ -39,7 +39,8 @@ class FR2T:
 
         all_sub = db.list_collection_names()
 
-        tmp_rss1 = tmp_rss2 = []
+        tmp_rss1 = []
+        tmp_rss2 = []
         # If url is a list, split rss into multiple lists
         for r in self.rss["rss"]:
             url = r.get("url")
@@ -63,8 +64,10 @@ class FR2T:
                         r["sendto"] = [r["sendto"]]
 
             tmp_sender = copy.deepcopy(self.sender)
-            for sd in r["sender"]:
-                tmp_sender[sd].update(r["sender"][sd])
+
+            if r.get("sender"):
+                for sd in r.get("sender"):
+                    tmp_sender[sd].update(r["sender"][sd])
 
             r["sender"] = tmp_sender
 
@@ -187,13 +190,11 @@ class ProcessRSS:
 
                             set_data = (
                                 {"telegraph_url": telegraph_url}
-                                if not posted.get("telegraph_url") and telegraph_url
+                                if not posted or not posted.get("telegraph_url") and telegraph_url
                                 else {}
                             )
 
                             if posted:
-                                set_data.update({"edit_time": time.time()})
-
                                 if posted["text_hash"] != text_hash:
                                     set_data["text"] = text
                                     set_data["text_hash"] = text_hash
@@ -213,7 +214,7 @@ class ProcessRSS:
                                             print(
                                                 "{} sent 1 message: TEXT {} in {}.".format(
                                                     st.capitalize(),
-                                                    posted[st + "_text_hash"],
+                                                    text_hash,
                                                     self.rss["name"],
                                                 )
                                             )
@@ -245,10 +246,12 @@ class ProcessRSS:
                                                 )
                                             )
 
-                                db[self.rss["name"]].update_one(
-                                    {"_id": posted["_id"]},
-                                    {"$set": set_data},
-                                )
+                                if set_data:
+                                    set_data.update({"edit_time": time.time()})
+                                    db[self.rss["name"]].update_one(
+                                        {"_id": posted["_id"]},
+                                        {"$set": set_data},
+                                    )
 
                             else:
                                 set_data.update(
@@ -267,6 +270,14 @@ class ProcessRSS:
                                         set_data[st + "_message_id"] = -1
                                         set_data[st + "_exist"] = 0
                                         set_data[st + "_send_success"] = 1
+
+                                        print(
+                                            "{} sent 1 message: TEXT {} in {} (initial).".format(
+                                                st.capitalize(),
+                                                text_hash,
+                                                self.rss["name"],
+                                            )
+                                        )
                                 else:
                                     for st in self.rss["sendto"]:
                                         sen = initSender(st, self.rss["sender"][st])
@@ -283,7 +294,7 @@ class ProcessRSS:
                                         print(
                                             "{} sent 1 message: TEXT {} in {}.".format(
                                                 st.capitalize(),
-                                                posted[st + "_text_hash"],
+                                                text_hash,
                                                 self.rss["name"],
                                             )
                                         )
@@ -358,7 +369,7 @@ class ProcessRSS:
         def __generateTelegraph(
                 title, telegraph_author, content, telegraph_access_token
         ):
-            time.sleep(random.randint(1, 15))
+            time.sleep(random.randint(1, 5))
 
             telegraph_url = generateTelegraph(
                 telegraph_access_token,
@@ -386,21 +397,24 @@ class ProcessRSS:
 
             telegraph_author_title = content["title"]
 
-            post_flag = False
-            if posted:
-                if not posted.get("telegraph_url"):
-                    post_flag = True
+            if not self.rss.get("new_sub"):
+                post_flag = False
+                if posted:
+                    if not posted.get("telegraph_url"):
+                        post_flag = True
+                    else:
+                        telegraph_url = posted["telegraph_url"]
                 else:
-                    telegraph_url = posted["telegraph_url"]
-            else:
-                post_flag = True
+                    post_flag = True
 
-            if post_flag:
-                telegraph_url = __generateTelegraph(
-                    telegraph_author_title,
-                    telegraph_author,
-                    telegraph_content,
-                    self.rss["telegraph_access_token"],
-                )
+                if post_flag:
+                    telegraph_url = __generateTelegraph(
+                        telegraph_author_title,
+                        telegraph_author,
+                        telegraph_content,
+                        self.rss["telegraph_access_token"],
+                    )
+            else:
+                telegraph_url = "https://example.com"
 
         return telegraph_url, telegraph_content

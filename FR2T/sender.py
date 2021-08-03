@@ -1,4 +1,5 @@
 import os
+import re
 import time
 
 from jinja2 import Template
@@ -53,7 +54,7 @@ def validateSender(sender):
     if not sender:
         return "no_valid", sender
     elif len(sender.keys()) == 1:
-        return sender.keys()[0], sender
+        return list(sender.keys())[0], sender
     else:
         return "multiple_valid", sender
 
@@ -135,8 +136,15 @@ class Telegram(SenderBase):
         if self.config["parse_mode"].lower() == "markdownv2":
             escaped_chara = (">", "#", "+", "-", "=", "|", "{", "}", ".", "!")
 
-            for e in escaped_chara:
-                text = text.replace(e, "\\" + e)
+            template_out = re.split("{{.+?}}|{%.+?%}", text)
+            template_in = re.findall("{{.+?}}|{%.+?%}", text)
+            template_in.append("")
+
+            for tp in range(len(template_out)):
+                for e in escaped_chara:
+                    template_out[tp] = template_out[tp].replace(e, "\\" + e)
+
+            text = "".join([template_out[t] + template_in[t] for t in range(len(template_out))])
 
         return text
 
@@ -180,10 +188,10 @@ class Telegram(SenderBase):
 
         elif isinstance(obj, list):
             for o in range(len(obj)):
-                obj[o] = self.escapeText(obj[o])
+                obj[o] = self.escapeAll(obj[o])
             return obj
 
         elif isinstance(obj, dict):
             for k, v in obj.items():
-                obj[k] = self.escapeText(v)
+                obj[k] = self.escapeAll(v)
             return obj
