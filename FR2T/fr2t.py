@@ -67,7 +67,10 @@ class FR2T:
 
             if r.get("sender"):
                 for sd in r.get("sender"):
-                    tmp_sender[sd].update(r["sender"][sd])
+                    if tmp_sender.get(sd):
+                        tmp_sender[sd].update(r["sender"][sd])
+                    else:
+                        tmp_sender[sd] = r["sender"][sd]
 
             r["sender"] = tmp_sender
 
