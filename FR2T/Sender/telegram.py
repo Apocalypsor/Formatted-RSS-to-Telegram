@@ -4,8 +4,10 @@ import time
 from jinja2 import Template
 
 from .base import SenderBase
+from ..logging import Log
 from ..utils import postData
 
+logger = Log(__name__).getlog()
 
 class Telegram(SenderBase):
     def render(self, template, args):
@@ -28,13 +30,11 @@ class Telegram(SenderBase):
         if r.json()["ok"]:
             return int(r.json()["result"]["message_id"])
         elif r.json()["error_code"] == 429:
-            print("\nToo frequently! Sleep 30s.\n")
+            logger.error("Too frequently! Sleep 30s.")
             time.sleep(30)
             self.send(text)
         else:
-            print("\nError: failed to send the message:")
-            print(text)
-            print(r.json()["description"] + "\n")
+            logger.error("Error: failed to send the message:\n{}\n{}".format(text, r.json()["description"]))
             return None
 
     def edit(self, message_id, text):
@@ -54,9 +54,7 @@ class Telegram(SenderBase):
         elif "message to edit not found" in r.json()["description"]:
             return 1
         else:
-            print("\nError: failed to edit the message:")
-            print(text)
-            print(r.json()["description"] + "\n")
+            logger.error("Error: failed to edit the message:\n{}\n{}".format(text, r.json()["description"]))
             return 0
 
     def escapeTemplate(self, text):

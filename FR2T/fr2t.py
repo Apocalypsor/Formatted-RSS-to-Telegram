@@ -11,22 +11,24 @@ from multiprocessing import Pool
 from jinja2 import Template
 from pymongo import MongoClient
 
+from .logging import Log
 from .parser import rssParser, rssFullParser, objParser
 from .sender import loadSender, validateSender, initSender
 from .telegraph import generateTelegraph
 from .utils import default_user_agent, execFunc, pickleSSL
 
+logger = Log(__name__).getlog()
 
 class FR2T:
     def __init__(self, config, rss):
         self.rss = rss
-        self.database_url = os.getenv("DATABASE") or config["database_url"]
-        self.expire_time = os.getenv("EXPIRE_TIME") or config["expire_time"] or "30d"
+        self.database_url = os.getenv("DATABASE") or config.get("database_url")
+        self.expire_time = os.getenv("EXPIRE_TIME") or config.get("expire_time") or "30d"
         self.user_agent = (
                 os.getenv("USER-AGENT") or config.get("user-agent") or default_user_agent
         )
         self.telegraph_access_token = (
-                os.getenv("TELEGRAPH_ACCESS_TOKEN") or config["telegraph_access_token"]
+                os.getenv("TELEGRAPH_ACCESS_TOKEN") or config.get("telegraph_access_token")
         )
 
         self.valid_send, self.sender = validateSender(loadSender(config))
@@ -82,10 +84,12 @@ class FR2T:
 
             tmp_rss2.append(r)
 
+        logger.info("{} links in total, start to process!".format(len(tmp_rss2)))
+
         with Pool(8) as p:
             p.map(ProcessRSS, tmp_rss2)
 
-        print("Finished!")
+        logger.info("Finished!")
 
     def purge(self):
         now_time = datetime.datetime.now()
@@ -109,19 +113,21 @@ class FR2T:
         db = MongoClient(self.database_url)["RSS"]
         col_list = db.list_collection_names()
         for col_name in col_list:
-            print(f"开始清理: {col_name}")
+            logger.info(f"开始清理: {col_name}")
             col = db[col_name]
             purge_rule = {"create_time": {"$lt": expired_timestamp}}
 
             deleted_result = col.delete_many(purge_rule)
             deleted_num += deleted_result.deleted_count
 
-        print(f"已删除 {deleted_num} 个记录！")
+        logger.info(f"已删除 {deleted_num} 个记录！")
 
 
 class ProcessRSS:
     def __init__(self, rss):
         self.rss = rss
+
+        self.logger = Log(rss["name"]).getlog()
 
         pickleSSL()
         self.main()
@@ -145,6 +151,9 @@ class ProcessRSS:
             id_map = set()
 
             for content in rss_content:
+
+                self.logger.debug("Processing {} in {}".format(content["title"], self.rss["name"]))
+
                 if self.handleFilter(content):
                     result = self.handleMatcher(content)
 
@@ -216,7 +225,7 @@ class ProcessRSS:
                                             set_data[st + "_exist"] = 1
                                             set_data[st + "_send_success"] = 1
 
-                                            print(
+                                            logger.info(
                                                 "{} sent 1 message: TEXT {} in {}.".format(
                                                     st.capitalize(),
                                                     text_hash,
@@ -233,7 +242,7 @@ class ProcessRSS:
                                         )
                                         if edit_result == 2:
                                             set_data[st + "_text_hash"] = text_hash
-                                            print(
+                                            logger.info(
                                                 "{} edited 1 message: TEXT {} in {}.".format(
                                                     st.capitalize(),
                                                     text_hash,
@@ -243,7 +252,7 @@ class ProcessRSS:
 
                                         elif edit_result == 1:
                                             set_data[st + "_exist"] = 0
-                                            print(
+                                            logger.info(
                                                 "{} edited 1 message: TEXT {} in {} (doesn't exist).".format(
                                                     st.capitalize(),
                                                     text_hash,
@@ -276,7 +285,7 @@ class ProcessRSS:
                                         set_data[st + "_exist"] = 0
                                         set_data[st + "_send_success"] = 1
 
-                                        print(
+                                        logger.info(
                                             "{} sent 1 message: TEXT {} in {} (initial).".format(
                                                 st.capitalize(),
                                                 text_hash,
@@ -296,7 +305,7 @@ class ProcessRSS:
                                             bool(result_id)
                                         )
 
-                                        print(
+                                        logger.info(
                                             "{} sent 1 message: TEXT {} in {}.".format(
                                                 st.capitalize(),
                                                 text_hash,
@@ -313,7 +322,7 @@ class ProcessRSS:
         expired_url = db["Expire"].find_one({"url": url})
         if expired_url:
             if expired_url["expired"] > 100:
-                print(f"订阅 {url} 已失效")
+                logger.info(f"订阅 {url} 已失效")
             else:
                 db["Expire"].update_one(
                     {"_id": expired_url["_id"]},

@@ -1,8 +1,10 @@
 import hashlib
 
 from .base import SenderBase
+from ..logging import Log
 from ..utils import postData, default_user_agent
 
+logger = Log(__name__).getlog()
 
 class Mastodon(SenderBase):
     def send(self, text):
@@ -20,7 +22,5 @@ class Mastodon(SenderBase):
         if not r.json().get("error"):
             return int(r.json()["id"])
         else:
-            print("\nError: failed to send the message:")
-            print(text)
-            print(r.json()["error"] + "\n")
+            logger.error("Error: failed to send the message\n{}\n{}".format(text, r.json()["error"]))
             return None

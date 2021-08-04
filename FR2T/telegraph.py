@@ -10,8 +10,10 @@ from html_telegraph_poster.errors import (
 )
 from html_telegraph_poster.utils import DocumentPreprocessor
 
+from .logging import Log
 from .utils import getData
 
+logger = Log(__name__).getlog()
 
 def generateTelegraph(access_token, title, author, content):
     telegraph = TelegraphPoster(access_token=access_token)
@@ -25,23 +27,23 @@ def generateTelegraph(access_token, title, author, content):
         if analyzeTelegraph(res["url"], content):
             return res["url"]
         else:
-            print("Cannot generate Telegraph for {}: Trying to remove emojis for {}.".format(title, res["path"]))
+            logger.warn("Cannot generate Telegraph for {}: Trying to remove emojis for {}.".format(title, res["path"]))
             content_no_emojis = demoji.replace(content)
             res_no_emojis = telegraph.edit(
                 path=res["path"], text=content_no_emojis
             )
             return res_no_emojis["url"]
     except TelegraphContentTooBigError:
-        print(f"Cannot generate Telegraph for {title}: Content too big.")
+        logger.error(f"Cannot generate Telegraph for {title}: Content too big.")
         return "https://telegra.ph/Content-too-big-08-04"
     except TelegraphPageSaveFailed:
-        print(f"Cannot generate Telegraph for {title}: Cannot save page.")
+        logger.error(f"Cannot generate Telegraph for {title}: Cannot save page.")
         return "https://telegra.ph/Cannot-save-page-08-04"
     except TelegraphFloodWaitError:
-        print(f"Cannot generate Telegraph for {title}: Exceed API limits.")
+        logger.error(f"Cannot generate Telegraph for {title}: Exceed API limits.")
         return False
     except Exception as e:
-        print(f"Cannot generate Telegraph for {title}: Unknown errors {e}.")
+        logger.error(f"Cannot generate Telegraph for {title}: Unknown errors {e}.")
         return False
 
 
