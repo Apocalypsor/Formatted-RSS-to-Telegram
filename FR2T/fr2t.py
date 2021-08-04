@@ -13,7 +13,7 @@ from pymongo import MongoClient
 
 from .logging import Log
 from .parser import rssParser, rssFullParser, objParser
-from .sender import loadSender, validateSender, initSender
+from .sender import default_sender, loadSender, validateSender, initSender
 from .telegraph import generateTelegraph
 from .utils import default_user_agent, execFunc, pickleSSL
 
@@ -64,6 +64,13 @@ class FR2T:
                 else:
                     if isinstance(r["sendto"], str):
                         r["sendto"] = [r["sendto"]]
+                    else:
+                        tmp_sendto = []
+                        for st in r["sendto"]:
+                            if st in default_sender.keys():
+                                tmp_sendto.append(st)
+
+                        r["sendto"] = tmp_sendto
 
             tmp_sender = copy.deepcopy(self.sender)
 
