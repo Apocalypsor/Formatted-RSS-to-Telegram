@@ -6,6 +6,8 @@ user-agent:
 
 telegraph_access_token:
 
+notify_tg_chat_id:
+
 telegram:
   token:
   chat_id:

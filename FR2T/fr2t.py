@@ -13,28 +13,41 @@ from pymongo import MongoClient
 
 from .logging import Log
 from .parser import rssParser, rssFullParser, objParser
-from .sender import default_sender, loadSender, validateSender, initSender
+from .sender import default_sender, loadSender, validateSender, initSender, notify
 from .telegraph import generateTelegraph
 from .utils import default_user_agent, execFunc, pickleSSL
 
 logger = Log(__name__).getlog()
 
+
 class FR2T:
     def __init__(self, config, rss):
         self.rss = rss
         self.database_url = os.getenv("DATABASE") or config.get("database_url")
-        self.expire_time = os.getenv("EXPIRE_TIME") or config.get("expire_time") or "30d"
+        self.expire_time = (
+                os.getenv("EXPIRE_TIME") or config.get("expire_time") or "30d"
+        )
         self.user_agent = (
                 os.getenv("USER-AGENT") or config.get("user-agent") or default_user_agent
         )
-        self.telegraph_access_token = (
-                os.getenv("TELEGRAPH_ACCESS_TOKEN") or config.get("telegraph_access_token")
+        self.telegraph_access_token = os.getenv("TELEGRAPH_ACCESS_TOKEN") or config.get(
+            "telegraph_access_token"
         )
 
         self.valid_send, self.sender = validateSender(loadSender(config))
 
         if self.valid_send == "no_valid":
             sys.exit("No Valid Sender!")
+        else:
+            if "telegram" in self.sender:
+                self.notify = {}
+                self.notify["token"] = self.sender["telegram"]["token"]
+                self.notify["chat_id"] = os.getenv("NOTIFY_TG_CHAT_ID") or config.get("notify_tg_chat_id")
+
+                if not (self.notify["token"] and self.notify["chat_id"]):
+                    self.notify = None
+            else:
+                self.notify = None
 
     def run(self):
         db = MongoClient(self.database_url)["RSS"]
@@ -88,6 +101,7 @@ class FR2T:
             r["telegraph_access_token"] = (
                     r.get("telegraph_access_token") or self.telegraph_access_token
             )
+            r["notify"] = r.get("notify") or self.notify
 
             tmp_rss2.append(r)
 
@@ -128,6 +142,10 @@ class FR2T:
             deleted_num += deleted_result.deleted_count
 
         logger.info(f"已删除 {deleted_num} 个记录！")
+        if self.notify:
+            notify(
+                self.notify["token"], self.notify["chat_id"], f"已删除 {deleted_num} 个记录！"
+            )
 
 
 class ProcessRSS:
@@ -159,7 +177,9 @@ class ProcessRSS:
 
             for content in rss_content:
 
-                self.logger.debug("Processing {} in {}".format(content["title"], self.rss["name"]))
+                self.logger.debug(
+                    "Processing {} in {}".format(content["title"], self.rss["name"])
+                )
 
                 if self.handleFilter(content):
                     result = self.handleMatcher(content)
@@ -328,8 +348,14 @@ class ProcessRSS:
 
         expired_url = db["Expire"].find_one({"url": url})
         if expired_url:
-            if expired_url["expired"] > 100:
+            if expired_url["expired"] > 20:
                 logger.info(f"订阅 {url} 已失效")
+                if self.rss.get("notify"):
+                    notify(
+                        self.rss["notify"]["token"],
+                        self.rss["notify"]["chat_id"],
+                        f"订阅 {url} 已失效",
+                    )
             else:
                 db["Expire"].update_one(
                     {"_id": expired_url["_id"]},

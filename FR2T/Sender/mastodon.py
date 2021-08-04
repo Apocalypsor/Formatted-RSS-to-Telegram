@@ -6,6 +6,7 @@ from ..utils import postData, default_user_agent
 
 logger = Log(__name__).getlog()
 
+
 class Mastodon(SenderBase):
     def send(self, text):
         url = self.config["base_url"].rstrip("/") + "/api/v1/statuses"
@@ -22,5 +23,9 @@ class Mastodon(SenderBase):
         if not r.json().get("error"):
             return int(r.json()["id"])
         else:
-            logger.error("Error: failed to send the message\n{}\n{}".format(text, r.json()["error"]))
+            logger.error(
+                "Error: failed to send the message\n{}\n{}".format(
+                    text, r.json()["error"]
+                )
+            )
             return None

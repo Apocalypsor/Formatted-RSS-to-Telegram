@@ -6,7 +6,7 @@ from html_telegraph_poster import TelegraphPoster
 from html_telegraph_poster.errors import (
     TelegraphContentTooBigError,
     TelegraphFloodWaitError,
-    TelegraphPageSaveFailed
+    TelegraphPageSaveFailed,
 )
 from html_telegraph_poster.utils import DocumentPreprocessor
 
@@ -14,6 +14,7 @@ from .logging import Log
 from .utils import getData
 
 logger = Log(__name__).getlog()
+
 
 def generateTelegraph(access_token, title, author, content):
     telegraph = TelegraphPoster(access_token=access_token)
@@ -27,11 +28,13 @@ def generateTelegraph(access_token, title, author, content):
         if analyzeTelegraph(res["url"], content):
             return res["url"]
         else:
-            logger.warn("Cannot generate Telegraph for {}: Trying to remove emojis for {}.".format(title, res["path"]))
-            content_no_emojis = demoji.replace(content)
-            res_no_emojis = telegraph.edit(
-                path=res["path"], text=content_no_emojis
+            logger.warn(
+                "Cannot generate Telegraph for {}: Trying to remove emojis for {}.".format(
+                    title, res["path"]
+                )
             )
+            content_no_emojis = demoji.replace(content)
+            res_no_emojis = telegraph.edit(path=res["path"], text=content_no_emojis)
             return res_no_emojis["url"]
     except TelegraphContentTooBigError:
         logger.error(f"Cannot generate Telegraph for {title}: Content too big.")

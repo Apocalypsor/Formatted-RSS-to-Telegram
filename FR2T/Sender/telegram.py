@@ -9,6 +9,7 @@ from ..utils import postData
 
 logger = Log(__name__).getlog()
 
+
 class Telegram(SenderBase):
     def render(self, template, args):
         template = Template(self.escapeTemplate(template))
@@ -34,7 +35,11 @@ class Telegram(SenderBase):
             time.sleep(30)
             self.send(text)
         else:
-            logger.error("Error: failed to send the message:\n{}\n{}".format(text, r.json()["description"]))
+            logger.error(
+                "Error: failed to send the message:\n{}\n{}".format(
+                    text, r.json()["description"]
+                )
+            )
             return None
 
     def edit(self, message_id, text):
@@ -54,7 +59,11 @@ class Telegram(SenderBase):
         elif "message to edit not found" in r.json()["description"]:
             return 1
         else:
-            logger.error("Error: failed to edit the message:\n{}\n{}".format(text, r.json()["description"]))
+            logger.error(
+                "Error: failed to edit the message:\n{}\n{}".format(
+                    text, r.json()["description"]
+                )
+            )
             return 0
 
     def escapeTemplate(self, text):

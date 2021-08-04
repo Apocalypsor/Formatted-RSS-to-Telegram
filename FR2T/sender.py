@@ -70,3 +70,17 @@ def initSender(name, config):
 
     if name == "mastodon":
         return mastodon.Mastodon(config)
+
+
+def notify(token, chat_id, text):
+    tg = telegram.Telegram(
+        {
+            "token": token,
+            "chat_id": chat_id,
+            "disable_notification": "false",
+            "disable_web_page_preview": "true",
+            "parse_mode": "Markdown",
+        }
+    )
+
+    tg.send(f"FR2T: {text}\n\n提醒")
