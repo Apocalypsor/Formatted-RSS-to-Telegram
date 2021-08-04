@@ -13,6 +13,8 @@ dnspython = "*"
 morss = { editable = true, git = "https://github.com/pictuga/morss" }
 install = "*"
 html-telegraph-poster = "*"
+demoji = "*"
+beautifulsoup4 = "*"
 
 [dev-packages]
 

@@ -193,7 +193,9 @@ class ProcessRSS:
 
                             set_data = (
                                 {"telegraph_url": telegraph_url}
-                                if not posted or not posted.get("telegraph_url") and telegraph_url
+                                if not posted
+                                   or not posted.get("telegraph_url")
+                                   and telegraph_url
                                 else {}
                             )
 

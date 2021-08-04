@@ -11,8 +11,13 @@ default_sender = {
         "disable_web_page_preview": "false",
         "parse_mode": "MarkdownV2",
     },
-    "mastodon": {"base_url": None, "client_id": None, "client_secret": None, "access_token": None,
-                 "sensitive": "false"},
+    "mastodon": {
+        "base_url": None,
+        "client_id": None,
+        "client_secret": None,
+        "access_token": None,
+        "sensitive": "false",
+    },
 }
 
 sender_env_name = {"telegram": "TG_", "mastodon": "MASTODON_"}
@@ -43,7 +48,9 @@ def validateSender(sender):
 
         if send == "mastodon":
             if not (
-                    sender[send].get("base_url") and sender[send].get("client_id") and sender[send].get("client_secret")
+                    sender[send].get("base_url")
+                    and sender[send].get("client_id")
+                    and sender[send].get("client_secret")
             ):
                 sender[send] = None
 

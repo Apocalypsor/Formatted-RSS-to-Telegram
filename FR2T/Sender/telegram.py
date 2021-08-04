@@ -71,7 +71,9 @@ class Telegram(SenderBase):
                 for e in escaped_chara:
                     template_out[tp] = template_out[tp].replace(e, "\\" + e)
 
-            text = "".join([template_out[t] + template_in[t] for t in range(len(template_out))])
+            text = "".join(
+                [template_out[t] + template_in[t] for t in range(len(template_out))]
+            )
 
         return text
 
