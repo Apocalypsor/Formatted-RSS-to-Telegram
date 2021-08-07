@@ -16,6 +16,7 @@ telegram:
   parse_mode:
 
 mastodon:
+  base_url:
   client_id:
   client_secret:
   authorization_code:
