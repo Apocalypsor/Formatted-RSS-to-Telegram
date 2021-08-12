@@ -64,7 +64,7 @@ class FR2T:
             elif isinstance(url, list):
                 for u in url:
                     r["url"] = u
-                    tmp_rss1.append(copy.deepcopy(r))
+                    tmp_rss1.append(r.copy())
 
         # Valid sender in rss
         for r in tmp_rss1:
