@@ -64,7 +64,7 @@ class FR2T:
             elif isinstance(url, list):
                 for u in url:
                     r["url"] = u
-                    tmp_rss1.append(r)
+                    tmp_rss1.append(copy.deepcopy(r))
 
         # Valid sender in rss
         for r in tmp_rss1:
@@ -106,6 +106,8 @@ class FR2T:
             tmp_rss2.append(r)
 
         logger.info("{} links in total, start to process!".format(len(tmp_rss2)))
+
+        logger.debug("Links: \n" + "\n".join([r["url"] for r in tmp_rss2]))
 
         with Pool(8) as p:
             p.map(ProcessRSS, tmp_rss2)
@@ -154,6 +156,7 @@ class ProcessRSS:
 
         self.logger = Log(rss["name"]).getlog()
 
+        self.logger.debug("Processing url: " + rss["url"])
         pickleSSL()
         self.main()
 
