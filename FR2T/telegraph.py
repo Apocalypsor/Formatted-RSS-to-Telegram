@@ -36,13 +36,16 @@ def generateTelegraph(access_token, title, author, content):
             content_no_emojis = demoji.replace(content)
             res_no_emojis = telegraph.edit(path=res["path"], text=content_no_emojis)
             return res_no_emojis["url"]
-    except TelegraphContentTooBigError:
+    except TelegraphContentTooBigError as e:
+        logger.debug(f"Telegraph debug for {title}: {e}")
         logger.error(f"Cannot generate Telegraph for {title}: Content too big.")
         return "https://telegra.ph/Content-too-big-08-04"
-    except TelegraphPageSaveFailed:
+    except TelegraphPageSaveFailed as e:
+        logger.debug(f"Telegraph debug for {title}: {e}")
         logger.error(f"Cannot generate Telegraph for {title}: Cannot save page.")
         return "https://telegra.ph/Cannot-save-page-08-04"
-    except TelegraphFloodWaitError:
+    except TelegraphFloodWaitError as e:
+        logger.debug(f"Telegraph debug for {title}: {e}")
         logger.error(f"Cannot generate Telegraph for {title}: Exceed API limits.")
         return False
     except Exception as e:
