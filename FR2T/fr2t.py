@@ -392,13 +392,16 @@ class ProcessRSS:
                     matched = matcher.search(obj)
 
                     # If only one match is made, the match is returned,
-                    # otherwise the matching string and all matches are returned
-                    if len(matched.groups()) == 1:
-                        matched = matched.groups()[0]
+                    # otherwise the matched string and all matches are returned
+                    if matched:
+                        if len(matched.groups()) == 1:
+                            matched = matched.groups()[0]
+                        else:
+                            tmp_matched = list(matched.groups())
+                            tmp_matched.insert(0, matched.group())
+                            matched = tmp_matched
                     else:
-                        tmp_matched = list(matched.groups())
-                        tmp_matched.insert(0, matched.group())
-                        matched = tmp_matched
+                        matched = None
 
                     result[rule["dest"]] = matched
 
