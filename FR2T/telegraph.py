@@ -4,7 +4,6 @@ import demoji
 from bs4 import BeautifulSoup
 from html_telegraph_poster import TelegraphPoster
 from html_telegraph_poster.errors import (
-    TelegraphContentTooBigError,
     TelegraphFloodWaitError,
     TelegraphPageSaveFailed,
 )
@@ -36,10 +35,6 @@ def generateTelegraph(access_token, title, author, content):
             content_no_emojis = demoji.replace(content)
             res_no_emojis = telegraph.edit(path=res["path"], text=content_no_emojis)
             return res_no_emojis["url"]
-    except TelegraphContentTooBigError as e:
-        logger.debug(f"Telegraph debug for {title}: {e}")
-        logger.error(f"Cannot generate Telegraph for {title}: Content too big.")
-        return "https://telegra.ph/Content-too-big-08-04"
     except TelegraphPageSaveFailed as e:
         logger.debug(f"Telegraph debug for {title}: {e}")
         logger.error(f"Cannot generate Telegraph for {title}: Cannot save page.")
@@ -49,6 +44,11 @@ def generateTelegraph(access_token, title, author, content):
         logger.error(f"Cannot generate Telegraph for {title}: Exceed API limits.")
         return False
     except Exception as e:
+        if "CONTENT_TOO_BIG" in str(e):
+            logger.debug(f"Telegraph debug for {title}: {e}")
+            logger.error(f"Cannot generate Telegraph for {title}: Content too big.")
+            return "https://telegra.ph/Content-too-big-08-04"
+
         logger.error(f"Cannot generate Telegraph for {title}: Unknown errors {e}.")
         return False
 

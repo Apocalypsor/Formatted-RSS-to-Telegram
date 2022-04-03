@@ -37,7 +37,8 @@ class FR2T:
         self.valid_send, self.sender = validateSender(loadSender(config))
 
         if self.valid_send == "no_valid":
-            sys.exit("No Valid Sender!")
+            self.notify = None
+            logger.error("No Valid Sender!")
         else:
             if "telegram" in self.sender:
                 self.notify = {}
