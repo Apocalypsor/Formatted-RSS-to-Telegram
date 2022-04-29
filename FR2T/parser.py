@@ -1,16 +1,40 @@
+import demoji
 import feedparser
 import morss
+from bs4 import BeautifulSoup
 
 from .logging import Log
+from .utils import getData
 
 logger = Log(__name__).getlog()
 
+special = ["sspai.com"]
 
-def rssParser(url: str, user_agent: str):
-    return feedparser.parse(url, agent=user_agent)["entries"]
+
+def rssParser(
+        url: str,
+        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
+):
+    res = feedparser.parse(url, agent=user_agent)["entries"]
+    if "sspai.com" in url:
+        for r in res:
+            soup = BeautifulSoup(
+                getData(r["link"], headers={"User-Agent": user_agent}).text,
+                "html.parser",
+            )
+            r["summary"] = str(
+                soup.article.find("div", class_="article-banner") or ""
+            ) + str(soup.article.find("div", class_="content wangEditor-txt minHeight"))
+            r["summary"] = demoji.replace(r["summary"])
+
+    return res
 
 
 def rssFullParser(url: str):
+    for s in special:
+        if s in url:
+            return rssParser(url)
+
     i = 0
     while i < 5:
         try:

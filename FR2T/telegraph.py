@@ -20,11 +20,11 @@ def generateTelegraph(access_token, title, author, content):
 
     dp = DocumentPreprocessor(content)
     dp.upload_all_images()
-    content = dp.get_processed_html()
+    processed_content = dp.get_processed_html()
 
     try:
-        res = telegraph.post(title=title, author=author, text=content)
-        if analyzeTelegraph(res["url"], content):
+        res = telegraph.post(title=title, author=author, text=processed_content)
+        if analyzeTelegraph(res["url"], processed_content):
             return res["url"]
         else:
             logger.warn(
@@ -32,8 +32,14 @@ def generateTelegraph(access_token, title, author, content):
                     title, res["path"]
                 )
             )
-            content_no_emojis = demoji.replace(content)
-            res_no_emojis = telegraph.edit(path=res["path"], text=content_no_emojis)
+            demojied_content = demoji.replace(content)
+            dpp = DocumentPreprocessor(demojied_content)
+            dpp.upload_all_images()
+            processed_demojied_content = dpp.get_processed_html()
+
+            res_no_emojis = telegraph.edit(
+                path=res["path"], text=processed_demojied_content
+            )
             return res_no_emojis["url"]
     except TelegraphPageSaveFailed as e:
         logger.debug(f"Telegraph debug for {title}: {e}")

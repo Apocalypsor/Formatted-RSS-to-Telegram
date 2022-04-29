@@ -4,7 +4,6 @@ import hashlib
 import os
 import random
 import re
-import sys
 import time
 from multiprocessing import Pool
 
@@ -43,7 +42,9 @@ class FR2T:
             if "telegram" in self.sender:
                 self.notify = {}
                 self.notify["token"] = self.sender["telegram"]["token"]
-                self.notify["chat_id"] = os.getenv("NOTIFY_TG_CHAT_ID") or config.get("notify_tg_chat_id")
+                self.notify["chat_id"] = os.getenv("NOTIFY_TG_CHAT_ID") or config.get(
+                    "notify_tg_chat_id"
+                )
 
                 if not (self.notify["token"] and self.notify["chat_id"]):
                     self.notify = None
