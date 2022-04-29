@@ -16,6 +16,7 @@ logger = Log(__name__).getlog()
 
 
 def generateTelegraph(access_token, title, author, content):
+    if not content: return "https://telegra.ph/Cannot-save-page-08-04"
     telegraph = TelegraphPoster(access_token=access_token)
 
     dp = DocumentPreprocessor(content)
