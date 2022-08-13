@@ -15,8 +15,9 @@ install = "*"
 html-telegraph-poster = "*"
 demoji = "*"
 beautifulsoup4 = "*"
+certifi = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3"
+python_version = "3.8"

@@ -17,11 +17,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: '3.8'
       - name: Install pipenv
-        run: python -m pip install --upgrade pipenv
+        run: python -m pip install --upgrade pipenv wheel
       - name: Install dependencies
-        run: pipenv install
+        run: |
+          pipenv requirements > requirements.txt
+          pip install -r requirements.txt
       - name: Subscribe
         env:
           DATABASE: ${{ secrets.DATABASE }}
@@ -37,4 +39,4 @@ jobs:
           TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN}}
           RSS_CONFIG: ${{ secrets.RSS_CONFIG}}
           AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN}}
-        run: pipenv run python ./main.py || echo 'Check your configuration.'
+        run: python ./main.py || echo 'Check your configuration.'
