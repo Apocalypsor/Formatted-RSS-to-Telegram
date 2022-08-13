@@ -449,6 +449,7 @@ class ProcessRSS:
                 )
 
             telegraph_author = content.get("author") or "Anonymous"
+            if isinstance(author, list): telegraph_author = ", ".join(telegraph_author)
 
             telegraph_author_title = content["title"]
 
