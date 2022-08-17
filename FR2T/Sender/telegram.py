@@ -56,7 +56,10 @@ class Telegram(SenderBase):
 
         if r.json()["ok"] or "exactly the same" in r.json()["description"]:
             return 2
-        elif "message to edit not found" in r.json()["description"]:
+        elif (
+            "message to edit not found" in r.json()["description"]
+            or "MESSAGE_ID_INVALID" in r.json()["description"]
+        ):
             return 1
         else:
             logger.error(
