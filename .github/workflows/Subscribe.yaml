@@ -29,14 +29,42 @@ jobs:
           DATABASE: ${{ secrets.DATABASE }}
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-          TG_DISABLE_NOTIFICATION: ${{ secrets.TG_DISABLE_NOTIFICATION }}
-          TG_DISABLE_WEB_PAGE_PREVIEW: ${{ secrets.TG_DISABLE_WEB_PAGE_PREVIEW }}
-          TG_PARSE_MODE: ${{ secrets.TG_PARSE_MODE }}
+          TG_DISABLE_NOTIFICATION: false
+          TG_DISABLE_WEB_PAGE_PREVIEW: false
+          TG_PARSE_MODE: MarkdownV2
           NOTIFY_TG_CHAT_ID: ${{ secrets.NOTIFY_TG_CHAT_ID }}
-          MASTODON_BASE_URL: ${{ secrets.MASTODON_BASE_URL }}
-          MASTODON_CLIENT_ID: ${{ secrets.MASTODON_CLIENT_ID }}
-          MASTODON_CLIENT_SECRET: ${{ secrets.MASTODON_CLIENT_SECRET }}
-          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN}}
-          RSS_CONFIG: ${{ secrets.RSS_CONFIG}}
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          RSS_CONFIG: ${{ secrets.RSS_CONFIG }}
+          AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN }}
+        run: python ./main.py || echo 'Check your configuration.'
+
+  USCARD:
+    name: USCARD Subscriptions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install pipenv
+        run: python -m pip install --upgrade pipenv wheel
+      - name: Install dependencies
+        run: |
+          pipenv requirements > requirements.txt
+          pip install -r requirements.txt
+      - name: Subscribe
+        env:
+          DATABASE: ${{ secrets.DATABASE }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_USCARD_CHAT_ID }}
+          TG_DISABLE_NOTIFICATION: false
+          TG_DISABLE_WEB_PAGE_PREVIEW: true
+          TG_PARSE_MODE: MarkdownV2
+          NOTIFY_TG_CHAT_ID: ${{ secrets.NOTIFY_TG_CHAT_ID }}
+          TELEGRAPH_ACCESS_TOKEN: ${{ secrets.TELEGRAPH_ACCESS_TOKEN }}
+          RSS_CONFIG: ${{ secrets.RSS_USCARD_CONFIG }}
           AUTHORIZATION_TOKEN: ${{ secrets.AUTHORIZATION_TOKEN}}
         run: python ./main.py || echo 'Check your configuration.'
