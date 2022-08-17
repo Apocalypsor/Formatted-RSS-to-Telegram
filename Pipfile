@@ -16,6 +16,7 @@ html-telegraph-poster = "*"
 demoji = "*"
 beautifulsoup4 = "*"
 certifi = "*"
+markdownify = "*"
 
 [dev-packages]
 
