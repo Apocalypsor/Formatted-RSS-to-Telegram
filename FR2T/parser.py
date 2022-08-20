@@ -13,7 +13,8 @@ special = ["sspai.com"]
 
 def rssParser(
         url: str,
-        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36",
+        user_agent: str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/80.0.3987.149 Safari/537.36",
 ):
     res = feedparser.parse(url, agent=user_agent)["entries"]
     if "sspai.com" in url:
@@ -44,7 +45,7 @@ def rssFullParser(url: str):
             logger.error(f"Error parsing: {url} for {i} times, throw {e}, try again")
             i += 1
     else:
-        logger.error(f"Error parsing: {url}")
+        logger.error(f"Error parsing: {url}, using original contents")
         return rssParser(url)
 
     return feedparser.parse(xml_string)["entries"]
