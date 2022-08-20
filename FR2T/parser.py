@@ -40,11 +40,12 @@ def rssFullParser(url: str):
         try:
             xml_string = morss.process(url)
             break
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error parsing: {url} for {i} times, throw {e}, try again")
             i += 1
     else:
         logger.error(f"Error parsing: {url}")
-        xml_string = {"entries": []}
+        return rssParser(url)
 
     return feedparser.parse(xml_string)["entries"]
 
