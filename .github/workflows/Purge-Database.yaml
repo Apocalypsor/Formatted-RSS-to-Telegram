@@ -3,9 +3,6 @@ name: Purge-Database
 on:
   workflow_dispatch:
 
-  schedule:
-    - cron: "44 2 */30 * *"
-
 jobs:
   Purge:
     name: Purge Database
