@@ -80,11 +80,11 @@
         },
         "html-telegraph-poster": {
             "hashes": [
-                "sha256:7592f2e8227dddcc016028fd697381c267f6b717a7a0c24a18e479aab49af90a",
-                "sha256:86a9803ff602e946a13c11c1b82682cc2548483f6b59c5f21cc5a58486149faa"
+                "sha256:01f4d120e2085e08c95adfc77ca8bfa07315c5784faa55478970e82c2518826a",
+                "sha256:a59d8ff2a17821de74e4c6753fb8501b6a60cc5dd632a624c8036e6639f1a597"
             ],
             "index": "pypi",
-            "version": "==0.4.0"
+            "version": "==0.5.0"
         },
         "idna": {
             "hashes": [
@@ -389,11 +389,11 @@
         },
         "requests-toolbelt": {
             "hashes": [
-                "sha256:64c6b8c51b515d123f9f708a29743f44eb70c4479440641ed2df8c4dea56d985",
-                "sha256:f695d6207931200b46c8ef6addbc8a921fb5d77cc4cd209c2e7d39293fcd2b30"
+                "sha256:18565aa58116d9951ac39baa288d3adb5b3ff975c4f25eee78555d89e8f247f7",
+                "sha256:62e09f7ff5ccbda92772a29f394a49c3ad6cb181d568b1337626b2abb628a63d"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
-            "version": "==0.10.0"
+            "version": "==0.10.1"
         },
         "sgmllib3k": {
             "hashes": [
