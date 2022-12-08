@@ -1,6 +1,7 @@
 import copy
 import datetime
 import hashlib
+import math
 import os
 import random
 import re
@@ -353,7 +354,7 @@ class ProcessRSS:
 
         expired_url = db["Expire"].find_one({"url": url})
         if expired_url:
-            if expired_url["expired"] > 20:
+            if expired_url["expired"] > 20 and math.log(expired_url["expired"], 2).is_integer():
                 logger.info(f"订阅 {url} 已失效")
                 if self.rss.get("notify"):
                     notify(
