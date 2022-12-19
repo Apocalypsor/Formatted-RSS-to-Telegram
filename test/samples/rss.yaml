@@ -1,0 +1,17 @@
+rss:
+  - name: test
+    url: https://example.com/rss
+    rules:
+      - obj: summary
+        type: regex
+        matcher: 原价：(.+) -> 现价：(.+)
+        dest: price
+    filters:
+      - obj: title
+        type: out
+        matcher: 降价
+    text: |
+      标题：{title}
+      链接：{link}
+      价格：{price}
+    sendTo: telegram

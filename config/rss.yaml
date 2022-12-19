@@ -1,0 +1,20 @@
+rss:
+  - name: 每日精品限免 / 促销应用
+    url: https://rss.dov.moe/appstore/xianmian
+    rules:
+      - obj: summary
+        type: regex
+        matcher: 原价：(.+) -> 现价：(.+)
+        dest: price
+    filters:
+      - obj: title
+        type: out
+        matcher: 降价
+    text: |
+      🧬 App优惠：*{{ title }}*
+      🚀 价格：{{ price[1] }} —\> {{ price[2] }}
+      🚀 平台：{{ platform }}
+      🚀 描述：{% if "<" in description %}无{% else %}{{ description }}{% endif %}
+      🎯 下载链接：[点击此处]({{ link }})
+      #App优惠
+    sendTo: telegram
