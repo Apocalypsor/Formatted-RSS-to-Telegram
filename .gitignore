@@ -191,3 +191,5 @@ dist
 
 /.idea/
 /test/test.js
+/test/samples/config_prod.yaml
+/config/db.sqlite
