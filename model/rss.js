@@ -1,17 +1,11 @@
 const logger = require('../lib/logger');
+const {expandArrayInObject} = require("../lib/tools");
 
-class RSS {
+class RSSItem {
     constructor(input) {
         this.name = input.name || null;
         this.url = input.url || null;
-        if (typeof this.url === 'string') {
-            this.url = [this.url];
-        }
-
         this.sendTo = input.sendTo || null;
-        if (typeof this.sendTo === 'string') {
-            this.sendTo = [this.sendTo];
-        }
 
         this.telegraph = input.telegraph || false;
         this.fullText = input.fullText || false;
@@ -48,8 +42,12 @@ class RSS {
 
         const mustHave = ['obj', 'type', 'matcher', 'dest'];
         for (const mustHaveKey of mustHave) {
-            if (!(mustHaveKey in input) || !(input[mustHave] === 'type' && input[mustHave] in ['regex', 'func'])) {
-                logger.error(`Invalid rule ${input.obj} to ${input.dest} for ${this.name}, skipping!`);
+            if (
+                !(mustHaveKey in input)
+                || (mustHaveKey === 'type' && !['regex', 'func'].includes(input[mustHaveKey]))
+            ) {
+                logger.warn(`Invalid rule ${input[mustHaveKey]}, skipping!`);
+                logger.warn(`Invalid rule ${input.obj} to ${input.dest} for ${this.name}, skipping!`);
                 return;
             }
         }
@@ -72,8 +70,11 @@ class RSS {
 
         const mustHave = ['obj', 'type', 'matcher'];
         for (const mustHaveKey of mustHave) {
-            if (!(mustHaveKey in input) || !(input[mustHave] === 'type' && input[mustHave] in ['out', 'in'])) {
-                logger.error(`Invalid filter ${input.obj} for ${this.name}, skipping!`);
+            if (
+                !(mustHaveKey in input)
+                || (mustHaveKey === 'type' && !['out', 'in'].includes(input[mustHaveKey]))
+            ) {
+                logger.warn(`Invalid filter ${input.obj} for ${this.name}, skipping!`);
                 return;
             }
         }
@@ -88,4 +89,35 @@ class RSS {
     }
 }
 
-module.exports = RSS;
+class RSS {
+    constructor(input) {
+        this.rss = [];
+        for (const rss of input.rss) {
+            if (rss.url && rss.name && rss.sendTo && rss.text) {
+                let tmp1 = [];
+                if (Array.isArray(rss.url)) {
+                    tmp1 = expandArrayInObject(rss, 'url');
+                } else {
+                    tmp1.push(rss);
+                }
+
+                let tmp2 = [];
+                if (Array.isArray(rss.sendTo)) {
+                    for (const item of tmp1) {
+                        tmp2 = tmp2.concat(expandArrayInObject(item, 'sendTo'));
+                    }
+                } else {
+                    tmp2 = tmp1;
+                }
+
+                for (const item of tmp2) {
+                    this.rss.push(new RSSItem(item));
+                }
+            } else {
+                logger.warn(`Invalid rss ${rss.name}, skipping!`);
+            }
+        }
+    }
+}
+
+module.exports = {RSSItem, RSS};

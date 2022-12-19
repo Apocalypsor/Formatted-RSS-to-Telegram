@@ -15,3 +15,12 @@ rss:
       链接：{link}
       价格：{price}
     sendTo: telegram
+  - name: failed
+  - name: test1
+    url:
+      - https://example.com/rss
+      - https://example.com/rss1
+    sendTo:
+      - telegram
+      - email
+    text: 123aaa

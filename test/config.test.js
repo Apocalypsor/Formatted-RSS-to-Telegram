@@ -1,11 +1,12 @@
 const configLib = require('../lib/config');
 const Config = require("../model/config");
-const RSS = require("../model/rss");
+const RSSModel = require("../model/rss");
+
 
 describe('test config parser', () => {
     it('should parse config', () => {
         const config = configLib.checkConfig('../test/samples/config.yaml');
-        expect(config).toMatchObject(new Config({
+        expect(config).toStrictEqual(new Config({
             expireTime: '6h',
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36',
             telegraphAccessToken: '123abc',
@@ -37,11 +38,11 @@ describe('test config parser', () => {
 
     it('should parse rss', () => {
         const rss = configLib.checkRSS('../test/samples/rss.yaml');
-        expect(rss).toMatchObject(new RSS({
+        expect(rss).toStrictEqual(new RSSModel.RSS({
             rss: [
-                {
+                new RSSModel.RSSItem({
                     name: 'test',
-                    url: ['https://example.com/rss'],
+                    url: 'https://example.com/rss',
                     rules: [
                         {
                             obj: 'summary',
@@ -57,11 +58,51 @@ describe('test config parser', () => {
                             matcher: '降价'
                         }
                     ],
-                    text: '标题：{title}\n链接：{link}\n价格：{price}',
-                    sendTo: ['telegram'],
+                    text: '标题：{title}\n链接：{link}\n价格：{price}\n',
+                    sendTo: 'telegram',
                     telegraph: false,
                     fullText: false,
-                }
+                }),
+                new RSSModel.RSSItem({
+                    name: 'test1',
+                    url: 'https://example.com/rss',
+                    rules: [],
+                    filters: [],
+                    text: '123aaa',
+                    sendTo: 'telegram',
+                    telegraph: false,
+                    fullText: false,
+                }),
+                new RSSModel.RSSItem({
+                    name: 'test1',
+                    url: 'https://example.com/rss',
+                    rules: [],
+                    filters: [],
+                    text: '123aaa',
+                    sendTo: 'email',
+                    telegraph: false,
+                    fullText: false,
+                }),
+                new RSSModel.RSSItem({
+                    name: 'test1',
+                    url: 'https://example.com/rss1',
+                    rules: [],
+                    filters: [],
+                    text: '123aaa',
+                    sendTo: 'telegram',
+                    telegraph: false,
+                    fullText: false,
+                }),
+                new RSSModel.RSSItem({
+                    name: 'test1',
+                    url: 'https://example.com/rss1',
+                    rules: [],
+                    filters: [],
+                    text: '123aaa',
+                    sendTo: 'email',
+                    telegraph: false,
+                    fullText: false,
+                })
             ]
         }));
     });
