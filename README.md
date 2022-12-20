@@ -23,7 +23,7 @@ Highly customizable RSS to Telegram.
         image: pictuga/morss
         container_name: morss
     ```
-2. Refer to the files in [docs](./docs) for configuration. Save the two file as `rss.yaml` and `config.yaml`.
+2. Refer to the files in [docs](./docs) for configuration. Save the two file as `rss.yaml` and `config.yaml` in the `./data` directory.
 3. Run `docker-compose up -d`.
 
 ## Todo
