@@ -16,10 +16,10 @@ async function main() {
 }
 
 main().then(() => {
-    logger.info('RSS processing finished');
+    logger.info('Initial RSS processing finished');
+    schedule.scheduleJob('*/10 * * * *', async function () {
+        logger.info('Schedule job started');
+        await main();
+        logger.info('Schedule job finished');
+    });
 });
-
-// schedule.scheduleJob('*/10 * * * *', async function () {
-//     logger.info('Schedule job started');
-//     await main();
-// });

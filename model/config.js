@@ -6,6 +6,7 @@ class Config {
     constructor(input) {
         this.expireTime = input.expireTime || '30d';
         this.userAgent = input.userAgent || UA;
+        this.morss = input.morss || 'https://morss.it/';
         this.telegraphAccessToken = input.telegraphAccessToken || null;
         this.notifyTelegramChatId = input.notifyTelegramChatId || null;
 
