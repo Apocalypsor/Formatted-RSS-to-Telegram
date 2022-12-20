@@ -193,3 +193,5 @@ dist
 /test/test.js
 /test/samples/config_prod.yaml
 /config/db.sqlite
+/config/rss.yaml
+/config/config.yaml

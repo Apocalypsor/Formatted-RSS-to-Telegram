@@ -2,10 +2,15 @@ const schedule = require('node-schedule');
 const logger = require('./lib/logger');
 const {rss} = require('./lib/config');
 const {process} = require('./lib/process');
+const {createDirIfNotExists} = require("./lib/tools");
+const client = require("./lib/client");
 
 require('dotenv').config();
 
 async function main() {
+    const ipInfo = await client.get("https://api.dov.moe/ip");
+    logger.info(`IP: ${JSON.stringify(ipInfo.data)}`);
+    await createDirIfNotExists('./logs/screenshots');
     for (let item of rss.rss) {
         try {
             await process(item);

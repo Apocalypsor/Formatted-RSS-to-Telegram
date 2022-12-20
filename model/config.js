@@ -10,7 +10,9 @@ class Config {
         this.notifyTelegramChatId = input.notifyTelegramChatId || null;
 
         this.puppeteerWSEndpoint = input.puppeteerWSEndpoint || null;
-        this.proxyUri = input.proxyUri || null;
+
+        this.proxy = this.parseProxy(input.proxy);
+        logger.debug(`Using proxy: ${this.proxy ? JSON.stringify(this.proxy) : 'none'}`);
 
         this.telegram = [];
         if (input.telegram) {
@@ -21,6 +23,38 @@ class Config {
                 }
             }
         }
+    }
+
+    parseProxy(input) {
+        if (!input || !input.enabled) {
+            return null;
+        }
+
+        const proxy = {
+            protocol: 'http',
+            host: '127.0.0.1',
+            port: 1080,
+            auth: {
+                username: null,
+                password: null,
+            }
+        }
+
+        const mustHave = ['host', 'port'];
+        for (const mustHaveKey of mustHave) {
+            if (!(mustHaveKey in input)) {
+                logger.error(`Invalid Proxy config for ${input.name}, skipping!`);
+                return null;
+            }
+        }
+
+        for (const proxyKey in proxy) {
+            if (proxyKey in input) {
+                proxy[proxyKey] = input[proxyKey];
+            }
+        }
+
+        return proxy;
     }
 
     parseTelegram(input) {
