@@ -1,0 +1,24 @@
+expireTime: 6h # no use right now
+
+morss: http://127.0.0.1:8000/ # Optional, default is https://morss.it/, used to get the full text of rss feed
+
+puppeteerWSEndpoint: ws://127.0.0.1:3000/ # Optional, if empty, puppeteer will be disabled
+
+notifyTelegramChatId: 111111111 # Optional, if empty, telegram notification for expired links will be disabled
+
+proxy: # Optional, if empty, proxy will be disabled
+  enabled: true # Optional, default is false
+  protocol: socks5  # Optional, default is http, can be http or socks5
+  host: 192.168.1.33  # Optional, default is 127.0.0.1
+  port: 50004 # Optional, default is 1080
+  auth: # Optional, if empty, no auth will be used
+    username: test # Optional, default is empty
+    password: test  # Optional, default is empty
+
+telegram: # Required, at least one telegram bot is required
+  - name: default # Required, name of the telegram bot
+    token: test123  # Required, token of the telegram bot
+    chatId: 12345 # Required, chat id of the telegram bot
+    parseMode: MarkdownV2 # Optional, default is Markdown, can be HTML, Markdown or MarkdownV2
+    disableNotification: false  # Optional, default is false, if true, telegram notification will be disabled
+    disableWebPagePreview: false  # Optional, default is false, if true, telegram web page preview will be disabled
