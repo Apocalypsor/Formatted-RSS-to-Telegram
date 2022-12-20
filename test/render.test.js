@@ -30,8 +30,7 @@ describe('test escape', function () {
 
             🎯 直达链接：[点击此处]({{ link }})
 
-            #YouTube订阅
-        `;
+            #YouTube订阅`;
         const data = {
             author: "老高與小茉 Mr & Mrs Gao",
             title: "沒人可以看完這個影片，因為不超過2分鐘你就會睡著了 | 老高與小茉 Mr & Mrs Gao",
@@ -44,13 +43,12 @@ describe('test escape', function () {
 
         const parseMode = 'markdownv2';
         expect(render(template, data, parseMode)).toBe(`
-            🎥 订阅更新：*沒人可以看完這個影片，因為不超過2分鐘你就會睡著了 \\| 老高與小茉 Mr &amp; Mrs Gao*
+            🎥 订阅更新：*沒人可以看完這個影片，因為不超過2分鐘你就會睡著了 \\| 老高與小茉 Mr & Mrs Gao*
 
-            🏆 Youtuber：*老高與小茉 Mr &amp; Mrs Gao*
+            🏆 Youtuber：*老高與小茉 Mr & Mrs Gao*
 
-            🎯 直达链接：[点击此处](https://www\\.youtube.com/watch?v\\=EyPi:09.000Z)
+            🎯 直达链接：[点击此处](https://www\\.youtube\\.com/watch?v\\=EyPi:09\\.000Z)
 
-            \\#YouTube订阅
-        `);
+            \\#YouTube订阅`);
     });
 });

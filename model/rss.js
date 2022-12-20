@@ -7,7 +7,6 @@ class RSSItem {
         this.url = input.url || null;
         this.sendTo = input.sendTo || null;
 
-        this.telegraph = input.telegraph || false;
         this.fullText = input.fullText || false;
         this.text = input.text || null;
 
