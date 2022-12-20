@@ -2,6 +2,8 @@
 
 Highly customizable RSS to Telegram.
 
+![sample](./docs/assets/screenshot-of-chat.png)
+
 ## Usage
 
 0. Install `Docker`.
