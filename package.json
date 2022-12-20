@@ -24,7 +24,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "npx jest --coverage --runInBand test/*.test.js"
+    "test": "npx jest --coverage test/*.test.js"
   },
   "repository": {
     "type": "git",

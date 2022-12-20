@@ -3,16 +3,16 @@ const processLib = require('../lib/process');
 describe('test process', function () {
     test('test empty rssItem', async function () {
         const rssItem = {
-            url: 'https://www.google.com/'
+            name: 'test',
+            url: 'https://www.google.com/',
+            sendTo: 'DovStream',
+            text: 'test',
         };
-        await processLib.process(rssItem);
-    });
+        try {
 
-    test('test rssItem', async function () {
-        const rssItem = {
-            url: 'https://www.reddit.com/r/programming/.rss',
-            fullText: true
-        };
-        await processLib.process(rssItem);
+            await processLib.process(rssItem);
+        } catch (e) {
+            expect(e).not.toBeNull();
+        }
     });
 });

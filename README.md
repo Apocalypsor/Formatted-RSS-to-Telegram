@@ -3,7 +3,7 @@
 ## Todo
 
 - [x] Proxy
-- [ ] Notify for invalid RSS links
+- [x] Notify for invalid RSS links
 - [ ] Clean Database periodically
 - [ ] Telegraph support
 - [ ] docs
