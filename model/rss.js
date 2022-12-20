@@ -46,7 +46,6 @@ class RSSItem {
                 !(mustHaveKey in input)
                 || (mustHaveKey === 'type' && !['regex', 'func'].includes(input[mustHaveKey]))
             ) {
-                logger.warn(`Invalid rule ${input[mustHaveKey]}, skipping!`);
                 logger.warn(`Invalid rule ${input.obj} to ${input.dest} for ${this.name}, skipping!`);
                 return;
             }
