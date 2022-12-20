@@ -10,7 +10,7 @@ async function main() {
         try {
             await process(item);
         } catch (e) {
-            logger.error('Error while processing rss item: ' + e.message);
+            logger.error(`Error while processing rss item ${item.name}: ${e.message}`);
         }
     }
 }
