@@ -8,7 +8,7 @@ const getClient = require("./lib/client");
 require('dotenv').config();
 
 async function main() {
-    const ipInfo = await getClient().get("https://api.dov.moe/ip");
+    const ipInfo = await getClient(true).get("https://api.dov.moe/ip");
     logger.info(`IP: ${JSON.stringify(ipInfo.data)}`);
     await createDirIfNotExists('./logs/screenshots');
     for (let item of rss.rss) {
