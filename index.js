@@ -3,12 +3,12 @@ const logger = require('./lib/logger');
 const {rss} = require('./lib/config');
 const {process} = require('./lib/process');
 const {createDirIfNotExists} = require("./lib/tools");
-const client = require("./lib/client");
+const getClient = require("./lib/client");
 
 require('dotenv').config();
 
 async function main() {
-    const ipInfo = await client.get("https://api.dov.moe/ip");
+    const ipInfo = await getClient().get("https://api.dov.moe/ip");
     logger.info(`IP: ${JSON.stringify(ipInfo.data)}`);
     await createDirIfNotExists('./logs/screenshots');
     for (let item of rss.rss) {
