@@ -9,9 +9,37 @@ const {config} = require('./lib/config');
 
 require('dotenv').config();
 
+async function getHostIPInfoThroughAPI() {
+    try {
+        const ipInfo = await getClient(true).get('https://api.dov.moe/ip');
+        if (!ipInfo.data.success) return null;
+        return JSON.stringify(ipInfo.data.data);
+    } catch {
+        return null;
+    }
+}
+
+async function getHostIPInfoThroughCloudflare() {
+    try {
+        const ipInfo = await getClient(true).get('https://1.1.1.1/cdn-cgi/trace');
+        return ipInfo.data;
+    } catch {
+        return null;
+    }
+}
+
+async function getHostIPInfo() {
+    const ipInfo = await getHostIPInfoThroughAPI();
+    if (ipInfo) {
+        return ipInfo;
+    } else {
+        return await getHostIPInfoThroughCloudflare();
+    }
+}
+
 async function main() {
-    const ipInfo = await getClient(true).get("https://1.1.1.1/cdn-cgi/trace");
-    logger.info(`IP:\n${ipInfo.data}`);
+    const ipInfo = await getHostIPInfo();
+    logger.info(`IP:\n${ipInfo}`);
     await createDirIfNotExists('./logs/screenshots');
     for (let item of rss.rss) {
         try {
