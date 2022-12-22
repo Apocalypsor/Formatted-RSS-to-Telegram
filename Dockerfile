@@ -6,6 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN yarn install
+RUN yarn config set puppeteer_skip_chromium_download true -g \
+    && yarn install
 
 CMD ["yarn", "start"]
