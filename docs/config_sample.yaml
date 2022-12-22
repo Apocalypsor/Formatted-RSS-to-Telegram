@@ -1,5 +1,7 @@
 expireTime: 6 #Optional, default is 30, number of days. clean up all history in the database before this number of days
 
+userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36 # Optional, user agent to send to the rss feed
+
 morss: http://127.0.0.1:8000/ # Optional, default is https://morss.it/, used to get the full text of rss feed
 
 puppeteerWSEndpoint: ws://127.0.0.1:3000/ # Optional, if empty, puppeteer will be disabled

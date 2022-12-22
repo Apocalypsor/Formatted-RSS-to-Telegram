@@ -1,6 +1,6 @@
 rss:
   - name: test  # Required, name of the rss feed
-    url: https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom  # Required, url of the rss feed
+    url: https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom  # Required, url of the rss feed, can be a list as well
     # url:
     #   - https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom
     #   - https://github.com/Apocalypsor.atom
