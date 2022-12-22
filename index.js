@@ -4,6 +4,8 @@ const {rss} = require('./lib/config');
 const {process} = require('./lib/process');
 const {createDirIfNotExists} = require("./lib/tools");
 const getClient = require("./lib/client");
+const {clean} = require("./lib/db");
+const {config} = require('./lib/config');
 
 require('dotenv').config();
 
@@ -27,4 +29,11 @@ main().then(() => {
         await main();
         logger.info('Schedule job finished');
     });
-});
+    schedule.scheduleJob('0 0 */30 * *', async function () {
+        logger.info('Start cleaning database');
+        await clean(config.expireTime);
+        logger.info('Finished cleaning database');
+    });
+}).catch(e => {
+    logger.error(`Failed to start the initial RSS processing: ${e.message}`);
+})

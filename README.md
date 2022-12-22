@@ -31,5 +31,5 @@ Highly customizable RSS to Telegram.
 - [x] Proxy
 - [x] Notify for invalid RSS links
 - [x] docs
-- [ ] Clean Database periodically
+- [x] Clean Database periodically
 - [ ] Telegraph support

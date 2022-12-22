@@ -1,4 +1,4 @@
-expireTime: 6h # no use right now
+expireTime: 6 #Optional, default is 30, number of days. clean up all history in the database before this number of days
 
 morss: http://127.0.0.1:8000/ # Optional, default is https://morss.it/, used to get the full text of rss feed
 
