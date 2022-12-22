@@ -1,10 +1,11 @@
 const logger = require('../lib/logger');
+const {isInteger} = require("../lib/tools");
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
 
 class Config {
     constructor(input) {
-        this.expireTime = input.expireTime || '30d';
+        this.expireTime = isInteger(input.expireTime) ? input.expireTime : 365;
         this.userAgent = input.userAgent || UA;
         this.morss = input.morss || 'https://morss.it/';
         this.notifyTelegramChatId = input.notifyTelegramChatId || null;
