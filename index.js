@@ -52,7 +52,8 @@ async function main() {
 
 main().then(() => {
     logger.info('Initial RSS processing finished');
-    schedule.scheduleJob('*/10 * * * *', async function () {
+    logger.info(`Schedule job started, interval: ${config.interval} minutes`);
+    schedule.scheduleJob(`*/${config.interval} * * * *`, async function () {
         logger.info('Schedule job started');
         await main();
         logger.info('Schedule job finished');
