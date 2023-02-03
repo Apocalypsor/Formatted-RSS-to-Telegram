@@ -6,6 +6,7 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (
 class Config {
     constructor(input) {
         this.expireTime = isInteger(input.expireTime) ? input.expireTime : 365;
+        this.interval = isInteger(input.interval) ? input.interval : 10;
         this.userAgent = input.userAgent || UA;
         this.morss = input.morss || 'https://morss.it/';
         this.notifyTelegramChatId = input.notifyTelegramChatId || null;
