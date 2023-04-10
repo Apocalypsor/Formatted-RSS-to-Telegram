@@ -9,7 +9,7 @@ on:
       - '!main'
 
   pull_request:
-    types: [ opened, reopened ]
+    types: [ opened, reopened, opened, synchronize ]
 
 jobs:
   build:
@@ -28,4 +28,6 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64, linux/arm64, linux/arm/v7
-          push: false
+          push: true
+          tags: |
+            ghcr.io/apocalypsor/fr2t:pr-${{ github.event.number }}
