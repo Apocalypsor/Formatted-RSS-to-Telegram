@@ -6,6 +6,8 @@ class RSSItem {
         this.name = input.name || null;
         this.url = input.url || null;
         this.sendTo = input.sendTo || null;
+        this.disableNotification = input.disableNotification || false;
+        this.disableWebPagePreview = input.disableWebPagePreview || false;
 
         this.fullText = input.fullText || false;
         this.text = input.text || null;

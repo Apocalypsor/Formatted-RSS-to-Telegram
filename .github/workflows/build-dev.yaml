@@ -9,7 +9,7 @@ on:
       - '!main'
 
   pull_request:
-    types: [ opened, reopened ]
+    types: [ opened, reopened, opened, synchronize ]
 
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build
+      - name: Build for push
         uses: docker/build-push-action@v3
         with:
           context: .
