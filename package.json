@@ -6,7 +6,7 @@
     "he": "^1.2.0",
     "jsdom": "^20.0.3",
     "node-schedule": "^2.1.0",
-    "nunjucks": "^3.2.3",
+    "nunjucks": "^3.2.4",
     "proxy-chain": "^2.2.0",
     "puppeteer": "^19.4.1",
     "puppeteer-extra": "^3.3.4",
