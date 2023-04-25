@@ -16,7 +16,7 @@
     "sql.js": "^1.8.0",
     "winston": "^3.8.2",
     "winston-daily-rotate-file": "^4.7.1",
-    "yaml": "^2.1.3"
+    "yaml": "^2.2.2"
   },
   "name": "formatted-rss-to-telegram",
   "version": "0.0.1",
