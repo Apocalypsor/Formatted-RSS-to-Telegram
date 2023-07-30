@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apk add --no-cache python3 py3-pip \
+RUN apk add --no-cache python3 py3-pip libxml2-dev libxslt-dev \
     && pip install morss \
     && yarn install \
     && yarn cache clean \
