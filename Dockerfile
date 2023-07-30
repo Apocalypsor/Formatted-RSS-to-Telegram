@@ -6,10 +6,12 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apk add --no-cache python3 py3-pip libxml2-dev libxslt-dev \
+RUN apk --no-cache --virtual .build-deps add git build-base libffi-dev \
+    && apk add --no-cache python3 py3-pip \
     && pip install morss \
     && yarn install \
     && yarn cache clean \
+    && apk del .build-deps \
     && rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/*
 
 CMD ["yarn", "start"]
