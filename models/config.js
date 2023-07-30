@@ -9,7 +9,6 @@ class Config {
         this.expireTime = isInteger(input.expireTime) ? input.expireTime : 365;
         this.interval = isInteger(input.interval) ? input.interval : 10;
         this.userAgent = input.userAgent || UA;
-        this.morss = input.morss || "https://morss.it/";
         this.notifyTelegramChatId = input.notifyTelegramChatId || null;
 
         this.flaresolverr = input.flaresolverr

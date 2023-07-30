@@ -2,8 +2,6 @@ expireTime: 6 #Optional, default is 30, number of days. clean up all history in 
 
 userAgent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36 # Optional, user agent to send to the rss feed
 
-morss: http://127.0.0.1:8000/ # Optional, default is https://morss.it/, used to get the full text of rss feed, refer to https://github.com/pictuga/morss
-
 flaresolverr: http://127.0.0.1:8191/ # Optional, default is empty, used to solve cloudflare challenge, refer to https://github.com/FlareSolverr/FlareSolverr
 
 notifyTelegramChatId: 111111111 # Optional, if empty, telegram notification for expired links will be disabled
