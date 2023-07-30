@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apk --no-cache --virtual .build-deps add git build-base libffi-dev libxml2-dev libxslt-dev python-dev \
+RUN apk --no-cache --virtual .build-deps add git build-base libffi-dev libxml2-dev libxslt-dev python3-dev \
     && apk add --no-cache python3 py3-pip \
     && pip install morss \
     && yarn install \
