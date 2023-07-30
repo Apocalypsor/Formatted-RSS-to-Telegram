@@ -1,9 +1,7 @@
-const getClient = require("@lib/client");
-const { config } = require("@lib/config");
-const logger = require("@lib/logger");
-const { editStatus } = require("@model/status");
-
-require("dotenv").config();
+const getClient = require("@utils/client");
+const { config } = require("@utils/config");
+const logger = require("@utils/logger");
+const { EDIT_STATUS } = require("@consts/status");
 
 const getSender = (sender) => {
     return config.telegram.find((s) => s.name === sender);
@@ -62,11 +60,11 @@ const edit = async (sender, messageId, text) => {
             const resp = await getClient().post(endpoint, payload);
             if (resp.data.ok) {
                 logger.info(`Message ${messageId} edited to ${sender.name}.`);
-                resStatus = editStatus.SUCCESS;
+                resStatus = EDIT_STATUS.SUCCESS;
             }
         } catch (e) {
             if (e.response.data.description.includes("exactly the same")) {
-                resStatus = editStatus.SUCCESS;
+                resStatus = EDIT_STATUS.SUCCESS;
             } else if (
                 e.response.data.description.includes(
                     "message to edit not found"
@@ -74,12 +72,12 @@ const edit = async (sender, messageId, text) => {
                 e.response.data.description.includes("MESSAGE_ID_INVALID")
             ) {
                 logger.error(`Message not found on ${sender.name}, skipping.`);
-                resStatus = editStatus.NOT_FOUND;
+                resStatus = EDIT_STATUS.NOT_FOUND;
             } else {
                 logger.error(
                     `Error editing message on ${sender.name}, skipping.`
                 );
-                resStatus = editStatus.ERROR;
+                resStatus = EDIT_STATUS.ERROR;
             }
         }
 

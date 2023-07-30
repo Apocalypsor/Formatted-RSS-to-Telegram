@@ -10,12 +10,21 @@
         "allowJs": true,
         "checkJs": true,
         "paths": {
-            "@lib/*": [
-                "./lib/*"
+            "@services": [
+                "./services"
             ],
-            "@model/*": [
-                "./model/*"
-            ]
+            "@services/*": [
+                "./services/*"
+            ],
+            "@utils/*": [
+                "./utils/*"
+            ],
+            "@models/*": [
+                "./models/*"
+            ],
+            "@consts/*": [
+                "./consts/*"
+            ],
         }
     },
     "exclude": [

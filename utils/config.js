@@ -1,7 +1,7 @@
 const fs = require("fs");
 const { parse } = require("yaml");
-const Config = require("@model/config");
-const { RSS } = require("@model/rss");
+const Config = require("@models/config");
+const { RSS } = require("@models/rss");
 
 const checkConfig = (configFile) => {
     const configPath =
@@ -32,6 +32,4 @@ const rss = checkRSS(process.env.RSS_FILE);
 module.exports = {
     config,
     rss,
-    checkConfig,
-    checkRSS,
 };

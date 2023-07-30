@@ -1,8 +1,8 @@
 const Parser = require("rss-parser");
-const logger = require("@lib/logger");
-const { config } = require("@lib/config");
-const getClient = require("@lib/client");
-const { parseIPFromURL, isIntranet, htmlDecode } = require("@lib/tools");
+const logger = require("@utils/logger");
+const { config } = require("@utils/config");
+const getClient = require("@utils/client");
+const { parseIPFromURL, isIntranet, htmlDecode } = require("@utils/tools");
 
 const parser = new Parser({
     customFields: {

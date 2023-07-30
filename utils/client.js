@@ -1,9 +1,8 @@
 const axios = require("axios");
 const axiosRetry = require("axios-retry");
 const { SocksProxyAgent } = require("socks-proxy-agent");
-
-const { config } = require("@lib/config");
-const logger = require("@lib/logger");
+const { config } = require("@utils/config");
+const logger = require("@utils/logger");
 
 const client = axios.default.create({
     timeout: 10000,

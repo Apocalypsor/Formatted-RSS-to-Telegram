@@ -1,12 +1,12 @@
 require("module-alias/register");
 const schedule = require("node-schedule");
-const logger = require("@lib/logger");
-const { rss } = require("@lib/config");
-const { process } = require("@lib/process");
-const { createDirIfNotExists } = require("@lib/tools");
-const getClient = require("@lib/client");
-const { clean } = require("@lib/db");
-const { config } = require("@lib/config");
+const { process } = require("@services");
+const logger = require("@utils/logger");
+const { rss } = require("@utils/config");
+const { config } = require("@utils/config");
+const { createDirIfNotExists } = require("@utils/tools");
+const getClient = require("@utils/client");
+const { clean } = require("@utils/db");
 
 require("dotenv").config();
 

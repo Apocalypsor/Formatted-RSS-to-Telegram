@@ -1,15 +1,15 @@
-const { parseRSSFeed, parseFullRSSFeed } = require("@lib/parser");
+const { parseRSSFeed, parseFullRSSFeed } = require("@services/parser");
+const { render } = require("@services/render");
+const { getSender, send, edit, notify } = require("@services/sender");
 const {
     updateExpire,
     getHistory,
     addHistory,
     updateHistory,
-} = require("@lib/db");
-const { getObj, hash } = require("@lib/tools");
-const { render } = require("@lib/render");
-const { getSender, send, edit, notify } = require("@lib/sender");
-const { editStatus } = require("@model/status");
-const logger = require("@lib/logger");
+} = require("@utils/db");
+const { getObj, hash } = require("@utils/tools");
+const logger = require("@utils/logger");
+const { EDIT_STATUS } = require("@consts/status");
 
 const history = new Set();
 
@@ -94,9 +94,9 @@ const processItem = async (rssItem, sender, item) => {
         let messageId = existed.telegram_message_id;
         if (messageId > 0 && text_hash !== existed.text_hash) {
             const editResp = await edit(tmpSender, messageId, text);
-            if (editResp === editStatus.NOT_FOUND) {
+            if (editResp === EDIT_STATUS.NOT_FOUND) {
                 messageId = -1;
-            } else if (editResp === editStatus.ERROR) {
+            } else if (editResp === EDIT_STATUS.ERROR) {
                 return;
             }
 

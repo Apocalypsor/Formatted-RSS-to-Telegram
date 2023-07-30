@@ -1,6 +1,6 @@
 const fs = require("fs");
 const initSqlJs = require("sql.js");
-const logger = require("@lib/logger");
+const logger = require("@utils/logger");
 
 const file = __dirname + "/../config/" + (process.env.DB_FILE || "db.sqlite");
 

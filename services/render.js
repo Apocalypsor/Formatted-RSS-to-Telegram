@@ -90,6 +90,5 @@ const escapeAll = (obj, parseMode = "markdown") => {
 };
 
 module.exports = {
-    escapeTemplate,
     render,
 };
