@@ -5,11 +5,11 @@ on:
 
   push:
     branches: # Run on all pushes except for main
-      - '*'
-      - '!main'
+      - "*"
+      - "!main"
 
   pull_request:
-    types: [ opened, reopened, opened, synchronize ]
+    types: [opened, reopened, opened, synchronize]
 
 jobs:
   build:
@@ -27,5 +27,5 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64, linux/arm64, linux/arm/v7
+          platforms: linux/amd64, linux/arm64
           push: false
