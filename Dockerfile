@@ -6,8 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN yarn config set puppeteer_skip_chromium_download true -g \
-    && yarn install \
+RUN yarn install \
     && yarn cache clean \
     && rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/*
 
