@@ -1,4 +1,6 @@
 const Parser = require("rss-parser");
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
 const logger = require("@utils/logger");
 const { config } = require("@utils/config");
 const getClient = require("@utils/client");
@@ -15,14 +17,20 @@ const parser = new Parser({
     },
 });
 
-const parseRSSFeed = async (url) => {
+const parseRSSFeed = async (url, full = false) => {
     try {
-        logger.debug(`Parsing RSS feed ${url}`);
-        const ip = await parseIPFromURL(url);
-        const proxy = !isIntranet(ip);
-        logger.debug(`Parsed IP for ${url}: ${ip}`);
-        const resp = await getClient(proxy).get(url);
-        const feed = await parser.parseString(resp.data);
+        logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
+        let htmlResp;
+        if (full) {
+            const execOutput = await exec(`morss --clip "${url}"`);
+            htmlResp = execOutput.stdout;
+        } else {
+            const ip = await parseIPFromURL(url);
+            const proxy = !isIntranet(ip);
+            logger.debug(`Parsed IP for ${url}: ${ip}`);
+            htmlResp = (await getClient(proxy).get(url)).data;
+        }
+        const feed = await parser.parseString(htmlResp);
         return feed.items.reverse();
     } catch (e) {
         logger.error(`Failed to parse RSS feed ${url}:\n${e}`);
@@ -36,14 +44,9 @@ const parseRSSFeed = async (url) => {
                 })
             ).data.solution.response;
             const html = htmlDecode(htmlRaw);
-            const regex = new RegExp(/(<rss[\s\S]+\/rss>)/g);
-            let match = regex.exec(html);
-            if (!match) {
-                const regex = new RegExp(/(<feed[\s\S]+\/feed>)/g);
-                match = regex.exec(html);
-            }
-            if (match) {
-                const feed = await parser.parseString(match[0]);
+
+            if (html) {
+                const feed = await parser.parseString(html);
                 logger.info("Successfully parsed RSS feed using FlareSolver");
                 return feed.items.reverse();
             } else {
@@ -57,12 +60,6 @@ const parseRSSFeed = async (url) => {
     }
 };
 
-const parseFullRSSFeed = async (url) => {
-    url = config.morss + url;
-    return await parseRSSFeed(url);
-};
-
 module.exports = {
     parseRSSFeed,
-    parseFullRSSFeed,
 };

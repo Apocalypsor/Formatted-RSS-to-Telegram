@@ -1,4 +1,4 @@
-const { parseRSSFeed, parseFullRSSFeed } = require("@services/parser");
+const { parseRSSFeed } = require("@services/parser");
 const { render } = require("@services/render");
 const { getSender, send, edit, notify } = require("@services/sender");
 const {
@@ -25,7 +25,7 @@ const process = async (rssItem) => {
     logger.info(`Processing RSS item: ${rssItem.name} (${rssItem.url})`);
     let rssContent;
     if (rssItem.fullText) {
-        rssContent = await parseFullRSSFeed(rssItem.url);
+        rssContent = await parseRSSFeed(rssItem.url, true);
     } else {
         rssContent = await parseRSSFeed(rssItem.url);
     }

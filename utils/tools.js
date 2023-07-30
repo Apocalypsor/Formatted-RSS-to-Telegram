@@ -90,7 +90,18 @@ const isIntranet = async (ip) => {
 
 const htmlDecode = (input) => {
     var doc = new JSDOM(input);
-    return doc.window.document.body.textContent;
+    const body = doc.window.document.body.textContent;
+    const regex = new RegExp(/(<rss[\s\S]+\/rss>)/g);
+    let match = regex.exec(body);
+    if (!match) {
+        const regex = new RegExp(/(<feed[\s\S]+\/feed>)/g);
+        match = regex.exec(body);
+    }
+    if (match) {
+        return match[0];
+    } else {
+        return null;
+    }
 };
 
 module.exports = {

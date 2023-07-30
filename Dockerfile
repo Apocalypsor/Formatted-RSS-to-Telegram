@@ -6,7 +6,9 @@ WORKDIR /app
 
 COPY . /app
 
-RUN yarn install \
+RUN apk add --no-cache python3 py3-pip \
+    && pip install morss \
+    && yarn install \
     && yarn cache clean \
     && rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/*
 
