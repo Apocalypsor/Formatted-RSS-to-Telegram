@@ -8,7 +8,6 @@ const { parseIPFromURL, isIntranet, htmlDecode } = require("@utils/tools");
 
 const parser = new Parser({
     customFields: {
-        // @ts-ignore
         item: ["author", ["ns0:encoded", "content_full"]],
     },
     timeout: 10000,

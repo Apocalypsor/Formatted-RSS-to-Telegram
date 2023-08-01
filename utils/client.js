@@ -9,13 +9,12 @@ const client = axios.default.create({
     headers: {
         "User-Agent": config.userAgent,
         "Accept-Encoding": "gzip, deflate, compress",
-        Accept: "application/rss+xml, application/json",
+        "Accept": "application/rss+xml, application/json",
         "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
         "Cache-Control": "max-age=0",
     },
 });
 
-// @ts-ignore
 axiosRetry(client, {
     retryCondition: (e) => {
         return (
@@ -46,7 +45,7 @@ client.interceptors.response.use(
         }
         logger.debug(errMsg);
         return Promise.reject(error);
-    }
+    },
 );
 
 const getClient = (proxy = false) => {
@@ -70,7 +69,7 @@ const getClient = (proxy = false) => {
                     ? `${config.proxy.auth.username}:${config.proxy.auth.password}@`
                     : "";
             const proxyAgent = new SocksProxyAgent(
-                `socks5://${auth}${config.proxy.host}:${config.proxy.port}`
+                `socks5://${auth}${config.proxy.host}:${config.proxy.port}`,
             );
             client.defaults.httpsAgent = proxyAgent;
             client.defaults.httpAgent = proxyAgent;

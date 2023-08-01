@@ -23,7 +23,7 @@ const getHostIPInfoThroughAPI = async () => {
 const getHostIPInfoThroughCloudflare = async () => {
     try {
         const ipInfo = await getClient(true).get(
-            "https://1.1.1.1/cdn-cgi/trace"
+            "https://1.1.1.1/cdn-cgi/trace",
         );
         return ipInfo.data;
     } catch {
@@ -49,7 +49,7 @@ const main = async () => {
             await process(item);
         } catch (e) {
             logger.error(
-                `Error while processing rss item ${item.name}: ${e.message}`
+                `Error while processing rss item ${item.name}: ${e.message}`,
             );
         }
     }
@@ -59,7 +59,7 @@ main()
     .then(() => {
         logger.info("Initial RSS processing finished");
         logger.info(
-            `Schedule job started, interval: ${config.interval} minutes`
+            `Schedule job started, interval: ${config.interval} minutes`,
         );
         schedule.scheduleJob(`*/${config.interval} * * * *`, async function () {
             logger.info("Schedule job started");
@@ -74,6 +74,6 @@ main()
     })
     .catch((e) => {
         logger.error(
-            `Failed to start the initial RSS processing: ${e.message}`
+            `Failed to start the initial RSS processing: ${e.message}`,
         );
     });

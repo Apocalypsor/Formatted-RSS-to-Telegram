@@ -1,18 +1,17 @@
 {
-  "tabWidth": 4,
-  "quoteProps": "consistent",
-  "vueIndentScriptAndStyle": true,
-  "overrides": [
-    {
-      "files": [
-        "*.json",
-        "*.yaml",
-        "*.yml",
-        "*.md"
-      ],
-      "options": {
-        "tabWidth": 2
-      }
-    }
-  ]
+    "tabWidth": 4,
+    "quoteProps": "consistent",
+    "vueIndentScriptAndStyle": true,
+    "overrides": [
+        {
+            "files": [
+                "*.yaml",
+                "*.yml",
+                "*.md"
+            ],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
 }
