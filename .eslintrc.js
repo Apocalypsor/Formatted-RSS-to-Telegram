@@ -7,7 +7,7 @@ module.exports = {
     extends: ["eslint:recommended"],
     parserOptions: {
         ecmaVersion: 2021,
-        sourceType: "module",
+        sourceType: "script",
     },
     rules: {
         "no-prototype-builtins": "off",
