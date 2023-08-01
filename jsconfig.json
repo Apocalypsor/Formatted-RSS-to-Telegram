@@ -1,33 +1,30 @@
 {
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es6",
-        "lib": [
-            "ES2021.String"
-        ],
-        "noImplicitAny": false,
-        "moduleResolution": "node",
-        "allowJs": true,
-        "checkJs": true,
-        "paths": {
-            "@services": [
-                "./services"
-            ],
-            "@services/*": [
-                "./services/*"
-            ],
-            "@utils/*": [
-                "./utils/*"
-            ],
-            "@models/*": [
-                "./models/*"
-            ],
-            "@consts/*": [
-                "./consts/*"
-            ],
-        }
-    },
-    "exclude": [
-        "node_modules"
-    ]
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2021",
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": true,
+    "paths": {
+      "@services": [
+        "./services"
+      ],
+      "@services/*": [
+        "./services/*"
+      ],
+      "@utils/*": [
+        "./utils/*"
+      ],
+      "@models/*": [
+        "./models/*"
+      ],
+      "@consts/*": [
+        "./consts/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules"
+  ]
 }
