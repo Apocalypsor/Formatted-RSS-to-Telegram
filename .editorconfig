@@ -1,0 +1,24 @@
+# .editorconfig
+
+# Top-most EditorConfig file
+root = true
+
+# Universal settings
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_size = 4
+
+# JSON, YAML, and YML files, using 2 spaces
+[*.{json,yaml,yml}]
+indent_size = 2
+
+# Markdown files, disallow trailing whitespace
+[*.md]
+trim_trailing_whitespace = false
+
+# CSS and SCSS files
+[*.{css,scss}]
+indent_size = 2

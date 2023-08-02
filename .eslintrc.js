@@ -5,10 +5,17 @@ module.exports = {
         node: true,
     },
     extends: ["eslint:recommended"],
-    parserOptions: {
-        ecmaVersion: 2021,
-        sourceType: "script",
-    },
+    overrides: [
+        {
+            env: {
+                node: true,
+            },
+            files: [".eslintrc.{js,cjs}"],
+            parserOptions: {
+                sourceType: "script",
+            },
+        },
+    ],
     rules: {
         "no-prototype-builtins": "off",
     },

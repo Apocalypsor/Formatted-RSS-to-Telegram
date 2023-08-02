@@ -1,11 +1,7 @@
 {
     "compilerOptions": {
-        "module": "commonjs",
-        "target": "es2021",
-        "noImplicitAny": false,
-        "moduleResolution": "node",
-        "allowJs": true,
         "checkJs": true,
+        "allowSyntheticDefaultImports": true,
         "paths": {
             "@services": ["./services"],
             "@services/*": ["./services/*"],
