@@ -30,7 +30,7 @@ const process = async (rssItem) => {
         rssContent = await parseRSSFeed(rssItem.url);
     }
 
-    if (rssContent.length === 0) {
+    if (rssContent === null) {
         const expireCount = await updateExpire(rssItem.url);
         logger.warn(
             `RSS item ${rssItem.name} (${rssItem.url}) is expired for ${expireCount} times, skipping.`

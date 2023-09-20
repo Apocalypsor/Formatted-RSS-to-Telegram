@@ -50,11 +50,11 @@ const parseRSSFeed = async (url, full = false) => {
                 return feed.items.reverse();
             } else {
                 logger.error("Failed to parse RSS feed using FlareSolver");
-                return [];
+                return null;
             }
         } else {
             logger.error("FlareSolver is not configured, skipping");
-            return [];
+            return null;
         }
     }
 };
