@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model History {
+    id                  Int       @id @default(autoincrement())
+    unique_hash         String    @unique
+    url                 String
+    text_hash           String
+    telegram_name       String
+    telegram_message_id Int
+    telegram_chat_id    Int
+    telegraph_url       String?
+    created_at          DateTime  @default(now())
+    updated_at          DateTime  @updatedAt
+}
+
+model Expire {
+    id         Int      @id @default(autoincrement())
+    url        String   @unique
+    expire     Int
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
+}

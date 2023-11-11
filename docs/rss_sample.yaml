@@ -1,6 +1,6 @@
 rss:
-  - name: test  # Required, name of the rss feed
-    url: https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom  # Required, url of the rss feed, can be a list as well
+  - name: test # Required, name of the rss feed
+    url: https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom # Required, url of the rss feed, can be a list as well
     # url:
     #   - https://github.com/Apocalypsor/Formatted-RSS-to-Telegram/commits.atom
     #   - https://github.com/Apocalypsor.atom
@@ -12,18 +12,21 @@ rss:
     disableWebPagePreview: false # Optional, default is false, if true, telegram web page preview will be disabled
     fullText: true # Optional, default is false, if true, rss will be parsed as full text
     rules: # Optional, used to process a field of the rss feed
-      - obj: title  # Required, field of the rss feed to process, 'path1.path2.path3' means rssItem.path1.path2.path3.
+      - obj: title # Required, field of the rss feed to process, 'path1.path2.path3' means rssItem.path1.path2.path3.
         type: regex # Required, can be regex or func
         matcher: ^(\[.+?\])?(.+?)$ # Required, regex to match the field
         dest: tag # Required, destination field to save the processed field, can be used in text
-      - obj: title  # Required
-        type: func  # Required
-        matcher: |  # Required, function to process the field, the input is obj, you need to return the processed field
+      - obj: title # Required
+        type: func # Required
+        matcher:
+          | # Required, function to process the field, the input is obj, you need to return the processed field
           return obj.replace(/(\[.+?\])?(.+?)$/, '$2');
         dest: new_tag # Required
     filters: # Optional, used to filter the rss feed
-      - obj: title  # Required, field of the rss feed to filter, 'path1.path2.path3' means rssItem.path1.path2.path3.
+      - obj: title # Required, field of the rss feed to filter, 'path1.path2.path3' means rssItem.path1.path2.path3.
         type: out # Required, can be in or out, in means the field should match the matcher, out means the field should not match the matcher
-        matcher: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}  # Required, regex to match the field
-    text: | # Required, template to render the message sent to the chat, using Nunjucks
-      {{ title }}{{ author }}{{ link }}{{ tag }}{{ new_tag }}
+        matcher: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} # Required, regex to match the field
+    text:
+      | # Required, template to render the message sent to the chat, using Nunjucks
+      {{ title }}{{ author }}{{ link }}{{ content }}{{ contentSnippet }}
+      {{ tag }}{{ new_tag }}{{ rss_name }}{{ rss_url }}

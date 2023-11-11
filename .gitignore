@@ -193,3 +193,4 @@ dist
 /test/test.js
 /test/samples/config_prod.yaml
 /config
+.DS_Store

@@ -1,14 +1,20 @@
-const Parser = require("rss-parser");
-const util = require("util");
-const exec = util.promisify(require("child_process").exec);
-const logger = require("@utils/logger");
-const { config } = require("@utils/config");
-const getClient = require("@utils/client");
-const { parseIPFromURL, isIntranet, htmlDecode } = require("@utils/tools");
+import { getClient } from "@utils/client";
+import {
+    htmlDecode,
+    isIntranet,
+    mapError,
+    parseIPFromURL,
+} from "@utils/helpers";
+import logger from "@utils/logger";
+import { config } from "index";
+import * as Parser from "rss-parser";
+import { promisify } from "util";
+
+const exec = promisify(require("child_process").exec);
 
 const parser = new Parser({
     customFields: {
-        item: ["author", ["ns0:encoded", "content_full"]],
+        item: ["author", "ns0:encoded", "content_full"],
     },
     timeout: 10000,
     headers: {
@@ -16,7 +22,7 @@ const parser = new Parser({
     },
 });
 
-const parseRSSFeed = async (url, full = false) => {
+const parseRSSFeed = async (url: string, full = false): Promise<any> => {
     try {
         logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
         let htmlResp;
@@ -32,7 +38,7 @@ const parseRSSFeed = async (url, full = false) => {
         const feed = await parser.parseString(htmlResp);
         return feed.items.reverse();
     } catch (e) {
-        logger.error(`Failed to parse RSS feed ${url}:\n${e}`);
+        logger.warning(`Failed to parse RSS feed ${url}:\n${mapError(e)}`);
         if (config.flaresolverr) {
             logger.info("Trying to parse RSS feed using FlareSolver");
             const htmlRaw = (
@@ -49,16 +55,14 @@ const parseRSSFeed = async (url, full = false) => {
                 logger.info("Successfully parsed RSS feed using FlareSolver");
                 return feed.items.reverse();
             } else {
-                logger.error("Failed to parse RSS feed using FlareSolver");
+                logger.warning("Failed to parse RSS feed using FlareSolver");
                 return null;
             }
         } else {
-            logger.error("FlareSolver is not configured, skipping");
+            logger.warning("FlareSolver is not configured, skipping");
             return null;
         }
     }
 };
 
-module.exports = {
-    parseRSSFeed,
-};
+export { parseRSSFeed };

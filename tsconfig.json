@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "baseUrl": "./src",
+        "paths": {
+            "@services/*": ["./services/*"],
+            "@services": ["./services/index"],
+            "@utils/*": ["./utils/*"],
+            "@config/*": ["./config/*"],
+            "@consts/*": ["./consts/*"],
+            "@database/*": ["./database/*"]
+        },
+        "allowJs": true,
+        "resolveJsonModule": true
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["node_modules", "**/*.spec.ts"]
+}
