@@ -17,4 +17,4 @@ RUN apk --no-cache --virtual .build-deps add git build-base libffi-dev libxml2-d
     && apk del .build-deps \
     && rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/*
 
-ENTRYPOINT /app/docker/entrypoint.sh
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
