@@ -10,6 +10,8 @@ RUN apk --no-cache --virtual .build-deps add git build-base libffi-dev libxml2-d
     && apk add --no-cache python3 py3-pip \
     && pip install morss \
     && yarn install \
+    && yarn prisma:migrate:deploy \
+    && yarn build \
     && yarn cache clean \
     && apk del .build-deps \
     && rm -rf /tmp/* /var/tmp/* /var/cache/apk/* /var/cache/distfiles/*

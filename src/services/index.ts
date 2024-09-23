@@ -14,6 +14,7 @@ import { getObj, hash, mapError } from "@utils/helpers";
 import logger from "@utils/logger";
 
 const history = new Set();
+const uninitialized = new Set();
 
 const processRSS = async (rssItem: RSS) => {
     const sender = getSender(rssItem.sendTo);
@@ -70,7 +71,16 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     const text = render(rssItem.text, item, sender.parseMode);
 
     const text_hash = hash(text);
-    const initialized = await getFirstHistoryByURL(rssItem.url);
+
+    // check if this url has been initialized
+    let initialized = !uninitialized.has(rssItem.url);
+    if (initialized) {
+        initialized = !!(await getFirstHistoryByURL(rssItem.url));
+        if (!initialized) {
+            uninitialized.add(rssItem.url);
+        }
+    }
+
     const existed = await getHistory(uniqueHash, rssItem.url, sender.chatId);
 
     logger.debug(`Processing item: ${JSON.stringify(rssItem)})`);

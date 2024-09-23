@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const checkHistoryInitialized = async (): Promise<boolean> => {
+    const history = await prisma.history.findFirst();
+    console.log(!!history);
+    return !!history;
+};
+
 const getFirstHistoryByURL = async (url: string) => {
     return prisma.history.findFirst({
         where: {
@@ -89,6 +95,7 @@ const clean = async (numberOfDays = 30) => {
 };
 
 export {
+    checkHistoryInitialized,
     getFirstHistoryByURL,
     getHistory,
     addHistory,

@@ -5,8 +5,9 @@ import {
     InvalidRSSItemError,
     InvalidRSSRuleError,
     LoadRSSFileError,
+    RSSFileNotFoundError,
 } from "errors/config";
-import * as fs from "node:fs";
+import fs from "node:fs";
 import { parse } from "yaml";
 
 const parseRSSRule = (rule: any): RSSRule => {
@@ -52,7 +53,7 @@ const parseRSSItem = (rssItem: any): RSS => {
     const mustHave = ["name", "url", "sendTo", "text"];
     for (const mustHaveKey of mustHave) {
         if (!rssItem.hasOwnProperty(mustHaveKey)) {
-            throw new InvalidRSSItemError();
+            throw new InvalidRSSItemError(rssItem);
         }
     }
 
@@ -71,11 +72,11 @@ const parseRSSItem = (rssItem: any): RSS => {
 
 const parseRSS = (rss: any): RSS[] => {
     if (!rss || rss.length === 0) {
-        throw new Error("RSS file is invalid");
+        throw new InvalidRSSItemError(rss);
     }
 
     const parsedRSS: RSS[] = [];
-    for (const rssItem of rss.rss) {
+    for (const rssItem of rss) {
         if (rssItem.url && rssItem.name && rssItem.sendTo && rssItem.text) {
             let rssExpandUrl: any[] = [];
             if (Array.isArray(rssItem.url)) {
@@ -96,27 +97,28 @@ const parseRSS = (rss: any): RSS[] => {
             }
 
             for (const item of rssExpandSendTo) {
-                rss.push(parseRSSItem(item));
+                parsedRSS.push(parseRSSItem(item));
             }
         } else {
-            throw new InvalidRSSItemError();
+            throw new InvalidRSSItemError(rssItem);
         }
     }
     return parsedRSS;
 };
 
 const loadRSSFile = (rssFile: string | undefined): RSS[] => {
-    const rssPath = __dirname + "/../config/" + (rssFile || "rss.yaml");
+    const rssPath = "./config/" + (rssFile || "rss.yaml");
     if (!fs.existsSync(rssPath)) {
-        throw new Error("RSS file not found");
+        throw new RSSFileNotFoundError(rssPath);
     } else {
         const parsed = parse(fs.readFileSync(rssPath, "utf8"), { merge: true });
         try {
             return parseRSS(parsed?.rss);
         } catch (e) {
-            throw new LoadRSSFileError(rssPath);
+            throw new LoadRSSFileError(rssPath, e);
         }
     }
 };
 
-export { loadRSSFile, parseRSS };
+const rss = loadRSSFile(process.env.RSS_PATH);
+export { rss, loadRSSFile, parseRSS };

@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
-import * as dns from "dns";
+import dns from "dns";
 import { JSDOM } from "jsdom";
-import * as fs from "node:fs";
+import fs from "node:fs";
 
 const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
@@ -11,18 +11,12 @@ const expandArrayInObject = (
     obj: { [x: string]: any },
     key: string | number,
 ): { [x: string]: any }[] => {
-    const expanded = [];
-    if (Array.isArray(obj[key])) {
-        for (const item of obj[key]) {
-            const newObj = JSON.parse(JSON.stringify(obj));
-            newObj[key] = item;
-            expanded.push(newObj);
-        }
-    } else {
-        expanded.push(obj);
-    }
-
-    return expanded;
+    const newObj = { ...obj };
+    const arr = newObj[key];
+    delete newObj[key];
+    return arr.map((item: any) => {
+        return { ...newObj, [key]: item };
+    });
 };
 
 const getObj = (obj: any, s: string) => {

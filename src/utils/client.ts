@@ -1,7 +1,7 @@
+import { config } from "@config/config";
 import logger from "@utils/logger";
 import axios, { AxiosInstance } from "axios";
 import axiosRetry from "axios-retry";
-import { config } from "index";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
 const client = axios.create({

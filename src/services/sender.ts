@@ -1,3 +1,4 @@
+import { config } from "@config/config";
 import { Telegram } from "@config/interfaces/config.interfaces";
 import { getClient } from "@utils/client";
 import logger from "@utils/logger";
@@ -8,7 +9,6 @@ import {
     SenderNotFoundError,
     SendMessageFailedError,
 } from "errors/services";
-import { config } from "index";
 
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -21,7 +21,7 @@ const send = async (
 ): Promise<number | undefined> => {
     if (!sender) {
         throw new SenderNotFoundError();
-    } else if (!initialized) {
+    } else if (!initialized || process.env.FIRST_RUN === "true") {
         logger.info(
             `Skipping message to ${sender.name} because of initialization.`,
         );

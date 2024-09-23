@@ -1,6 +1,7 @@
 /**
  * config.ts errors
  */
+import { mapError } from "@utils/helpers";
 
 class ConfigFileNotFoundError extends Error {
     constructor(configPath: string) {
@@ -41,9 +42,16 @@ class InvalidTelegramConfigError extends Error {
  * rss.ts errors
  */
 
-class LoadRSSFileError extends Error {
+class RSSFileNotFoundError extends Error {
     constructor(rssPath: string) {
-        super(`Failed to load RSS file at ${rssPath}`);
+        super(`RSS file not found at ${rssPath}`);
+        this.name = "RSSFileNotFoundError";
+    }
+}
+
+class LoadRSSFileError extends Error {
+    constructor(rssPath: string, error: any) {
+        super(`Failed to load RSS file at ${rssPath}: ${mapError(error)}`);
         this.name = "LoadRSSFileError";
     }
 }
@@ -63,13 +71,14 @@ class InvalidRSSFilterError extends Error {
 }
 
 class InvalidRSSItemError extends Error {
-    constructor() {
-        super("Invalid RSS config");
+    constructor(rssItem: any) {
+        super(`Invalid RSS config for ${rssItem}`);
         this.name = "InvalidRSSItemError";
     }
 }
 
 export {
+    RSSFileNotFoundError,
     ConfigFileNotFoundError,
     LoadConfigError,
     InvalidConfigError,

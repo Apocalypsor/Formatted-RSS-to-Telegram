@@ -1,6 +1,6 @@
-import { loadConfigFile } from "@config/config";
-import { loadRSSFile } from "@config/rss";
-import { clean } from "@database/db";
+import { config } from "@config/config";
+import { rss } from "@config/rss";
+import { checkHistoryInitialized, clean } from "@database/db";
 import processRSS from "@services/index";
 import { getClient } from "@utils/client";
 import { createDirIfNotExists, mapError } from "@utils/helpers";
@@ -8,9 +8,6 @@ import logger from "@utils/logger";
 import { scheduleJob } from "node-schedule";
 
 require("dotenv").config();
-
-export const config = loadConfigFile(process.env.CONFIG_PATH);
-export const rss = loadRSSFile(process.env.RSS_PATH);
 
 const getHostIPInfoThroughAPI = async () => {
     try {
@@ -43,6 +40,11 @@ const getHostIPInfo = async () => {
 };
 
 const main = async () => {
+    const firstRun = !(await checkHistoryInitialized());
+    if (firstRun) {
+        logger.info("First run detected, setting FIRST_RUN to true");
+        process.env.FIRST_RUN = "true";
+    }
     const ipInfo = await getHostIPInfo();
     logger.info(`IP:\n${ipInfo}`);
     await createDirIfNotExists("./config");

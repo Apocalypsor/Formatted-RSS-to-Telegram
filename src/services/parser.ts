@@ -1,3 +1,4 @@
+import { config } from "@config/config";
 import { getClient } from "@utils/client";
 import {
     htmlDecode,
@@ -6,8 +7,7 @@ import {
     parseIPFromURL,
 } from "@utils/helpers";
 import logger from "@utils/logger";
-import { config } from "index";
-import * as Parser from "rss-parser";
+import Parser from "rss-parser";
 import { promisify } from "util";
 
 const exec = promisify(require("child_process").exec);

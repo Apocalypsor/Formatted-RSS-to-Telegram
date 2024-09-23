@@ -12,7 +12,7 @@ import {
     InvalidTelegramConfigError,
     LoadConfigError,
 } from "errors/config";
-import * as fs from "node:fs";
+import fs from "node:fs";
 import { parse } from "yaml";
 
 const parseProxy = (proxy: any): EnabledProxy | DisabledProxy => {
@@ -85,8 +85,7 @@ const parseConfig = (config: any): Config => {
 };
 
 const loadConfigFile = (configFile: string | undefined): Config => {
-    const configPath =
-        __dirname + "/../config/" + (configFile || "config.yaml");
+    const configPath = "./config/" + (configFile || "config.yaml");
     if (!fs.existsSync(configPath)) {
         throw new ConfigFileNotFoundError(configPath);
     } else {
@@ -101,4 +100,5 @@ const loadConfigFile = (configFile: string | undefined): Config => {
     }
 };
 
-export { loadConfigFile, parseConfig };
+const config = loadConfigFile(process.env.CONFIG_PATH);
+export { config, loadConfigFile, parseConfig };
