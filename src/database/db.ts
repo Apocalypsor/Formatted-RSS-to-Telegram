@@ -4,7 +4,6 @@ const prisma = new PrismaClient();
 
 const checkHistoryInitialized = async (): Promise<boolean> => {
     const history = await prisma.history.findFirst();
-    console.log(!!history);
     return !!history;
 };
 

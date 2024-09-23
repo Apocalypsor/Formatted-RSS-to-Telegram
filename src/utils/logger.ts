@@ -13,11 +13,11 @@ const logger = createLogger({
     ),
     transports: [
         new transports.File({
-            filename: __dirname + "/../logs/app-error.log",
+            filename: "./logs/app-error.log",
             level: "error",
         }),
         new transports.DailyRotateFile({
-            filename: __dirname + "/../logs/app-error-%DATE%.log",
+            filename: "./logs/app-error-%DATE%.log",
             datePattern: "YYYY-MM-DD",
             maxSize: "1m",
             level: "error",
