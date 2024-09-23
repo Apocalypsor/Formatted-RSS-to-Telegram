@@ -50,6 +50,7 @@ const processRSS = async (rssItem: RSS) => {
     }
 
     history.clear();
+    uninitialized.clear();
 };
 
 const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
