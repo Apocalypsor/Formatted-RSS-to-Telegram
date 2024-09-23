@@ -1,6 +1,7 @@
 FROM node:18-alpine
 
 ENV NODE_ENV=production
+ENV DATABASE_URL="file:../config/db.sqlite"
 
 WORKDIR /app
 
