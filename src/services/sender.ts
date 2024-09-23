@@ -1,18 +1,29 @@
-const getClient = require("@utils/client");
-const { config } = require("@utils/config");
-const logger = require("@utils/logger");
-const { EDIT_STATUS } = require("@consts/status");
+import { config } from "@config/config";
+import { Telegram } from "@config/interfaces/config.interfaces";
+import { getClient } from "@utils/client";
+import logger from "@utils/logger";
+import { AxiosError } from "axios";
+import {
+    FailedToEditMessageError,
+    MessageNotFoundError,
+    SenderNotFoundError,
+    SendMessageFailedError,
+} from "errors/services";
 
-const getSender = (sender) => {
+const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
 };
 
-const send = async (sender, text) => {
+const send = async (
+    sender: Telegram | undefined,
+    text: string,
+    initialized: boolean = true,
+): Promise<number | undefined> => {
     if (!sender) {
-        logger.error(`Sender ${sender} not found, skipping.`);
-    } else if (process.env.INITIALIZE) {
+        throw new SenderNotFoundError();
+    } else if (!initialized || process.env.FIRST_RUN === "true") {
         logger.info(
-            `Skipping message to ${sender.name} because of initialization.`
+            `Skipping message to ${sender.name} because of initialization.`,
         );
         return -1;
     } else {
@@ -26,24 +37,24 @@ const send = async (sender, text) => {
         };
 
         logger.debug(
-            `Sending message to ${sender.name}:\n${JSON.stringify(payload)}`
+            `Sending message to ${sender.name}:\n${JSON.stringify(payload)}`,
         );
 
-        const resp = await getClient().post(endpoint, payload);
-        let messageId;
+        const resp = await getClient(true).post(endpoint, payload);
 
         if (resp.data.ok) {
-            messageId = parseInt(resp.data.result.message_id);
+            const messageId = parseInt(resp.data.result.message_id);
             logger.info(`Message ${messageId} sent to ${sender.name}.`);
+            return messageId;
+        } else {
+            throw new SendMessageFailedError(sender.name);
         }
-
-        return messageId;
     }
 };
 
-const edit = async (sender, messageId, text) => {
+const edit = async (sender: Telegram, messageId: number, text: string) => {
     if (!sender) {
-        logger.error(`Sender ${sender} not found, skipping.`);
+        throw new SenderNotFoundError();
     } else {
         const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageText`;
         const payload = {
@@ -55,40 +66,33 @@ const edit = async (sender, messageId, text) => {
             disable_notification: sender.disableNotification,
         };
 
-        let resStatus;
         try {
             const resp = await getClient().post(endpoint, payload);
             if (resp.data.ok) {
                 logger.info(`Message ${messageId} edited to ${sender.name}.`);
-                resStatus = EDIT_STATUS.SUCCESS;
             }
         } catch (e) {
-            if (e.response.data.description.includes("exactly the same")) {
-                resStatus = EDIT_STATUS.SUCCESS;
-            } else if (
+            if (!(e instanceof AxiosError) || !e.response) {
+                throw e;
+            }
+            if (
                 e.response.data.description.includes(
-                    "message to edit not found"
+                    "message to edit not found",
                 ) ||
                 e.response.data.description.includes("MESSAGE_ID_INVALID")
             ) {
-                logger.error(`Message not found on ${sender.name}, skipping.`);
-                resStatus = EDIT_STATUS.NOT_FOUND;
+                throw new MessageNotFoundError(messageId, sender.name);
             } else {
-                logger.error(
-                    `Error editing message on ${sender.name}, skipping.`
-                );
-                resStatus = EDIT_STATUS.ERROR;
+                throw new FailedToEditMessageError(messageId, sender.name);
             }
         }
-
-        return resStatus;
     }
 };
 
-const notify = async (url) => {
+const notify = async (url: string) => {
     if (config.telegram.length === 0 || !config.notifyTelegramChatId) {
         logger.warn(
-            "No Telegram sender for notification configured, skipping."
+            "No Telegram sender for notification configured, skipping.",
         );
     } else {
         const sender = config.telegram[0];
@@ -101,13 +105,8 @@ const notify = async (url) => {
         };
 
         logger.info(`Sending notification to ${sender.name}:\n${url}`);
-        await getClient().post(endpoint, payload);
+        await getClient(true).post(endpoint, payload);
     }
 };
 
-module.exports = {
-    getSender,
-    send,
-    edit,
-    notify,
-};
+export { getSender, send, edit, notify };

@@ -1,12 +1,11 @@
-require("module-alias/register");
-const schedule = require("node-schedule");
-const { process } = require("@services");
-const logger = require("@utils/logger");
-const { rss } = require("@utils/config");
-const { config } = require("@utils/config");
-const { createDirIfNotExists } = require("@utils/tools");
-const getClient = require("@utils/client");
-const { clean } = require("@utils/db");
+import { config } from "@config/config";
+import { rss } from "@config/rss";
+import { checkHistoryInitialized, clean } from "@database/db";
+import processRSS from "@services/index";
+import { getClient } from "@utils/client";
+import { createDirIfNotExists, mapError } from "@utils/helpers";
+import logger from "@utils/logger";
+import { scheduleJob } from "node-schedule";
 
 require("dotenv").config();
 
@@ -41,16 +40,20 @@ const getHostIPInfo = async () => {
 };
 
 const main = async () => {
+    const firstRun = !(await checkHistoryInitialized());
+    if (firstRun) {
+        logger.info("First run detected, setting FIRST_RUN to true");
+        process.env.FIRST_RUN = "true";
+    }
     const ipInfo = await getHostIPInfo();
     logger.info(`IP:\n${ipInfo}`);
+    await createDirIfNotExists("./config");
     await createDirIfNotExists("./logs/screenshots");
-    for (let item of rss.rss) {
+    for (let item of rss) {
         try {
-            await process(item);
+            await processRSS(item);
         } catch (e) {
-            logger.error(
-                `Error while processing rss item ${item.name}: ${e.message}`,
-            );
+            logger.error(`Failed to process RSS item: ${mapError(e)}`);
         }
     }
 };
@@ -61,12 +64,12 @@ main()
         logger.info(
             `Schedule job started, interval: ${config.interval} minutes`,
         );
-        schedule.scheduleJob(`*/${config.interval} * * * *`, async function () {
+        scheduleJob(`*/${config.interval} * * * *`, async function () {
             logger.info("Schedule job started");
             await main();
             logger.info("Schedule job finished");
         });
-        schedule.scheduleJob("0 0 */30 * *", async function () {
+        scheduleJob("0 0 */30 * *", async function () {
             logger.info("Start cleaning database");
             await clean(config.expireTime);
             logger.info("Finished cleaning database");

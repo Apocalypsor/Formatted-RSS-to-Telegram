@@ -1,33 +1,32 @@
-const { createHash } = require("crypto");
-const fs = require("fs");
-const dns = require("dns");
-const { JSDOM } = require("jsdom");
+import { createHash } from "crypto";
+import dns from "dns";
+import { JSDOM } from "jsdom";
+import fs from "node:fs";
 
-const hash = (string) => {
+const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
 };
 
-const expandArrayInObject = (obj, key) => {
-    const tmp = [];
-    if (Array.isArray(obj[key])) {
-        for (const item of obj[key]) {
-            const newObj = JSON.parse(JSON.stringify(obj));
-            newObj[key] = item;
-            tmp.push(newObj);
-        }
-    }
-
-    return tmp;
+const expandArrayInObject = (
+    obj: { [x: string]: any },
+    key: string | number,
+): { [x: string]: any }[] => {
+    const newObj = { ...obj };
+    const arr = newObj[key];
+    delete newObj[key];
+    return arr.map((item: any) => {
+        return { ...newObj, [key]: item };
+    });
 };
 
-const getObj = (obj, s) => {
+const getObj = (obj: any, s: string) => {
     const paths = s.split(".");
     let result = obj;
     for (let path of paths) {
         if (Array.isArray(result)) {
-            path = parseInt(path);
-            if (Number.isInteger(path) && path < result.length) {
-                result = result[path];
+            const pathInt = parseInt(path);
+            if (Number.isInteger(pathInt) && pathInt < result.length) {
+                result = result[pathInt];
             } else {
                 return null;
             }
@@ -35,9 +34,12 @@ const getObj = (obj, s) => {
             if (result.hasOwnProperty(path)) {
                 result = result[path];
             } else {
-                path = parseInt(path);
-                if (Number.isInteger(path) && result.hasOwnProperty(path)) {
-                    result = result[path];
+                const pathInt = parseInt(path);
+                if (
+                    Number.isInteger(pathInt) &&
+                    result.hasOwnProperty(pathInt)
+                ) {
+                    result = result[pathInt];
                 } else {
                     return null;
                 }
@@ -50,17 +52,13 @@ const getObj = (obj, s) => {
     return result;
 };
 
-const isInteger = (strOrInt) => {
-    return Number.isInteger(parseInt(strOrInt));
-};
-
-const createDirIfNotExists = async (dir) => {
+const createDirIfNotExists = async (dir: fs.PathLike) => {
     if (!fs.existsSync(dir)) {
         await fs.promises.mkdir(dir, { recursive: true });
     }
 };
 
-const parseIPFromURL = async (url) => {
+const parseIPFromURL = async (url: string | URL): Promise<string> => {
     const parsed = new URL(url);
     return new Promise((resolve, reject) => {
         dns.lookup(parsed.hostname, (err, address) => {
@@ -73,7 +71,7 @@ const parseIPFromURL = async (url) => {
     });
 };
 
-const isIntranet = async (ip) => {
+const isIntranet = (ip: string): boolean => {
     const parts = ip.split(".");
     if (parts[0] === "10") {
         return true;
@@ -88,9 +86,12 @@ const isIntranet = async (ip) => {
     return parts[0] === "192" && parts[1] === "168";
 };
 
-const htmlDecode = (input) => {
-    var doc = new JSDOM(input);
+const htmlDecode = (input: string): string | null => {
+    const doc = new JSDOM(input);
     const body = doc.window.document.body.textContent;
+    if (!body) {
+        return null;
+    }
     const regex = new RegExp(/(<rss[\s\S]+\/rss>)/g);
     let match = regex.exec(body);
     if (!match) {
@@ -104,13 +105,21 @@ const htmlDecode = (input) => {
     }
 };
 
-module.exports = {
+const mapError = (error: any): string => {
+    if (error instanceof Error) {
+        return error.message;
+    } else {
+        return JSON.stringify(error);
+    }
+};
+
+export {
     hash,
     expandArrayInObject,
     getObj,
     createDirIfNotExists,
     parseIPFromURL,
     isIntranet,
-    isInteger,
     htmlDecode,
+    mapError,
 };

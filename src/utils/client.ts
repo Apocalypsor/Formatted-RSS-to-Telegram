@@ -1,10 +1,10 @@
-const axios = require("axios");
-const axiosRetry = require("axios-retry");
-const { SocksProxyAgent } = require("socks-proxy-agent");
-const { config } = require("@utils/config");
-const logger = require("@utils/logger");
+import { config } from "@config/config";
+import logger from "@utils/logger";
+import axios, { AxiosInstance } from "axios";
+import axiosRetry from "axios-retry";
+import { SocksProxyAgent } from "socks-proxy-agent";
 
-const client = axios.default.create({
+const client = axios.create({
     timeout: 10000,
     headers: {
         "User-Agent": config.userAgent,
@@ -19,7 +19,7 @@ axiosRetry(client, {
     retryCondition: (e) => {
         return (
             axiosRetry.isNetworkOrIdempotentRequestError(e) ||
-            e.response.status === 429
+            e?.response?.status === 429
         );
     },
     retryDelay: (retryCount, error) => {
@@ -48,16 +48,16 @@ client.interceptors.response.use(
     },
 );
 
-const getClient = (proxy = false) => {
-    if (config.proxy && proxy) {
+const getClient = (proxy = false): AxiosInstance => {
+    if (config.proxy.enabled && proxy) {
         if (config.proxy.protocol === "http") {
             client.defaults.proxy = {
                 protocol: config.proxy.protocol,
                 host: config.proxy.host,
                 port: config.proxy.port,
                 auth: {
-                    username: config.proxy.auth.username,
-                    password: config.proxy.auth.password,
+                    username: config.proxy.auth.username || "",
+                    password: config.proxy.auth.password || "",
                 },
             };
         } else if (
@@ -83,4 +83,4 @@ const getClient = (proxy = false) => {
     return client;
 };
 
-module.exports = getClient;
+export { getClient };

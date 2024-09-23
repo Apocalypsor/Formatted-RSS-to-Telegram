@@ -1,16 +1,21 @@
-const nunjucks = require("nunjucks");
+import nunjucks from "nunjucks";
+
 nunjucks.configure({ autoescape: false });
 
-const render = (template, data, parseMode = "markdown") => {
+const render = (
+    template: string,
+    data: any,
+    parseMode = "markdown",
+): string => {
     return nunjucks
         .renderString(
             escapeTemplate(template, parseMode),
-            escapeAll(data, parseMode)
+            escapeAll(data, parseMode),
         )
         .replaceAll("&amp;", "&");
 };
 
-const escapeTemplate = (template, parseMode = "markdown") => {
+const escapeTemplate = (template: string, parseMode = "markdown"): string => {
     if (parseMode.toLowerCase() === "markdownv2") {
         const escapedCh = [">", "#", "+", "-", "=", "|", "{", "}", ".", "!"];
         const regex = new RegExp(/{{.+?}}|{%.+?%}/g);
@@ -21,7 +26,7 @@ const escapeTemplate = (template, parseMode = "markdown") => {
             for (let j = 0; j < escapedCh.length; j++) {
                 templateOut[i] = templateOut[i].replaceAll(
                     escapedCh[j],
-                    "\\" + escapedCh[j]
+                    "\\" + escapedCh[j],
                 );
             }
         }
@@ -29,7 +34,7 @@ const escapeTemplate = (template, parseMode = "markdown") => {
         const finalTemplate = [];
         for (let i = 0; i < templateOut.length; i++) {
             finalTemplate.push(templateOut[i]);
-            if (templateIn[i]) {
+            if (templateIn && templateIn.length > i) {
                 finalTemplate.push(templateIn[i]);
             }
         }
@@ -40,8 +45,8 @@ const escapeTemplate = (template, parseMode = "markdown") => {
     }
 };
 
-const escapeText = (text, parseMode = "markdown") => {
-    let escapedCh = [];
+const escapeText = (text: string, parseMode = "markdown"): string => {
+    let escapedCh: string[] = [];
     if (parseMode.toLowerCase() === "markdownv2") {
         escapedCh = [
             "_",
@@ -74,7 +79,7 @@ const escapeText = (text, parseMode = "markdown") => {
     return text;
 };
 
-const escapeAll = (obj, parseMode = "markdown") => {
+const escapeAll = (obj: any, parseMode = "markdown"): any => {
     if (typeof obj === "string") {
         return escapeText(obj, parseMode);
     } else if (Array.isArray(obj)) {
@@ -89,6 +94,4 @@ const escapeAll = (obj, parseMode = "markdown") => {
     return obj;
 };
 
-module.exports = {
-    render,
-};
+export { render };
