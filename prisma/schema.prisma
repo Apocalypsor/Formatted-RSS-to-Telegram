@@ -11,22 +11,22 @@ datasource db {
 }
 
 model History {
-    id                  Int       @id @default(autoincrement())
+    id                  BigInt       @id @default(autoincrement())
     unique_hash         String    @unique
     url                 String
     text_hash           String
     telegram_name       String
-    telegram_message_id Int
-    telegram_chat_id    Int
+    telegram_message_id BigInt
+    telegram_chat_id    BigInt
     telegraph_url       String?
     created_at          DateTime  @default(now())
     updated_at          DateTime  @updatedAt
 }
 
 model Expire {
-    id         Int      @id @default(autoincrement())
+    id         BigInt      @id @default(autoincrement())
     url        String   @unique
-    expire     Int
+    expire     BigInt
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
