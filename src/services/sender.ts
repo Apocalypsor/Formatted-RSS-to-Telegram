@@ -18,14 +18,14 @@ const send = async (
     sender: Telegram | undefined,
     text: string,
     initialized: boolean = true,
-): Promise<number | undefined> => {
+): Promise<bigint | undefined> => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else if (!initialized || process.env.FIRST_RUN === "true") {
         logger.info(
             `Skipping message to ${sender.name} because of initialization.`,
         );
-        return -1;
+        return BigInt(-1);
     } else {
         const endpoint = `https://api.telegram.org/bot${sender.token}/sendMessage`;
         const payload = {
@@ -43,7 +43,7 @@ const send = async (
         const resp = await getClient(true).post(endpoint, payload);
 
         if (resp.data.ok) {
-            const messageId = parseInt(resp.data.result.message_id);
+            const messageId = BigInt(resp.data.result.message_id);
             logger.info(`Message ${messageId} sent to ${sender.name}.`);
             return messageId;
         } else {
@@ -52,7 +52,7 @@ const send = async (
     }
 };
 
-const edit = async (sender: Telegram, messageId: number, text: string) => {
+const edit = async (sender: Telegram, messageId: bigint, text: string) => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else {

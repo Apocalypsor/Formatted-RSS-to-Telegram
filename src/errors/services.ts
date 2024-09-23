@@ -17,14 +17,14 @@ class SendMessageFailedError extends Error {
 }
 
 class MessageNotFoundError extends Error {
-    constructor(messageId: number, sender: string) {
+    constructor(messageId: bigint, sender: string) {
         super(`Message ${messageId} not found on ${sender}`);
         this.name = "MessageNotFoundError";
     }
 }
 
 class FailedToEditMessageError extends Error {
-    constructor(messageId: number, sender: string) {
+    constructor(messageId: bigint, sender: string) {
         super(`Failed to edit message ${messageId} on ${sender}`);
         this.name = "FailedToEditMessageError";
     }

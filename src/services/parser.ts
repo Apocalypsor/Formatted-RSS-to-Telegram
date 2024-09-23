@@ -38,7 +38,7 @@ const parseRSSFeed = async (url: string, full = false): Promise<any> => {
         const feed = await parser.parseString(htmlResp);
         return feed.items.reverse();
     } catch (e) {
-        logger.warning(`Failed to parse RSS feed ${url}:\n${mapError(e)}`);
+        logger.warn(`Failed to parse RSS feed ${url}:\n${mapError(e)}`);
         if (config.flaresolverr) {
             logger.info("Trying to parse RSS feed using FlareSolver");
             const htmlRaw = (
@@ -55,11 +55,11 @@ const parseRSSFeed = async (url: string, full = false): Promise<any> => {
                 logger.info("Successfully parsed RSS feed using FlareSolver");
                 return feed.items.reverse();
             } else {
-                logger.warning("Failed to parse RSS feed using FlareSolver");
+                logger.warn("Failed to parse RSS feed using FlareSolver");
                 return null;
             }
         } else {
-            logger.warning("FlareSolver is not configured, skipping");
+            logger.warn("FlareSolver is not configured, skipping");
             return null;
         }
     }

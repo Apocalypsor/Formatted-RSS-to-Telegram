@@ -19,7 +19,7 @@ const getFirstHistoryByURL = async (url: string) => {
 const getHistory = async (
     uniqueHash: string,
     url: string,
-    telegramChatId: number,
+    telegramChatId: bigint,
 ) => {
     return prisma.history.findFirst({
         where: {
@@ -35,8 +35,8 @@ const addHistory = async (
     url: string,
     textHash: string,
     telegramName: string,
-    telegramMessageId: number,
-    telegramChatId: number,
+    telegramMessageId: bigint,
+    telegramChatId: bigint,
     telegraphUrl: string | null,
 ) => {
     return prisma.history.create({
@@ -55,7 +55,7 @@ const addHistory = async (
 const updateHistory = async (
     id: number,
     textHash: string,
-    telegramMessageId: number,
+    telegramMessageId: bigint,
 ) => {
     return prisma.history.update({
         where: { id },
@@ -66,7 +66,7 @@ const updateHistory = async (
     });
 };
 
-const updateExpire = async (url: string, reset = false) => {
+const updateExpire = async (url: string, reset = false): Promise<number> => {
     const expireEntry = await prisma.expire.upsert({
         where: { url },
         update: {

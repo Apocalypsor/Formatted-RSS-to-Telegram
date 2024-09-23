@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "History" (
-    "id" BIGINT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "unique_hash" TEXT NOT NULL,
     "url" TEXT NOT NULL,
     "text_hash" TEXT NOT NULL,
@@ -14,9 +14,9 @@ CREATE TABLE "History" (
 
 -- CreateTable
 CREATE TABLE "Expire" (
-    "id" BIGINT NOT NULL PRIMARY KEY,
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "url" TEXT NOT NULL,
-    "expire" BIGINT NOT NULL,
+    "expire" INTEGER NOT NULL,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL
 );

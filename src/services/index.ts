@@ -94,7 +94,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
         try {
-            const messageId = await send(tmpSender, text, !!initialized);
+            const messageId = await send(tmpSender, text, initialized);
             if (messageId) {
                 await addHistory(
                     uniqueHash,

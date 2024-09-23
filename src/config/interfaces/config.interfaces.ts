@@ -26,7 +26,7 @@ interface DisabledProxy {
 interface Telegram {
     name: string;
     token: string;
-    chatId: number;
+    chatId: bigint;
     parseMode: string;
     disableNotification: boolean;
     disableWebPagePreview: boolean;
