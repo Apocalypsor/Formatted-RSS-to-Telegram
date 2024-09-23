@@ -1,0 +1,56 @@
+config/
+
+# Node modules
+node_modules/
+yarn.lock
+
+# Logs
+logs/
+*.log
+
+# Dependency directories
+bower_components/
+jspm_packages/
+
+# Build directories
+dist/
+build/
+out/
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.vuepress/dist
+
+# Test directories and files
+coverage/
+.nyc_output/
+.vscode-test/
+test/
+
+# IDE and editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.test
+
+# Docker files
+Dockerfile
+docker-compose.yml
+
+# Miscellaneous
+*.tgz
+*.tsbuildinfo
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
