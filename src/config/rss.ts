@@ -1,13 +1,13 @@
-import { expandArrayInObject } from "@utils/helpers";
-import { RSS, RSSFilter, RSSRule } from "config/interfaces/rss.interfaces";
+import { RSS, RSSFilter, RSSRule } from "@config/interfaces/rss.interfaces";
 import {
     InvalidRSSFilterError,
     InvalidRSSItemError,
     InvalidRSSRuleError,
     LoadRSSFileError,
     RSSFileNotFoundError,
-} from "errors/config";
-import fs from "node:fs";
+} from "@errors/config";
+import { expandArrayInObject } from "@utils/helpers";
+import fs from "fs";
 import { parse } from "yaml";
 
 const parseRSSRule = (rule: any): RSSRule => {
@@ -120,5 +120,4 @@ const loadRSSFile = (rssFile: string | undefined): RSS[] => {
     }
 };
 
-const rss = loadRSSFile(process.env.RSS_PATH);
-export { rss, loadRSSFile, parseRSS };
+export { loadRSSFile, parseRSS };

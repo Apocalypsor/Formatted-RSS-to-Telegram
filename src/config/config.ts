@@ -1,18 +1,18 @@
-import { UA } from "@consts/config";
 import {
     Config,
     DisabledProxy,
     EnabledProxy,
     Telegram,
-} from "config/interfaces/config.interfaces";
+} from "@config/interfaces/config.interfaces";
+import { UA } from "@consts/config";
 import {
     ConfigFileNotFoundError,
     InvalidConfigError,
     InvalidConfigProxyError,
     InvalidTelegramConfigError,
     LoadConfigError,
-} from "errors/config";
-import fs from "node:fs";
+} from "@errors/config";
+import fs from "fs";
 import { parse } from "yaml";
 
 const parseProxy = (proxy: any): EnabledProxy | DisabledProxy => {
@@ -100,5 +100,4 @@ const loadConfigFile = (configFile: string | undefined): Config => {
     }
 };
 
-const config = loadConfigFile(process.env.CONFIG_PATH);
-export { config, loadConfigFile, parseConfig };
+export { loadConfigFile, parseConfig, parseProxy, parseTelegram };

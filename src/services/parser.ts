@@ -1,4 +1,4 @@
-import { config } from "@config/config";
+import { config } from "@config";
 import { getClient } from "@utils/client";
 import {
     htmlDecode,

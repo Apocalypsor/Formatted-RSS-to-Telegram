@@ -14,12 +14,14 @@
             "@utils/*": ["./utils/*"],
             "@config/*": ["./config/*"],
             "@consts/*": ["./consts/*"],
-            "@database/*": ["./database/*"]
+            "@database/*": ["./database/*"],
+            "@errors/*": ["./errors/*"],
+            "@config": ["./config"],
+            "@services": ["./services"]
         },
         "allowJs": true,
         "resolveJsonModule": true
     },
-    "ts-node": { "esm": true },
     "include": ["./src/**/*"],
     "exclude": ["node_modules", "**/*.spec.ts"]
 }
