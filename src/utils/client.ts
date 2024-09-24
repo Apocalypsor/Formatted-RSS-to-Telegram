@@ -1,4 +1,4 @@
-import { config } from "@config/config";
+import { config } from "@config";
 import logger from "@utils/logger";
 import axios, { AxiosInstance } from "axios";
 import axiosRetry from "axios-retry";

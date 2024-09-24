@@ -1,7 +1,6 @@
-import { config } from "@config/config";
-import { rss } from "@config/rss";
+import { config, rss } from "@config";
 import { checkHistoryInitialized, clean } from "@database/db";
-import processRSS from "@services/index";
+import processRSS from "@services";
 import { getClient } from "@utils/client";
 import { createDirIfNotExists, mapError } from "@utils/helpers";
 import logger from "@utils/logger";

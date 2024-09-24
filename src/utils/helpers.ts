@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import dns from "dns";
+import fs from "fs";
 import { JSDOM } from "jsdom";
-import fs from "node:fs";
 
 const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");

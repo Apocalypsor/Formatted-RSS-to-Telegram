@@ -1,14 +1,14 @@
-import { config } from "@config/config";
+import { config } from "@config";
 import { Telegram } from "@config/interfaces/config.interfaces";
-import { getClient } from "@utils/client";
-import logger from "@utils/logger";
-import { AxiosError } from "axios";
 import {
     FailedToEditMessageError,
     MessageNotFoundError,
     SenderNotFoundError,
     SendMessageFailedError,
-} from "errors/services";
+} from "@errors/services";
+import { getClient } from "@utils/client";
+import logger from "@utils/logger";
+import { AxiosError } from "axios";
 
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
