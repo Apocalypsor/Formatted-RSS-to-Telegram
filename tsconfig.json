@@ -10,7 +10,14 @@
         "rootDir": "./src",
         "baseUrl": "./src",
         "paths": {
-            "@*": ["*"]
+            "@services/*": ["./services/*"],
+            "@utils/*": ["./utils/*"],
+            "@config/*": ["./config/*"],
+            "@consts/*": ["./consts/*"],
+            "@database/*": ["./database/*"],
+            "@errors/*": ["./errors/*"],
+            "@config": ["./config"],
+            "@services": ["./services"]
         },
         "allowJs": true,
         "resolveJsonModule": true

@@ -10,6 +10,9 @@ module.exports = {
         "^@consts/(.*)$": "<rootDir>/src/consts/$1",
         "^@database/(.*)$": "<rootDir>/src/database/$1",
         "^@errors/(.*)$": "<rootDir>/src/errors/$1",
+        "^@config$": "<rootDir>/src/config",
+        "^@services": "<rootDir>/src/services",
+        "^node:(.*)$": "$1", // For Node.js built-in modules like 'node:fs'
     },
     coverageDirectory: "../coverage",
     moduleFileExtensions: ["js", "json", "ts"],
@@ -17,5 +20,8 @@ module.exports = {
     transform: {
         "^.+\\.(t|j)s$": "ts-jest",
     },
-    collectCoverageFrom: ["**/*.(t|j)s"],
+    collectCoverageFrom: [
+        "<rootDir>/src/config/*.ts",
+        "<rootDir>/src/utils/helpers.ts",
+    ],
 };

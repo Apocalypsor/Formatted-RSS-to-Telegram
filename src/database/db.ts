@@ -94,6 +94,7 @@ const clean = async (numberOfDays = 30) => {
 };
 
 export {
+    prisma,
     checkHistoryInitialized,
     getFirstHistoryByURL,
     getHistory,

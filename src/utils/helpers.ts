@@ -12,6 +12,10 @@ const expandArrayInObject = (
     key: string | number,
 ): { [x: string]: any }[] => {
     const newObj = { ...obj };
+    if (!Array.isArray(obj[key])) {
+        return [newObj];
+    }
+
     const arr = newObj[key];
     delete newObj[key];
     return arr.map((item: any) => {
@@ -23,29 +27,15 @@ const getObj = (obj: any, s: string) => {
     const paths = s.split(".");
     let result = obj;
     for (let path of paths) {
-        if (Array.isArray(result)) {
-            const pathInt = parseInt(path);
-            if (Number.isInteger(pathInt) && pathInt < result.length) {
-                result = result[pathInt];
-            } else {
-                return null;
-            }
-        } else if (typeof result === "object") {
-            if (result.hasOwnProperty(path)) {
-                result = result[path];
-            } else {
-                const pathInt = parseInt(path);
-                if (
-                    Number.isInteger(pathInt) &&
-                    result.hasOwnProperty(pathInt)
-                ) {
-                    result = result[pathInt];
-                } else {
-                    return null;
-                }
-            }
+        if (result === undefined) {
+            break;
+        }
+
+        const pathInt = parseInt(path);
+        if (isNaN(pathInt)) {
+            result = result[path];
         } else {
-            return null;
+            result = result[pathInt];
         }
     }
 
