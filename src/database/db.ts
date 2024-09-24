@@ -2,6 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// workaround for BigInt serialization
+JSON.stringify(
+    this,
+    (key, value) => (typeof value === "bigint" ? value.toString() : value), // return everything else unchanged
+);
+
 const checkHistoryInitialized = async (): Promise<boolean> => {
     const history = await prisma.history.findFirst();
     return !!history;
