@@ -66,7 +66,7 @@ const parseRSSItem = (rssItem: any): RSS => {
         fullText: rssItem.fullText || false,
         rules: rssItem.rules ? rssItem.rules.map(parseRSSRule) : [],
         filters: rssItem.filters ? rssItem.filters.map(parseRSSFilter) : [],
-        text: rssItem.text || "",
+        text: rssItem.text,
     };
 };
 
@@ -111,8 +111,10 @@ const loadRSSFile = (rssFile: string | undefined): RSS[] => {
     if (!fs.existsSync(rssPath)) {
         throw new RSSFileNotFoundError(rssPath);
     } else {
-        const parsed = parse(fs.readFileSync(rssPath, "utf8"), { merge: true });
         try {
+            const parsed = parse(fs.readFileSync(rssPath, "utf8"), {
+                merge: true,
+            });
             return parseRSS(parsed?.rss);
         } catch (e) {
             throw new LoadRSSFileError(rssPath, e);
@@ -120,4 +122,4 @@ const loadRSSFile = (rssFile: string | undefined): RSS[] => {
     }
 };
 
-export { loadRSSFile, parseRSS };
+export { loadRSSFile, parseRSS, parseRSSFilter, parseRSSItem, parseRSSRule };

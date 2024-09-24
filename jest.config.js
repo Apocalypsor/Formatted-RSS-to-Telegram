@@ -21,7 +21,8 @@ module.exports = {
         "^.+\\.(t|j)s$": "ts-jest",
     },
     collectCoverageFrom: [
-        "<rootDir>/src/config/*.ts",
+        "<rootDir>/src/config/config.ts",
+        "<rootDir>/src/config/rss.ts",
         "<rootDir>/src/utils/helpers.ts",
     ],
 };
