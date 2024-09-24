@@ -8,6 +8,12 @@ import { scheduleJob } from "node-schedule";
 
 require("dotenv").config();
 
+// workaround for BigInt serialization
+// @ts-ignore
+BigInt.prototype.toJSON = function () {
+    return this.toString();
+};
+
 const getHostIPInfoThroughAPI = async () => {
     try {
         const ipInfo = await getClient(true).get("https://api.dov.moe/ip");
