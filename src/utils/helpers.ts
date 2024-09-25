@@ -105,16 +105,36 @@ const mapError = (error: any): string => {
 
 const extractMediaUrls = (
     htmlContent: string,
+    baseUrl?: string,
 ): { type: "photo" | "video"; url: string }[] => {
+    let baseUrlFormatted = {
+        origin: "",
+        pathname: "",
+    };
+    try {
+        baseUrlFormatted = new URL(baseUrl || "");
+    } catch (error) {}
+
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
     const imgRegex = /<(img|video|source)\s+[^>]*src *= *(['"])(.*?)\2/gi;
     const imgUrls: { type: "photo" | "video"; url: string }[] = [];
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
+        let imgUrl = match[3];
+        if (imgUrl.startsWith("./")) {
+            imgUrl =
+                baseUrlFormatted.origin +
+                baseUrlFormatted.pathname.replace(/\/$/, "") +
+                "/" +
+                imgUrl.slice(2);
+        } else if (imgUrl.startsWith("/")) {
+            imgUrl = baseUrlFormatted.origin + imgUrl;
+        }
+
         imgUrls.push({
             type: match[1] === "img" ? "photo" : "video",
-            url: match[3],
+            url: imgUrl,
         });
     }
 

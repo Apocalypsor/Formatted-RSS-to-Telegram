@@ -554,4 +554,106 @@ describe("extractMediaUrls", () => {
             },
         ]);
     });
+
+    test("should handle src starts with ./", () => {
+        const htmlContent = `<video    src="./video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src starts with ./", () => {
+        const htmlContent = `<video    src="./video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent, "http://example.com");
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src starts with ./", () => {
+        const htmlContent = `<video    src="./video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent, "http://example.com/test");
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/test/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src starts with ./", () => {
+        const htmlContent = `<video    src="./video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(
+            htmlContent,
+            "http://example.com/test/",
+        );
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/test/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src ./", () => {
+        const htmlContent = `<video    src="./"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "/",
+            },
+        ]);
+    });
+
+    test("should handle src starts with /", () => {
+        const htmlContent = `<video    src="/video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src starts with /", () => {
+        const htmlContent = `<video    src="/video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent, "http://example.com");
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src starts with /", () => {
+        const htmlContent = `<video    src="/video8.mp4"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent, "http://example.com/test");
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should handle src /", () => {
+        const htmlContent = `<video    src="/"    controls   ></video>`;
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "/",
+            },
+        ]);
+    });
 });
