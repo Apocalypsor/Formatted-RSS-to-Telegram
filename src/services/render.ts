@@ -94,4 +94,4 @@ const escapeAll = (obj: any, parseMode = "markdown"): any => {
     return obj;
 };
 
-export { render };
+export { render, escapeAll, escapeTemplate, escapeText };

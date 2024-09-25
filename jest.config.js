@@ -24,6 +24,7 @@ module.exports = {
         "<rootDir>/src/config/config.ts",
         "<rootDir>/src/config/rss.ts",
         "<rootDir>/src/database/db.ts",
+        "<rootDir>/src/services/render.ts",
         "<rootDir>/src/utils/helpers.ts",
     ],
 };
