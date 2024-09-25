@@ -8,7 +8,7 @@ import {
 } from "@errors/services";
 import { getClient } from "@utils/client";
 import logger from "@utils/logger";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosResponse } from "axios";
 
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -18,6 +18,10 @@ const send = async (
     sender: Telegram | undefined,
     text: string,
     initialized: boolean = true,
+    mediaUrls?: {
+        type: "photo" | "video";
+        url: string;
+    }[],
 ): Promise<bigint | undefined> => {
     if (!sender) {
         throw new SenderNotFoundError();
@@ -27,22 +31,66 @@ const send = async (
         );
         return BigInt(-1);
     } else {
-        const endpoint = `https://api.telegram.org/bot${sender.token}/sendMessage`;
-        const payload = {
-            chat_id: sender.chatId,
-            text: text,
-            parse_mode: sender.parseMode,
-            disable_web_page_preview: sender.disableWebPagePreview,
-            disable_notification: sender.disableNotification,
-        };
+        let sendByText = true;
+        let resp: AxiosResponse | null = null;
+        let payload: any;
+        if (mediaUrls) {
+            if (mediaUrls.length > 1 && mediaUrls.length <= 10) {
+                sendByText = false;
+                payload = {
+                    chat_id: sender.chatId,
+                    media: mediaUrls.map((item, index) => ({
+                        type: item.type,
+                        media: item.url,
+                        caption: index === 0 ? text : undefined,
+                        parse_mode: sender.parseMode,
+                    })),
+                    disable_notification: sender.disableNotification,
+                };
+                resp = await getClient(true).post(
+                    `https://api.telegram.org/bot${sender.token}/sendMediaGroup`,
+                    payload,
+                );
+            } else if (mediaUrls.length === 1) {
+                sendByText = false;
+                payload = {
+                    chat_id: sender.chatId,
+                    media: mediaUrls[0].url,
+                    caption: text,
+                    parse_mode: sender.parseMode,
+                    disable_notification: sender.disableNotification,
+                };
+                resp = await getClient(true).post(
+                    `https://api.telegram.org/bot${sender.token}/send${
+                        mediaUrls[0].type.charAt(0).toUpperCase() +
+                        mediaUrls[0].type.slice(1)
+                    }`,
+                    payload,
+                );
+            }
+        }
+
+        if (sendByText) {
+            payload = {
+                chat_id: sender.chatId,
+                text: text,
+                parse_mode: sender.parseMode,
+                disable_web_page_preview: sender.disableWebPagePreview,
+                disable_notification: sender.disableNotification,
+            };
+            resp = await getClient(true).post(
+                `https://api.telegram.org/bot${sender.token}/sendMessage`,
+                payload,
+            );
+        }
 
         logger.debug(
-            `Sending message to ${sender.name}:\n${JSON.stringify(payload)}`,
+            `Sending ${
+                mediaUrls && mediaUrls.length > 0 ? "media group" : "message"
+            } to ${sender.name}:\n${JSON.stringify(payload)}`,
         );
 
-        const resp = await getClient(true).post(endpoint, payload);
-
-        if (resp.data.ok) {
+        if (resp && resp?.data.ok) {
             const messageId = BigInt(resp.data.result.message_id);
             logger.info(`Message ${messageId} sent to ${sender.name}.`);
             return messageId;

@@ -1,8 +1,7 @@
 import {
     createDirIfNotExists,
     expandArrayInObject,
-    extractImageUrls,
-    extractVideoUrls,
+    extractMediaUrls,
     getObj,
     hash,
     htmlDecode,
@@ -312,17 +311,27 @@ describe("mapError", () => {
     });
 });
 
-describe("extractImageUrls", () => {
+describe("extractMediaUrls", () => {
     test("should extract image URLs with double quotes", () => {
         const htmlContent = `<img src="http://example.com/image1.jpg" alt="Image 1">`;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/image1.jpg"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image1.jpg",
+            },
+        ]);
     });
 
     test("should extract image URLs with single quotes", () => {
         const htmlContent = `<img src='http://example.com/image2.png' alt='Image 2'>`;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/image2.png"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image2.png",
+            },
+        ]);
     });
 
     test("should extract multiple image URLs", () => {
@@ -331,41 +340,60 @@ describe("extractImageUrls", () => {
       <img src='http://example.com/image2.png' alt='Image 2'>
       <img src="http://example.com/image3.gif" alt="Image 3">
     `;
-        const result = extractImageUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([
-            "http://example.com/image1.jpg",
-            "http://example.com/image2.png",
-            "http://example.com/image3.gif",
+            {
+                type: "photo",
+                url: "http://example.com/image1.jpg",
+            },
+            {
+                type: "photo",
+                url: "http://example.com/image2.png",
+            },
+            {
+                type: "photo",
+                url: "http://example.com/image3.gif",
+            },
         ]);
     });
 
     test("should handle attributes in different order", () => {
         const htmlContent = `<img alt="Image 4" src="http://example.com/image4.jpg">`;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/image4.jpg"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image4.jpg",
+            },
+        ]);
     });
 
     test("should handle self-closing img tags", () => {
         const htmlContent = `<img src="http://example.com/image5.jpg" alt="Image 5"/>`;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/image5.jpg"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image5.jpg",
+            },
+        ]);
     });
 
     test("should return empty array when no images are present", () => {
         const htmlContent = `<p>No images here</p>`;
-        const result = extractImageUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should ignore img tags without src attribute", () => {
         const htmlContent = `<img alt="No source">`;
-        const result = extractImageUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should handle img tags with unquoted src attribute", () => {
         const htmlContent = `<img src=http://example.com/image6.jpg alt=Image6>`;
-        const result = extractImageUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
@@ -374,28 +402,46 @@ describe("extractImageUrls", () => {
             <!-- <img src="http://example.com/image7.jpg" alt="Commented Image"> -->
             <img src="http://example.com/test.jpg" alt="Commented Image">
         `;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/test.jpg"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/test.jpg",
+            },
+        ]);
     });
 
     test("should handle img tags with extra whitespace", () => {
         const htmlContent = `<img    src =    "http://example.com/image8.jpg"    alt =    "Image 8"   >`;
-        const result = extractImageUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/image8.jpg"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image8.jpg",
+            },
+        ]);
     });
-});
 
-describe("extractVideoUrls", () => {
     test("should extract video URLs from video tags", () => {
         const htmlContent = `<video src="http://example.com/video1.mp4" controls></video>`;
-        const result = extractVideoUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/video1.mp4"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video1.mp4",
+            },
+        ]);
     });
 
     test("should extract video URLs from source tags", () => {
         const htmlContent = `<source src='http://example.com/video2.webm' type='video/webm'>`;
-        const result = extractVideoUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/video2.webm"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video2.webm",
+            },
+        ]);
     });
 
     test("should extract multiple video URLs", () => {
@@ -406,53 +452,106 @@ describe("extractVideoUrls", () => {
         <source src="http://example.com/video3.mp4" type="video/mp4">
       </video>
     `;
-        const result = extractVideoUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([
-            "http://example.com/video1.mp4",
-            "http://example.com/video2.webm",
-            "http://example.com/video3.mp4",
+            {
+                type: "video",
+                url: "http://example.com/video1.mp4",
+            },
+            {
+                type: "video",
+                url: "http://example.com/video2.webm",
+            },
+            {
+                type: "video",
+                url: "http://example.com/video3.mp4",
+            },
         ]);
     });
 
     test("should handle attributes in different order", () => {
         const htmlContent = `<video controls src="http://example.com/video4.mp4"></video>`;
-        const result = extractVideoUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/video4.mp4"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video4.mp4",
+            },
+        ]);
     });
 
     test("should handle self-closing source tags", () => {
         const htmlContent = `<source src="http://example.com/video5.mp4" type="video/mp4" />`;
-        const result = extractVideoUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/video5.mp4"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video5.mp4",
+            },
+        ]);
     });
 
     test("should return empty array when no videos are present", () => {
         const htmlContent = `<p>No videos here</p>`;
-        const result = extractVideoUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should ignore video/source tags without src attribute", () => {
         const htmlContent = `<video controls></video>`;
-        const result = extractVideoUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should handle video tags with unquoted src attribute", () => {
         const htmlContent = `<video src=http://example.com/video6.mp4 controls></video>`;
-        const result = extractVideoUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should not extract URLs from commented out video tags", () => {
         const htmlContent = `<!-- <video src="http://example.com/video7.mp4" controls></video> -->`;
-        const result = extractVideoUrls(htmlContent);
+        const result = extractMediaUrls(htmlContent);
         expect(result).toEqual([]);
     });
 
     test("should handle video/source tags with extra whitespace", () => {
         const htmlContent = `<video    src =    "http://example.com/video8.mp4"    controls   ></video>`;
-        const result = extractVideoUrls(htmlContent);
-        expect(result).toEqual(["http://example.com/video8.mp4"]);
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "video",
+                url: "http://example.com/video8.mp4",
+            },
+        ]);
+    });
+
+    test("should retain sequence of media URLs", () => {
+        const htmlContent = `
+            <img src="http://example.com/image1.jpg" alt="Image 1">
+            <video src="http://example.com/video1.mp4" controls></video>
+            <img src='http://example.com/image2.png' alt='Image 2'>
+            <source src='http://example.com/video2.webm' type='video/webm'>
+        `;
+
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
+            {
+                type: "photo",
+                url: "http://example.com/image1.jpg",
+            },
+            {
+                type: "video",
+                url: "http://example.com/video1.mp4",
+            },
+            {
+                type: "photo",
+                url: "http://example.com/image2.png",
+            },
+            {
+                type: "video",
+                url: "http://example.com/video2.webm",
+            },
+        ]);
     });
 });

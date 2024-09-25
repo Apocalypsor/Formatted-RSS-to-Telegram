@@ -10,7 +10,7 @@ import {
 import { parseRSSFeed } from "@services/parser";
 import { render } from "@services/render";
 import { edit, getSender, notify, send } from "@services/sender";
-import { getObj, hash, mapError } from "@utils/helpers";
+import { extractMediaUrls, getObj, hash, mapError } from "@utils/helpers";
 import logger from "@utils/logger";
 
 const history = new Set();
@@ -62,6 +62,11 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
 
     if (processFilters(rssItem.filters, item)) return;
     processRules(rssItem.rules, item);
+    let mediaUrls = undefined;
+    if (rssItem.embedMedia) {
+        mediaUrls = extractMediaUrls(item.content);
+    }
+
     item.rss_name = rssItem.name;
     item.rss_url = rssItem.url;
 
@@ -95,7 +100,12 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
         try {
-            const messageId = await send(tmpSender, text, initialized);
+            const messageId = await send(
+                tmpSender,
+                text,
+                initialized,
+                mediaUrls,
+            );
             if (messageId) {
                 await addHistory(
                     uniqueHash,

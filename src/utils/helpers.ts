@@ -103,30 +103,22 @@ const mapError = (error: any): string => {
     }
 };
 
-const extractImageUrls = (htmlContent: string): string[] => {
+const extractMediaUrls = (
+    htmlContent: string,
+): { type: "photo" | "video"; url: string }[] => {
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
-    const imgRegex = /<img\s+[^>]*src *= *(['"])(.*?)\1/gi;
-    const imgUrls = [];
+    const imgRegex = /<(img|video|source)\s+[^>]*src *= *(['"])(.*?)\2/gi;
+    const imgUrls: { type: "photo" | "video"; url: string }[] = [];
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
-        imgUrls.push(match[2]);
+        imgUrls.push({
+            type: match[1] === "img" ? "photo" : "video",
+            url: match[3],
+        });
     }
 
     return imgUrls;
-};
-
-const extractVideoUrls = (htmlContent: string): string[] => {
-    const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
-    const videoRegex = /<(video|source)\s+[^>]*src *= *(['"])(.*?)\2/gi;
-    const videoUrls = [];
-    let match;
-
-    while ((match = videoRegex.exec(uncommentedHtml)) !== null) {
-        videoUrls.push(match[3]);
-    }
-
-    return videoUrls;
 };
 
 export {
@@ -138,6 +130,5 @@ export {
     isIntranet,
     htmlDecode,
     mapError,
-    extractImageUrls,
-    extractVideoUrls,
+    extractMediaUrls,
 };
