@@ -9,7 +9,12 @@ import { scheduleJob } from "node-schedule";
 require("dotenv").config();
 
 // workaround for BigInt serialization
-// @ts-ignore
+declare global {
+    interface BigInt {
+        toJSON: () => string;
+    }
+}
+
 BigInt.prototype.toJSON = function () {
     return this.toString();
 };
