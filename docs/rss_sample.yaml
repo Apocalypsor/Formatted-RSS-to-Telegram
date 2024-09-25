@@ -11,6 +11,7 @@ rss:
     disableNotification: false # Optional, default is false, if true, telegram notification will be disabled
     disableWebPagePreview: false # Optional, default is false, if true, telegram web page preview will be disabled
     fullText: true # Optional, default is false, if true, rss will be parsed as full text
+    embedImages: true # Optional, default is false, if true, image will be embedded in the message
     rules: # Optional, used to process a field of the rss feed
       - obj: title # Required, field of the rss feed to process, 'path1.path2.path3' means rssItem.path1.path2.path3.
         type: regex # Required, can be regex or func

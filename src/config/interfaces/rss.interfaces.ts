@@ -5,6 +5,7 @@ interface RSS {
     disableNotification: boolean;
     disableWebPagePreview: boolean;
     fullText: boolean;
+    embedImages: boolean;
     rules: RSSRule[];
     filters: RSSFilter[];
     text: string;

@@ -61,6 +61,7 @@ const parseRSSItem = (rssItem: any): RSS => {
         name: rssItem.name,
         url: rssItem.url,
         sendTo: rssItem.sendTo,
+        embedImages: rssItem.embedImages || false,
         disableNotification: rssItem.disableNotification || false,
         disableWebPagePreview: rssItem.disableWebPagePreview || false,
         fullText: rssItem.fullText || false,
