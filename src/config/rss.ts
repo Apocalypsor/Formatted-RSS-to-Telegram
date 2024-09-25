@@ -57,11 +57,19 @@ const parseRSSItem = (rssItem: any): RSS => {
         }
     }
 
+    if (
+        rssItem.embedMediaExclude &&
+        !Array.isArray(rssItem.embedMediaExclude)
+    ) {
+        throw new InvalidRSSItemError(rssItem);
+    }
+
     return {
         name: rssItem.name,
         url: rssItem.url,
         sendTo: rssItem.sendTo,
         embedMedia: rssItem.embedMedia || false,
+        embedMediaExclude: rssItem.embedMediaExclude || [],
         disableNotification: rssItem.disableNotification || false,
         disableWebPagePreview: rssItem.disableWebPagePreview || false,
         fullText: rssItem.fullText || false,

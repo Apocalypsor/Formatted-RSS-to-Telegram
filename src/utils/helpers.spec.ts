@@ -8,6 +8,7 @@ import {
     isIntranet,
     mapError,
     parseIPFromURL,
+    trimWhiteSpace,
 } from "@utils/helpers";
 import dns from "dns";
 import fs from "fs";
@@ -289,6 +290,35 @@ describe("htmlDecode", () => {
     });
 });
 
+describe("trimWhiteSpace", () => {
+    test("should trim all whitespace from a string", () => {
+        const input = "Hello, World!";
+        const expectedOutput = "Hello, World!";
+        expect(trimWhiteSpace(input)).toBe(expectedOutput);
+    });
+
+    test("should handle strings with multiple spaces", () => {
+        const input = `
+          Hello   World
+
+          `;
+        const expectedOutput = "Hello   World";
+        expect(trimWhiteSpace(input)).toBe(expectedOutput);
+    });
+
+    test("should return an empty string when input is only whitespace", () => {
+        const input = "   \t\n  ";
+        const expectedOutput = "";
+        expect(trimWhiteSpace(input)).toBe(expectedOutput);
+    });
+
+    test("should return the same string when there is no whitespace", () => {
+        const input = "NoWhiteSpace";
+        const expectedOutput = "NoWhiteSpace";
+        expect(trimWhiteSpace(input)).toBe(expectedOutput);
+    });
+});
+
 describe("mapError", () => {
     test("should return message from Error instance", () => {
         const error = new Error("Something went wrong");
@@ -346,6 +376,27 @@ describe("extractMediaUrls", () => {
                 type: "photo",
                 url: "http://example.com/image1.jpg",
             },
+            {
+                type: "photo",
+                url: "http://example.com/image2.png",
+            },
+            {
+                type: "photo",
+                url: "http://example.com/image3.gif",
+            },
+        ]);
+    });
+
+    test("should exclude image URLs with specified class", () => {
+        const htmlContent = `
+          <img src="http://example.com/image4.jpg" class ="avatar" alt="Image 4">
+          <img src="http://example.com/image1.jpg" class ="emoji test" alt="Image 1">
+
+          <img src='http://example.com/image2.png' alt='Image 2'>
+          <img src="http://example.com/image3.gif" alt="Image 3">
+        `;
+        const result = extractMediaUrls(htmlContent);
+        expect(result).toEqual([
             {
                 type: "photo",
                 url: "http://example.com/image2.png",

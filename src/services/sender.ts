@@ -32,8 +32,10 @@ const send = async (
         return BigInt(-1);
     } else {
         let sendByText = true;
-        let resp: AxiosResponse | null = null;
+        let resp: AxiosResponse | null;
         let payload: any;
+        let endpoint: string = "";
+
         if (mediaUrls) {
             if (mediaUrls.length > 1 && mediaUrls.length <= 10) {
                 sendByText = false;
@@ -47,26 +49,20 @@ const send = async (
                     })),
                     disable_notification: sender.disableNotification,
                 };
-                resp = await getClient(true).post(
-                    `https://api.telegram.org/bot${sender.token}/sendMediaGroup`,
-                    payload,
-                );
+                endpoint = `https://api.telegram.org/bot${sender.token}/sendMediaGroup`;
             } else if (mediaUrls.length === 1) {
                 sendByText = false;
                 payload = {
                     chat_id: sender.chatId,
-                    media: mediaUrls[0].url,
                     caption: text,
                     parse_mode: sender.parseMode,
                     disable_notification: sender.disableNotification,
                 };
-                resp = await getClient(true).post(
-                    `https://api.telegram.org/bot${sender.token}/send${
-                        mediaUrls[0].type.charAt(0).toUpperCase() +
-                        mediaUrls[0].type.slice(1)
-                    }`,
-                    payload,
-                );
+                payload[mediaUrls[0].type] = mediaUrls[0].url;
+                endpoint = `https://api.telegram.org/bot${sender.token}/send${
+                    mediaUrls[0].type.charAt(0).toUpperCase() +
+                    mediaUrls[0].type.slice(1)
+                }`;
             }
         }
 
@@ -78,10 +74,7 @@ const send = async (
                 disable_web_page_preview: sender.disableWebPagePreview,
                 disable_notification: sender.disableNotification,
             };
-            resp = await getClient(true).post(
-                `https://api.telegram.org/bot${sender.token}/sendMessage`,
-                payload,
-            );
+            endpoint = `https://api.telegram.org/bot${sender.token}/sendMessage`;
         }
 
         logger.debug(
@@ -90,8 +83,13 @@ const send = async (
             } to ${sender.name}:\n${JSON.stringify(payload)}`,
         );
 
+        resp = await getClient().post(endpoint, payload);
+
         if (resp && resp?.data.ok) {
-            const messageId = BigInt(resp.data.result.message_id);
+            const messageId = BigInt(
+                // there might be a group of messages returned
+                resp.data.result.message_id || resp.data.result[0].message_id,
+            );
             logger.info(`Message ${messageId} sent to ${sender.name}.`);
             return messageId;
         } else {
@@ -113,6 +111,8 @@ const edit = async (sender: Telegram, messageId: bigint, text: string) => {
             disable_web_page_preview: sender.disableWebPagePreview,
             disable_notification: sender.disableNotification,
         };
+
+        // TODO: Edit images, add a database to store media type and media link
 
         try {
             const resp = await getClient().post(endpoint, payload);

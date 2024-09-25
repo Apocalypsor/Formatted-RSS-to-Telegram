@@ -95,6 +95,10 @@ const htmlDecode = (input: string): string | null => {
     }
 };
 
+const trimWhiteSpace = (input: string): string => {
+    return input.replace(/^\s+|\s+$/g, "").trim();
+};
+
 const mapError = (error: any): string => {
     if (error instanceof Error) {
         return error.message;
@@ -116,11 +120,16 @@ const extractMediaUrls = (
     } catch (error) {}
 
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
-    const imgRegex = /<(img|video|source)\s+[^>]*src *= *(['"])(.*?)\2/gi;
+    const imgRegex =
+        /<(img|video|source)\s+[^>]*src\s*=\s*(['"])(.*?)(['"]).*?>/gi;
     const imgUrls: { type: "photo" | "video"; url: string }[] = [];
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
+        if (/class\s*=\s*(['"]).*(emoji|avatar)/gi.test(match[0])) {
+            continue;
+        }
+
         let imgUrl = match[3];
         if (imgUrl.startsWith("./")) {
             imgUrl =
@@ -149,6 +158,7 @@ export {
     parseIPFromURL,
     isIntranet,
     htmlDecode,
+    trimWhiteSpace,
     mapError,
     extractMediaUrls,
 };

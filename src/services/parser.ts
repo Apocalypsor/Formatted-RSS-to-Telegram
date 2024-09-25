@@ -38,7 +38,7 @@ const parseRSSFeed = async (url: string, full = false): Promise<any> => {
         const feed = await parser.parseString(htmlResp);
         return feed.items.reverse();
     } catch (e) {
-        logger.warn(`Failed to parse RSS feed ${url}:\n${mapError(e)}`);
+        logger.warn(`Failed to parse RSS feed ${url}: ${mapError(e)}`);
         if (config.flaresolverr) {
             logger.info("Trying to parse RSS feed using FlareSolver");
             const htmlRaw = (

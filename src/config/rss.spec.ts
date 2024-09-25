@@ -103,6 +103,8 @@ describe("parseRSSItem", () => {
             text: "New article: {title}",
             disableNotification: true,
             disableWebPagePreview: true,
+            embedMedia: true,
+            embedMediaExclude: ["https://example.com/.+"],
             fullText: true,
             rules: [
                 {
@@ -127,7 +129,8 @@ describe("parseRSSItem", () => {
             text: "New article: {title}",
             disableNotification: true,
             disableWebPagePreview: true,
-            embedMedia: false,
+            embedMedia: true,
+            embedMediaExclude: ["https://example.com/.+"],
             fullText: true,
             rules: [
                 {
@@ -158,6 +161,17 @@ describe("parseRSSItem", () => {
         expect(() => parseRSSItem(rssItemInput)).toThrow(InvalidRSSItemError);
     });
 
+    test("should throw InvalidRSSItemError when embedMediaExclude is not an array", () => {
+        const rssItemInput = {
+            name: "Feed Name",
+            url: "https://example.com/rss",
+            sendTo: "chatId1",
+            text: "New article: {title}",
+            embedMediaExclude: "https://example.com/.+",
+        };
+        expect(() => parseRSSItem(rssItemInput)).toThrow(InvalidRSSItemError);
+    });
+
     test("should set default values for optional properties when they are missing", () => {
         const rssItemInput = {
             name: "Feed Name",
@@ -173,6 +187,7 @@ describe("parseRSSItem", () => {
             disableNotification: false,
             disableWebPagePreview: false,
             embedMedia: false,
+            embedMediaExclude: [],
             fullText: false,
             rules: [],
             filters: [],
@@ -210,6 +225,7 @@ describe("parseRSSItem", () => {
             disableNotification: false,
             disableWebPagePreview: false,
             embedMedia: false,
+            embedMediaExclude: [],
             fullText: false,
             rules: [
                 {
@@ -263,6 +279,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -275,6 +292,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -287,6 +305,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -299,6 +318,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -311,6 +331,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -361,6 +382,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -373,6 +395,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -385,6 +408,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -397,6 +421,7 @@ describe("parseRSS", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],
@@ -447,6 +472,7 @@ describe("loadRSSFile", () => {
                 disableNotification: false,
                 disableWebPagePreview: false,
                 embedMedia: false,
+                embedMediaExclude: [],
                 fullText: false,
                 rules: [],
                 filters: [],

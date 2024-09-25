@@ -10,7 +10,13 @@ import {
 import { parseRSSFeed } from "@services/parser";
 import { render } from "@services/render";
 import { edit, getSender, notify, send } from "@services/sender";
-import { extractMediaUrls, getObj, hash, mapError } from "@utils/helpers";
+import {
+    extractMediaUrls,
+    getObj,
+    hash,
+    mapError,
+    trimWhiteSpace,
+} from "@utils/helpers";
 import logger from "@utils/logger";
 
 const history = new Set();
@@ -56,15 +62,22 @@ const processRSS = async (rssItem: RSS) => {
 const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     for (let key in item) {
         if (typeof item[key] === "string") {
-            item[key] = item[key].replace(/^\s+|\s+$/g, "").trim();
+            item[key] = trimWhiteSpace(item[key]);
         }
     }
 
+    // process filters and rules
     if (processFilters(rssItem.filters, item)) return;
     processRules(rssItem.rules, item);
+
+    // process media
     let mediaUrls = undefined;
     if (rssItem.embedMedia) {
-        mediaUrls = extractMediaUrls(item.content);
+        mediaUrls = extractMediaUrls(item.content).filter((item) =>
+            rssItem.embedMediaExclude.some(
+                (exclude) => !new RegExp(exclude).test(item.url),
+            ),
+        );
     }
 
     item.rss_name = rssItem.name;
