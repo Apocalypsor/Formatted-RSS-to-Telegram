@@ -126,7 +126,7 @@ const extractMediaUrls = (
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
-        if (/class\s*=\s*(['"]).*(emoji|avatar)/gi.test(match[0])) {
+        if (/class\s*=\s*(['"]).*(emoji|avatar|site-icon)/gi.test(match[0])) {
             continue;
         }
 
