@@ -98,32 +98,71 @@ const send = async (
     }
 };
 
+const editText = async (sender: Telegram, messageId: bigint, text: string) => {
+    const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageText`;
+    const payload = {
+        chat_id: sender.chatId,
+        message_id: messageId,
+        text: text,
+        parse_mode: sender.parseMode,
+        disable_web_page_preview: sender.disableWebPagePreview,
+        disable_notification: sender.disableNotification,
+    };
+    const resp = await getClient().post(endpoint, payload);
+    return resp.data.ok;
+};
+
+const editCaption = async (
+    sender: Telegram,
+    messageId: bigint,
+    caption: string,
+) => {
+    const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageCaption`;
+    const payload = {
+        chat_id: sender.chatId,
+        message_id: messageId,
+        caption: caption,
+        parse_mode: sender.parseMode,
+    };
+    const resp = await getClient().post(endpoint, payload);
+    return resp.data.ok;
+};
+
 const edit = async (sender: Telegram, messageId: bigint, text: string) => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else {
-        const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageText`;
-        const payload = {
-            chat_id: sender.chatId,
-            message_id: messageId,
-            text: text,
-            parse_mode: sender.parseMode,
-            disable_web_page_preview: sender.disableWebPagePreview,
-            disable_notification: sender.disableNotification,
-        };
-
         // TODO: Edit images, add a database to store media type and media link
 
         try {
-            const resp = await getClient().post(endpoint, payload);
-            if (resp.data.ok) {
-                logger.info(`Message ${messageId} edited to ${sender.name}.`);
+            try {
+                if (await editText(sender, messageId, text)) {
+                    logger.info(
+                        `Message ${messageId} edited for ${sender.name}.`,
+                    );
+                    return;
+                }
+            } catch (e) {
+                if (
+                    e instanceof AxiosError &&
+                    e.response &&
+                    e.response.data.description.includes(
+                        "there is no text in the message to edit",
+                    )
+                ) {
+                    if (await editCaption(sender, messageId, text)) {
+                        logger.info(
+                            `Message ${messageId} edited for ${sender.name}.`,
+                        );
+                        return;
+                    }
+                }
+                throw e;
             }
         } catch (e) {
             if (!(e instanceof AxiosError) || !e.response) {
                 throw e;
-            }
-            if (
+            } else if (
                 e.response.data.description.includes(
                     "message to edit not found",
                 ) ||
