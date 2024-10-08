@@ -80,6 +80,11 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
         );
     }
 
+    // truncate contentSnippet is it's too long
+    if (item.contentSnippet && item.contentSnippet.length > 9000) {
+        item.contentSnippet = item.contentSnippet.slice(0, 9000) + "...";
+    }
+
     item.rss_name = rssItem.name;
     item.rss_url = rssItem.url;
 
