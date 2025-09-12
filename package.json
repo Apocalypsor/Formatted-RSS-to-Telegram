@@ -23,7 +23,7 @@
     "homepage": "https://github.com/Apocalypsor/Formatted-RSS-to-Telegram#readme",
     "dependencies": {
         "@prisma/client": "^5.19.1",
-        "axios": "^1.8.2",
+        "axios": "^1.12.0",
         "axios-retry": "^3.3.1",
         "dotenv": "^16.0.3",
         "jsdom": "^20.0.3",
