@@ -1,7 +1,11 @@
 import { logger } from "./logger";
 import axios, { type AxiosInstance } from "axios";
-import axiosRetry from "axios-retry";
 import { SocksProxyAgent } from "socks-proxy-agent";
+
+// Cache for configured clients
+let cachedClientWithProxy: AxiosInstance | null = null;
+let cachedClientWithoutProxy: AxiosInstance | null = null;
+let configLoaded = false;
 
 const client = axios.create({
     timeout: 10000,
@@ -10,25 +14,6 @@ const client = axios.create({
         "Accept": "application/rss+xml, application/json",
         "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
         "Cache-Control": "max-age=0",
-    },
-});
-
-axiosRetry(client, {
-    retryCondition: (e) => {
-        return (
-            axiosRetry.isNetworkOrIdempotentRequestError(e) ||
-            e?.response?.status === 429
-        );
-    },
-    retryDelay: (retryCount, error) => {
-        if (error.response) {
-            const retry_after = error.response.headers["retry-after"];
-            if (retry_after) {
-                return retry_after;
-            }
-        }
-
-        return axiosRetry.exponentialDelay(retryCount);
     },
 });
 
@@ -47,15 +32,44 @@ client.interceptors.response.use(
 );
 
 export const getClient = async (proxy = false): Promise<AxiosInstance> => {
-    // Lazy import to avoid circular dependency
+    // Return cached client if already configured
+    if (configLoaded) {
+        return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
+    }
+
+    // Lazy import to avoid circular dependency (only once)
     const { config } = await import("@config");
 
     // Set User-Agent header
     client.defaults.headers.common["User-Agent"] = config.userAgent;
 
-    if (config.proxy.enabled && proxy) {
+    // Configure client with proxy
+    if (config.proxy.enabled) {
+        const clientWithProxy = axios.create({
+            ...client.defaults,
+            timeout: 10000,
+            headers: {
+                ...client.defaults.headers,
+            },
+        });
+
+        // Copy interceptors
+        clientWithProxy.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                let errMsg = `Error: ${error.message}`;
+                if (error.response) {
+                    errMsg += ` - ${error.response.status} ${
+                        error.response.statusText
+                    } - ${JSON.stringify(error.response.data)}`;
+                }
+                logger.debug(errMsg);
+                return Promise.reject(error);
+            },
+        );
+
         if (config.proxy.protocol === "http") {
-            client.defaults.proxy = {
+            clientWithProxy.defaults.proxy = {
                 protocol: config.proxy.protocol,
                 host: config.proxy.host,
                 port: config.proxy.port,
@@ -75,14 +89,20 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
             const proxyAgent = new SocksProxyAgent(
                 `socks5://${auth}${config.proxy.host}:${config.proxy.port}`,
             );
-            client.defaults.httpsAgent = proxyAgent;
-            client.defaults.httpAgent = proxyAgent;
+            clientWithProxy.defaults.httpsAgent = proxyAgent;
+            clientWithProxy.defaults.httpAgent = proxyAgent;
         }
+
+        cachedClientWithProxy = clientWithProxy;
     } else {
-        client.defaults.proxy = false;
-        client.defaults.httpsAgent = false;
-        client.defaults.httpAgent = false;
+        // If proxy not enabled, both cached clients point to the same instance
+        cachedClientWithProxy = client;
     }
 
-    return client;
+    // Client without proxy is always the base client
+    cachedClientWithoutProxy = client;
+
+    configLoaded = true;
+
+    return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
 };

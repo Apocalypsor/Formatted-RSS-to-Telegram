@@ -187,6 +187,9 @@ yarn.lock
 .yarn/
 .pnp.*
 
+# npm lockfile (using bun.lock instead)
+package-lock.json
+
 /.idea/
 /test/test.js
 /test/samples/config_prod.yaml

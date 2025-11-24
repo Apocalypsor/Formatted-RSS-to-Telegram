@@ -124,7 +124,9 @@ export const extractMediaUrls = (
     try {
         baseUrlFormatted = new URL(baseUrl || "");
     } catch (error) {
-        logger.debug(`Failed to parse URL: ${mapError(error)}`);
+        logger.debug(
+            `Skipping parse URL in extractMediaUrls: ${mapError(error)}`,
+        );
     }
 
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
