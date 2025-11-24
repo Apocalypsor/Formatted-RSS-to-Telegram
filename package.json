@@ -23,29 +23,29 @@
     },
     "homepage": "https://github.com/Apocalypsor/Formatted-RSS-to-Telegram#readme",
     "dependencies": {
-        "@prisma/client": "^5.19.1",
-        "axios": "^1.12.0",
+        "@prisma/client": "^5.22.0",
+        "axios": "^1.13.2",
         "jsdom": "^20.0.3",
-        "node-schedule": "^2.1.0",
+        "node-schedule": "^2.1.1",
         "nunjucks": "^3.2.4",
-        "rss-parser": "^3.12.0",
+        "rss-parser": "^3.13.0",
         "socks-proxy-agent": "^7.0.0",
-        "winston": "^3.8.2",
+        "winston": "^3.18.3",
         "winston-daily-rotate-file": "^4.7.1",
-        "yaml": "^2.2.2",
-        "zod": "^3.23.8"
+        "yaml": "^2.8.1",
+        "zod": "^3.25.76"
     },
     "devDependencies": {
         "@eslint/js": "^9.39.1",
         "@types/bun": "latest",
         "@types/jsdom": "^21.1.7",
-        "@types/node": "^22.5.5",
-        "@types/node-schedule": "^2.1.7",
+        "@types/node": "^22.19.1",
+        "@types/node-schedule": "^2.1.8",
         "@types/nunjucks": "^3.2.6",
         "@types/xml2js": "^0.4.14",
         "eslint": "^9.39.1",
-        "prettier": "^3.0.0",
-        "prisma": "^5.19.1",
-        "typescript-eslint": "^8.47.0"
+        "prettier": "^3.6.2",
+        "prisma": "^5.22.0",
+        "typescript-eslint": "^8.48.0"
     }
 }

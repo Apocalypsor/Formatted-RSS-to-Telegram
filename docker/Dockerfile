@@ -1,8 +1,6 @@
 # Build stage
 FROM oven/bun:alpine AS builder
 
-ENV NODE_ENV=production
-
 WORKDIR /app
 
 # Copy only dependency files first for better caching
@@ -18,7 +16,7 @@ COPY src ./src
 COPY tsconfig.json ./
 
 # Build the application
-RUN bun run build
+RUN NODE_ENV=production bun run build
 
 # Production stage
 FROM oven/bun:alpine

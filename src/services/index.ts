@@ -18,6 +18,7 @@ import {
     trimWhiteSpace,
 } from "@utils";
 import type { RSS, RSSFilter, RSSRule, Telegram } from "@config";
+import { TELEGRAM_MESSAGE_LIMIT } from "@consts";
 
 const history = new Set();
 const uninitialized = new Set();
@@ -78,8 +79,13 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     }
 
     // truncate contentSnippet is it's too long
-    if (itemObj.contentSnippet && itemObj.contentSnippet.length > 9000) {
-        itemObj.contentSnippet = itemObj.contentSnippet.slice(0, 9000) + "...";
+    if (
+        itemObj.contentSnippet &&
+        itemObj.contentSnippet.length > TELEGRAM_MESSAGE_LIMIT - 100
+    ) {
+        itemObj.contentSnippet =
+            itemObj.contentSnippet.slice(0, TELEGRAM_MESSAGE_LIMIT - 100) +
+            "...";
     }
 
     itemObj.rss_name = rssItem.name;
