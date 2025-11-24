@@ -1,6 +1,8 @@
 # Build stage
 FROM oven/bun:alpine AS builder
 
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 # Copy only dependency files first for better caching
