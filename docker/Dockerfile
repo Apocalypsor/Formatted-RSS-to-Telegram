@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy only dependency files first for better caching
 COPY package.json bun.lockb* ./
 COPY prisma ./prisma
+COPY scripts ./scripts
 
 # Install all dependencies (including dev dependencies for build)
 RUN bun install --frozen-lockfile
