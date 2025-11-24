@@ -9,6 +9,8 @@ import {
 import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
 
+import { MediaType } from "@consts";
+
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
 };
@@ -18,7 +20,7 @@ const send = async (
     text: string,
     initialized: boolean = true,
     mediaUrls?: {
-        type: "photo" | "video";
+        type: MediaType;
         url: string;
     }[],
 ): Promise<bigint | undefined> => {
@@ -133,8 +135,6 @@ const edit = async (sender: Telegram, messageId: bigint, text: string) => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else {
-        // TODO: Edit images, add a database to store media type and media link
-
         try {
             try {
                 if (await editText(sender, messageId, text)) {

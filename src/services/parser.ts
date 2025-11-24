@@ -13,17 +13,17 @@ import { exec as execCallback } from "child_process";
 
 const exec = promisify(execCallback);
 
-const parser = new Parser({
-    customFields: {
-        item: ["author", "ns0:encoded", "content_full"],
-    },
-    timeout: 10000,
-    headers: {
-        "User-Agent": config.userAgent,
-    },
-});
-
 export const parseRSSFeed = async (url: string, full = false) => {
+    const parser = new Parser({
+        customFields: {
+            item: ["author", "ns0:encoded", "content_full"],
+        },
+        timeout: 10000,
+        headers: {
+            "User-Agent": config.userAgent,
+        },
+    });
+
     try {
         logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
         let htmlResp;

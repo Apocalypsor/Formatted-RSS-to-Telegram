@@ -8,21 +8,22 @@ import {
 } from "@database";
 import { logger } from "@utils";
 import { edit, send } from "./sender";
+import { MediaType, TaskType } from "@consts";
 
 // Serializable task data (no callbacks)
 export interface SendMessageTaskData {
-    type: "send";
+    type: TaskType.SEND;
     sender: Telegram;
     text: string;
     initialized: boolean;
     mediaUrls?: {
-        type: "photo" | "video";
+        type: MediaType;
         url: string;
     }[];
 }
 
 export interface EditMessageTaskData {
-    type: "edit";
+    type: TaskType.EDIT;
     sender: Telegram;
     messageId: string; // BigInt serialized as string
     text: string;
@@ -84,47 +85,47 @@ class MessageQueue {
     }
 
     /**
-     * Add a send message task and return a promise
+     * Add a send message task (fire-and-forget with callbacks)
      */
-    async enqueueSend(
+    enqueueSend(
         sender: Telegram,
         text: string,
         initialized: boolean,
         mediaUrls?: {
-            type: "photo" | "video";
+            type: MediaType;
             url: string;
         }[],
-    ): Promise<bigint | undefined> {
-        return new Promise((resolve, reject) => {
-            void this.enqueue({
-                type: "send",
-                sender,
-                text,
-                initialized,
-                mediaUrls,
-                onSuccess: resolve,
-                onError: reject,
-            });
+        onSuccess?: (messageId: bigint | undefined) => void | Promise<void>,
+        onError?: (error: Error) => void | Promise<void>,
+    ): void {
+        void this.enqueue({
+            type: TaskType.SEND,
+            sender,
+            text,
+            initialized,
+            mediaUrls,
+            onSuccess: onSuccess || (() => {}),
+            onError: onError || (() => {}),
         });
     }
 
     /**
-     * Add an edit message task and return a promise
+     * Add an edit message task (fire-and-forget with callbacks)
      */
-    async enqueueEdit(
+    enqueueEdit(
         sender: Telegram,
         messageId: bigint,
         text: string,
-    ): Promise<void> {
-        return new Promise((resolve, reject) => {
-            void this.enqueue({
-                type: "edit",
-                sender,
-                messageId: messageId.toString(), // Convert BigInt to string for serialization
-                text,
-                onSuccess: resolve,
-                onError: reject,
-            });
+        onSuccess?: () => void | Promise<void>,
+        onError?: (error: Error) => void | Promise<void>,
+    ): void {
+        void this.enqueue({
+            type: TaskType.EDIT,
+            sender,
+            messageId: messageId.toString(), // Convert BigInt to string for serialization
+            text,
+            onSuccess: onSuccess || (() => {}),
+            onError: onError || (() => {}),
         });
     }
 
@@ -190,7 +191,7 @@ class MessageQueue {
                 const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
 
                 // Create in-memory task (without callbacks - will just process)
-                if (taskData.type === "send") {
+                if (taskData.type === TaskType.SEND) {
                     const task: SendMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
@@ -206,7 +207,7 @@ class MessageQueue {
                         },
                     };
                     this.queue.push(task);
-                } else if (taskData.type === "edit") {
+                } else if (taskData.type === TaskType.EDIT) {
                     const task: EditMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
@@ -281,7 +282,7 @@ class MessageQueue {
     private async executeTask(task: MessageTask): Promise<void> {
         const retryCount = task.retryCount ?? 0;
         try {
-            if (task.type === "send") {
+            if (task.type === TaskType.SEND) {
                 logger.debug(
                     `Processing send task (DB ID: ${task.dbId}) for ${task.sender.name} (attempt ${retryCount + 1})`,
                 );
@@ -298,7 +299,7 @@ class MessageQueue {
                 }
 
                 task.onSuccess(messageId);
-            } else if (task.type === "edit") {
+            } else if (task.type === TaskType.EDIT) {
                 logger.debug(
                     `Processing edit task (DB ID: ${task.dbId}) for ${task.sender.name}, message ${task.messageId} (attempt ${retryCount + 1})`,
                 );
@@ -324,13 +325,13 @@ class MessageQueue {
                 logger.warn(
                     `Task (DB ID: ${task.dbId}) failed (attempt ${retryCount + 1}/${this.maxRetries}), re-enqueueing for retry...`,
                 );
-                
+
                 // Re-enqueue the task with incremented retry count
                 // This ensures the task goes through the normal queue processing
                 // and respects rate limiting
                 task.retryCount = retryCount + 1;
                 this.queue.push(task);
-                
+
                 logger.debug(
                     `Task re-enqueued (DB ID: ${task.dbId}). Queue size: ${this.queue.length}`,
                 );

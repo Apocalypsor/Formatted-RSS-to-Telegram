@@ -120,36 +120,70 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     };
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
-        try {
-            const messageId = await messageQueue.enqueueSend(
-                tmpSender,
-                text,
-                initialized,
-                mediaUrls,
-            );
-            if (messageId) {
-                await addHistory(
-                    uniqueHash,
-                    rssItem.url,
-                    text_hash,
-                    sender.name,
-                    messageId,
-                    sender.chatId,
-                    "",
+        // Enqueue send task (fire-and-forget)
+        messageQueue.enqueueSend(
+            tmpSender,
+            text,
+            initialized,
+            mediaUrls,
+            // Success callback: save to history when message is sent
+            async (messageId) => {
+                if (messageId) {
+                    try {
+                        await addHistory(
+                            uniqueHash,
+                            rssItem.url,
+                            text_hash,
+                            sender.name,
+                            messageId,
+                            sender.chatId,
+                            "",
+                        );
+                        logger.debug(
+                            `Saved history for message ${messageId} (${rssItem.name})`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to save history for message ${messageId}: ${mapError(e)}`,
+                        );
+                    }
+                }
+            },
+            // Error callback
+            (error) => {
+                logger.error(
+                    `Failed to send RSS item (${rssItem.name}): ${mapError(error)}`,
                 );
-            }
-        } catch (e) {
-            logger.error(`Failed to send RSS item: ${mapError(e)}`);
-        }
+            },
+        );
     } else {
         const messageId = existed.telegram_message_id;
         if (messageId > 0 && text_hash !== existed.text_hash) {
-            try {
-                await messageQueue.enqueueEdit(tmpSender, messageId, text);
-                await updateHistory(existed.id, text_hash, messageId);
-            } catch (e) {
-                logger.error(`Failed to edit RSS item: ${mapError(e)}`);
-            }
+            // Enqueue edit task (fire-and-forget)
+            messageQueue.enqueueEdit(
+                tmpSender,
+                messageId,
+                text,
+                // Success callback: update history when message is edited
+                async () => {
+                    try {
+                        await updateHistory(existed.id, text_hash, messageId);
+                        logger.debug(
+                            `Updated history for message ${messageId} (${rssItem.name})`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to update history for message ${messageId}: ${mapError(e)}`,
+                        );
+                    }
+                },
+                // Error callback
+                (error) => {
+                    logger.error(
+                        `Failed to edit RSS item (${rssItem.name}): ${mapError(error)}`,
+                    );
+                },
+            );
         }
     }
 };
