@@ -8,7 +8,7 @@ const packageJson = JSON.parse(
 );
 
 // Get all dependency names (both dependencies and devDependencies)
-const dependencies = [...Object.keys(packageJson.dependencies || {})];
+const dependencies = Object.keys(packageJson.dependencies || {});
 
 console.log("📦 Building with external packages:");
 console.log(
