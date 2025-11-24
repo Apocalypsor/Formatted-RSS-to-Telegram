@@ -17,27 +17,6 @@ class LoadConfigError extends Error {
     }
 }
 
-class InvalidConfigError extends Error {
-    constructor() {
-        super("Invalid config file");
-        this.name = "InvalidConfigError";
-    }
-}
-
-class InvalidConfigProxyError extends Error {
-    constructor() {
-        super("Invalid proxy config");
-        this.name = "InvalidConfigProxyError";
-    }
-}
-
-class InvalidTelegramConfigError extends Error {
-    constructor() {
-        super("Invalid Telegram config");
-        this.name = "InvalidTelegramConfigError";
-    }
-}
-
 /**
  * rss.ts errors
  */
@@ -50,30 +29,9 @@ class RSSFileNotFoundError extends Error {
 }
 
 class LoadRSSFileError extends Error {
-    constructor(rssPath: string, error: any) {
+    constructor(rssPath: string, error: unknown) {
         super(`Failed to load RSS file at ${rssPath}: ${mapError(error)}`);
         this.name = "LoadRSSFileError";
-    }
-}
-
-class InvalidRSSRuleError extends Error {
-    constructor(from: string, to: string) {
-        super(`Invalid RSS rule from ${from} to ${to}`);
-        this.name = "InvalidRSSRuleError";
-    }
-}
-
-class InvalidRSSFilterError extends Error {
-    constructor(from: string) {
-        super(`Invalid RSS filter for ${from}`);
-        this.name = "InvalidRSSFilterError";
-    }
-}
-
-class InvalidRSSItemError extends Error {
-    constructor(rssItem: any) {
-        super(`Invalid RSS config for ${rssItem}`);
-        this.name = "InvalidRSSItemError";
     }
 }
 
@@ -81,11 +39,5 @@ export {
     RSSFileNotFoundError,
     ConfigFileNotFoundError,
     LoadConfigError,
-    InvalidConfigError,
-    InvalidTelegramConfigError,
-    InvalidRSSRuleError,
-    InvalidRSSFilterError,
-    InvalidRSSItemError,
     LoadRSSFileError,
-    InvalidConfigProxyError,
 };

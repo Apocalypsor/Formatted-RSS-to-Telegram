@@ -9,8 +9,9 @@ import {
 import logger from "@utils/logger";
 import Parser from "rss-parser";
 import { promisify } from "util";
+import { exec as execCallback } from "child_process";
 
-const exec = promisify(require("child_process").exec);
+const exec = promisify(execCallback);
 
 const parser = new Parser({
     customFields: {
@@ -22,7 +23,7 @@ const parser = new Parser({
     },
 });
 
-const parseRSSFeed = async (url: string, full = false): Promise<any> => {
+export const parseRSSFeed = async (url: string, full = false) => {
     try {
         logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
         let htmlResp;
@@ -64,5 +65,3 @@ const parseRSSFeed = async (url: string, full = false): Promise<any> => {
         }
     }
 };
-
-export { parseRSSFeed };

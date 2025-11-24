@@ -9,7 +9,8 @@
         "build": "bun build ./src/index.ts --outdir ./dist --target bun --external '*'",
         "start": "bun run dist/index.js",
         "dev": "NODE_ENV=development prisma migrate deploy && bun --watch ./src/index.ts",
-        "test": "bun test"
+        "lint": "eslint src --ext .ts",
+        "lint:fix": "eslint src --ext .ts --fix"
     },
     "repository": {
         "type": "git",
@@ -32,17 +33,20 @@
         "socks-proxy-agent": "^7.0.0",
         "winston": "^3.8.2",
         "winston-daily-rotate-file": "^4.7.1",
-        "yaml": "^2.2.2"
+        "yaml": "^2.2.2",
+        "zod": "^3.23.8"
     },
     "devDependencies": {
+        "@eslint/js": "^9.39.1",
+        "@types/bun": "latest",
         "@types/jsdom": "^21.1.7",
         "@types/node": "^22.5.5",
         "@types/node-schedule": "^2.1.7",
         "@types/nunjucks": "^3.2.6",
         "@types/xml2js": "^0.4.14",
-        "eslint": "^8.46.0",
+        "eslint": "^9.39.1",
         "prettier": "^3.0.0",
         "prisma": "^5.19.1",
-        "@types/bun": "latest"
+        "typescript-eslint": "^8.47.0"
     }
 }

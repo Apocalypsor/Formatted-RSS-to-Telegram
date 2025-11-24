@@ -1,5 +1,3 @@
-import { Telegram } from "@config/interfaces/config.interfaces";
-import { RSS, RSSFilter, RSSRule } from "@config/interfaces/rss.interfaces";
 import {
     addHistory,
     getFirstHistoryByURL,
@@ -18,6 +16,7 @@ import {
     trimWhiteSpace,
 } from "@utils/helpers";
 import logger from "@utils/logger";
+import type { RSS, RSSFilter, RSSRule, Telegram } from "@config/types.ts";
 
 const history = new Set();
 const uninitialized = new Set();
@@ -32,12 +31,7 @@ const processRSS = async (rssItem: RSS) => {
     }
 
     logger.info(`Processing RSS item: ${rssItem.name} (${rssItem.url})`);
-    let rssContent;
-    if (rssItem.fullText) {
-        rssContent = await parseRSSFeed(rssItem.url, true);
-    } else {
-        rssContent = await parseRSSFeed(rssItem.url);
-    }
+    const rssContent = await parseRSSFeed(rssItem.url, rssItem.fullText);
 
     if (!rssContent) {
         const expireCount = await updateExpire(rssItem.url);
@@ -50,7 +44,7 @@ const processRSS = async (rssItem: RSS) => {
     } else {
         await updateExpire(rssItem.url, true);
 
-        for (let item of rssContent) {
+        for (const item of rssContent) {
             await processItem(rssItem, sender, item);
         }
     }
@@ -59,21 +53,23 @@ const processRSS = async (rssItem: RSS) => {
     uninitialized.clear();
 };
 
-const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
-    for (let key in item) {
-        if (typeof item[key] === "string") {
-            item[key] = trimWhiteSpace(item[key]);
+const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
+    const itemObj = item as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    for (const key in itemObj) {
+        if (typeof itemObj[key] === "string") {
+            itemObj[key] = trimWhiteSpace(itemObj[key]);
         }
     }
 
     // process filters and rules
-    if (processFilters(rssItem.filters, item)) return;
-    processRules(rssItem.rules, item);
+    if (processFilters(rssItem.filters, itemObj)) return;
+    processRules(rssItem.rules, itemObj);
 
     // process media
     let mediaUrls = undefined;
     if (rssItem.embedMedia) {
-        mediaUrls = extractMediaUrls(item.content).filter((item) =>
+        mediaUrls = extractMediaUrls(itemObj.content).filter((item) =>
             rssItem.embedMediaExclude.some(
                 (exclude) => !new RegExp(exclude).test(item.url),
             ),
@@ -81,18 +77,18 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     }
 
     // truncate contentSnippet is it's too long
-    if (item.contentSnippet && item.contentSnippet.length > 9000) {
-        item.contentSnippet = item.contentSnippet.slice(0, 9000) + "...";
+    if (itemObj.contentSnippet && itemObj.contentSnippet.length > 9000) {
+        itemObj.contentSnippet = itemObj.contentSnippet.slice(0, 9000) + "...";
     }
 
-    item.rss_name = rssItem.name;
-    item.rss_url = rssItem.url;
+    itemObj.rss_name = rssItem.name;
+    itemObj.rss_url = rssItem.url;
 
-    const uniqueHash = hash(rssItem.url) + hash(item.link);
+    const uniqueHash = hash(rssItem.url) + hash(itemObj.link);
     if (history.has(uniqueHash)) return;
     history.add(uniqueHash);
 
-    const text = render(rssItem.text, item, sender.parseMode);
+    const text = render(rssItem.text, itemObj, sender.parseMode);
 
     const text_hash = hash(text);
 
@@ -139,7 +135,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
             logger.error(`Failed to send RSS item: ${mapError(e)}`);
         }
     } else {
-        let messageId = existed.telegram_message_id;
+        const messageId = existed.telegram_message_id;
         if (messageId > 0 && text_hash !== existed.text_hash) {
             try {
                 await edit(tmpSender, messageId, text);
@@ -151,9 +147,11 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: any) => {
     }
 };
 
-const processRules = (rules: RSSRule[], content: any) => {
-    for (let rule of rules) {
-        const obj = getObj(content, rule.obj);
+const processRules = (rules: RSSRule[], content: unknown) => {
+    const contentObj = content as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    for (const rule of rules) {
+        const obj = getObj(contentObj, rule.obj);
         if (obj) {
             if (rule.type === "regex") {
                 const regex = new RegExp(rule.matcher);
@@ -161,26 +159,28 @@ const processRules = (rules: RSSRule[], content: any) => {
                 if (match) {
                     match.shift();
                     if (match.length === 1) {
-                        content[rule.dest] = match[0];
+                        contentObj[rule.dest] = match[0];
                     } else {
-                        content[rule.dest] = match;
+                        contentObj[rule.dest] = match;
                     }
                 }
             } else if (rule.type === "func") {
                 const func = new Function("obj", rule.matcher);
                 const result = func(content);
                 if (result) {
-                    content[rule.dest] = result;
+                    contentObj[rule.dest] = result;
                 }
             }
         }
     }
 };
 
-const processFilters = (filters: RSSFilter[], content: any): boolean => {
+const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
+    const contentObj = content as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+
     let filterOut = false;
-    for (let filter of filters) {
-        const obj = getObj(content, filter.obj);
+    for (const filter of filters) {
+        const obj = getObj(contentObj, filter.obj);
         if (!obj) continue;
         if (filter.type === "in") {
             filterOut = true;

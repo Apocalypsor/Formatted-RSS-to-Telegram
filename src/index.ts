@@ -57,7 +57,7 @@ const main = async () => {
     logger.info(`IP:\n${ipInfo}`);
     await createDirIfNotExists("./config");
     await createDirIfNotExists("./logs/screenshots");
-    for (let item of rss) {
+    for (const item of rss) {
         try {
             await processRSS(item);
         } catch (e) {

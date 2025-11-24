@@ -4,7 +4,7 @@ nunjucks.configure({ autoescape: false });
 
 const render = (
     template: string,
-    data: any,
+    data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     parseMode = "markdown",
 ): string => {
     return nunjucks
@@ -22,22 +22,27 @@ const escapeTemplate = (template: string, parseMode = "markdown"): string => {
         const templateOut = template.split(regex);
         const templateIn = template.match(regex);
 
-        for (let i = 0; i < templateOut.length; i++) {
-            for (let j = 0; j < escapedCh.length; j++) {
-                templateOut[i] = templateOut[i].replaceAll(
-                    escapedCh[j],
-                    "\\" + escapedCh[j],
-                );
+        templateOut.forEach((part, i) => {
+            if (part !== undefined) {
+                escapedCh.forEach((ch) => {
+                    if (ch !== undefined) {
+                        templateOut[i] = part.replaceAll(ch, "\\" + ch);
+                    }
+                });
             }
-        }
+        });
 
-        const finalTemplate = [];
-        for (let i = 0; i < templateOut.length; i++) {
-            finalTemplate.push(templateOut[i]);
-            if (templateIn && templateIn.length > i) {
+        const finalTemplate: string[] = [];
+        templateOut.forEach((part, i) => {
+            finalTemplate.push(part);
+            if (
+                templateIn &&
+                templateIn.length > i &&
+                templateIn[i] !== undefined
+            ) {
                 finalTemplate.push(templateIn[i]);
             }
-        }
+        });
 
         return finalTemplate.join("");
     } else {
@@ -72,20 +77,21 @@ const escapeText = (text: string, parseMode = "markdown"): string => {
         escapedCh = ["_", "*", "`", "["];
     }
 
-    for (let e of escapedCh) {
+    escapedCh.forEach((e) => {
         text = text.replaceAll(e, "\\" + e);
-    }
+    });
 
     return text;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const escapeAll = (obj: any, parseMode = "markdown"): any => {
     if (typeof obj === "string") {
         return escapeText(obj, parseMode);
     } else if (Array.isArray(obj)) {
         return obj.map((o) => escapeAll(o, parseMode));
     } else if (typeof obj === "object") {
-        for (let key in obj) {
+        for (const key in obj) {
             obj[key] = escapeAll(obj[key], parseMode);
         }
         return obj;
