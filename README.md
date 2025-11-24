@@ -10,8 +10,6 @@ Highly customizable RSS to Telegram.
 1. Save the `docker-compose.yaml` file:
 
     ```yaml
-    version: '3'
-
     services:
       fr2t:
         image: ghcr.io/apocalypsor/fr2t
@@ -29,9 +27,39 @@ Highly customizable RSS to Telegram.
    the `rss.yaml` text template.
 3. Run `docker-compose up -d`.
 
-## Todo
+## Features
 
-- [x] Proxy
-- [x] Notify for invalid RSS links
-- [x] docs
-- [x] Clean Database periodically
+- ✅ **Persistent Message Queue** - SQLite-backed queue with automatic recovery on restart
+- ✅ **Rate Limiting** - Prevents Telegram API spam with configurable delays
+- ✅ **Retry Logic** - Automatic retry with exponential backoff for failed messages
+- ✅ **Proxy Support** - HTTP/SOCKS4/SOCKS5 proxy support
+- ✅ **Periodic Cleanup** - Automatic database cleanup of old records
+- ✅ **RSS Monitoring** - Notify for invalid RSS links
+- ✅ **Media Embedding** - Automatic image/video extraction from RSS content
+
+## Development
+
+```bash
+# Install dependencies
+bun install
+
+# Run Prisma migrations
+bun run prisma:migrate:dev
+
+# Start development server with hot reload
+bun run dev
+
+# Build for production
+bun run build
+
+# Run production build
+bun start
+
+# Docker development environment
+docker-compose -f docker-compose.dev.yml up
+```
+
+## Environment Variables
+
+- `DATABASE_URL` - SQLite database path (default: `file:../config/db.sqlite`)
+- `NODE_ENV` - Environment mode (`development` or `production`)
