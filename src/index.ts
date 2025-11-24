@@ -1,9 +1,7 @@
 import { config, rss } from "@config";
-import { checkHistoryInitialized, clean } from "@database/db";
+import { checkHistoryInitialized, clean } from "@database";
 import processRSS from "@services";
-import { getClient } from "@utils/client";
-import { createDirIfNotExists, mapError } from "@utils/helpers";
-import logger from "@utils/logger";
+import { createDirIfNotExists, getClient, logger, mapError } from "@utils";
 import { scheduleJob } from "node-schedule";
 
 // workaround for BigInt serialization
@@ -19,7 +17,8 @@ BigInt.prototype.toJSON = function () {
 
 const getHostIPInfoThroughAPI = async () => {
     try {
-        const ipInfo = await getClient(true).get("https://api.dov.moe/ip");
+        const client = await getClient(true);
+        const ipInfo = await client.get("https://api.dov.moe/ip");
         if (!ipInfo.data.success) return null;
         return JSON.stringify(ipInfo.data.data);
     } catch {
@@ -29,9 +28,8 @@ const getHostIPInfoThroughAPI = async () => {
 
 const getHostIPInfoThroughCloudflare = async () => {
     try {
-        const ipInfo = await getClient(true).get(
-            "https://1.1.1.1/cdn-cgi/trace",
-        );
+        const client = await getClient(true);
+        const ipInfo = await client.get("https://1.1.1.1/cdn-cgi/trace");
         return ipInfo.data;
     } catch {
         return null;

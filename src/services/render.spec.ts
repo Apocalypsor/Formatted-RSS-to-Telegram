@@ -1,9 +1,4 @@
-import {
-    escapeAll,
-    escapeTemplate,
-    escapeText,
-    render,
-} from "@services/render";
+import { escapeAll, escapeTemplate, escapeText, render } from "./render";
 
 describe("Renderer Module", () => {
     describe("escapeText", () => {

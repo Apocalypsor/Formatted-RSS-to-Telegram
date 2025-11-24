@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UA } from "@consts/config.ts";
+import { UA } from "@consts";
 
 // Proxy schemas
 export const EnabledProxySchema = z.object({

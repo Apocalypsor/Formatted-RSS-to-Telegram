@@ -1,14 +1,13 @@
+import type { Telegram } from "@config";
 import { config } from "@config";
 import {
     FailedToEditMessageError,
     MessageNotFoundError,
     SenderNotFoundError,
     SendMessageFailedError,
-} from "@errors/services";
-import { getClient } from "@utils/client";
-import logger from "@utils/logger";
+} from "@errors";
+import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
-import type { Telegram } from "@config/types.ts";
 
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -82,7 +81,8 @@ const send = async (
             } to ${sender.name}:\n${JSON.stringify(payload)}`,
         );
 
-        const resp = await getClient().post(endpoint, payload);
+        const client = await getClient();
+        const resp = await client.post(endpoint, payload);
 
         if (resp && resp?.data.ok) {
             const messageId = BigInt(
@@ -107,7 +107,8 @@ const editText = async (sender: Telegram, messageId: bigint, text: string) => {
         disable_web_page_preview: sender.disableWebPagePreview,
         disable_notification: sender.disableNotification,
     };
-    const resp = await getClient().post(endpoint, payload);
+    const client = await getClient();
+    const resp = await client.post(endpoint, payload);
     return resp.data.ok;
 };
 
@@ -123,7 +124,8 @@ const editCaption = async (
         caption: caption,
         parse_mode: sender.parseMode,
     };
-    const resp = await getClient().post(endpoint, payload);
+    const client = await getClient();
+    const resp = await client.post(endpoint, payload);
     return resp.data.ok;
 };
 
@@ -191,7 +193,8 @@ const notify = async (url: string) => {
         };
 
         logger.info(`Sending notification to ${sender?.name}:\n${url}`);
-        await getClient(true).post(endpoint, payload);
+        const client = await getClient(true);
+        await client.post(endpoint, payload);
     }
 };
 

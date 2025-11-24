@@ -2,12 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const checkHistoryInitialized = async (): Promise<boolean> => {
+export const checkHistoryInitialized = async (): Promise<boolean> => {
     const history = await prisma.history.findFirst();
     return !!history;
 };
 
-const getFirstHistoryByURL = async (url: string) => {
+export const getFirstHistoryByURL = async (url: string) => {
     return prisma.history.findFirst({
         where: {
             url,
@@ -15,7 +15,7 @@ const getFirstHistoryByURL = async (url: string) => {
     });
 };
 
-const getHistory = async (
+export const getHistory = async (
     uniqueHash: string,
     url: string,
     telegramChatId: bigint,
@@ -29,7 +29,7 @@ const getHistory = async (
     });
 };
 
-const addHistory = async (
+export const addHistory = async (
     uniqueHash: string,
     url: string,
     textHash: string,
@@ -51,7 +51,7 @@ const addHistory = async (
     });
 };
 
-const updateHistory = async (
+export const updateHistory = async (
     id: number,
     textHash: string,
     telegramMessageId: bigint,
@@ -65,7 +65,10 @@ const updateHistory = async (
     });
 };
 
-const updateExpire = async (url: string, reset = false): Promise<number> => {
+export const updateExpire = async (
+    url: string,
+    reset = false,
+): Promise<number> => {
     const expireEntry = await prisma.expire.upsert({
         where: { url },
         update: {
@@ -80,7 +83,7 @@ const updateExpire = async (url: string, reset = false): Promise<number> => {
     return expireEntry.expire;
 };
 
-const clean = async (numberOfDays = 30) => {
+export const clean = async (numberOfDays = 30) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - numberOfDays);
 
@@ -91,15 +94,4 @@ const clean = async (numberOfDays = 30) => {
             },
         },
     });
-};
-
-export {
-    prisma,
-    checkHistoryInitialized,
-    getFirstHistoryByURL,
-    getHistory,
-    addHistory,
-    updateHistory,
-    updateExpire,
-    clean,
 };

@@ -4,19 +4,19 @@ import {
     getHistory,
     updateExpire,
     updateHistory,
-} from "@database/db";
-import { parseRSSFeed } from "@services/parser";
-import { render } from "@services/render";
-import { edit, getSender, notify, send } from "@services/sender";
+} from "@database";
+import { parseRSSFeed } from "./parser";
+import { render } from "./render";
+import { edit, getSender, notify, send } from "./sender";
 import {
     extractMediaUrls,
     getObj,
     hash,
+    logger,
     mapError,
     trimWhiteSpace,
-} from "@utils/helpers";
-import logger from "@utils/logger";
-import type { RSS, RSSFilter, RSSRule, Telegram } from "@config/types.ts";
+} from "@utils";
+import type { RSS, RSSFilter, RSSRule, Telegram } from "@config";
 
 const history = new Set();
 const uninitialized = new Set();

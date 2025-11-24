@@ -1,12 +1,12 @@
 import { config } from "@config";
-import { getClient } from "@utils/client";
 import {
+    getClient,
     htmlDecode,
     isIntranet,
+    logger,
     mapError,
     parseIPFromURL,
-} from "@utils/helpers";
-import logger from "@utils/logger";
+} from "@utils";
 import Parser from "rss-parser";
 import { promisify } from "util";
 import { exec as execCallback } from "child_process";
@@ -34,7 +34,8 @@ export const parseRSSFeed = async (url: string, full = false) => {
             const ip = await parseIPFromURL(url);
             const proxy = !isIntranet(ip);
             logger.debug(`Parsed IP for ${url}: ${ip}`);
-            htmlResp = (await getClient(proxy).get(url)).data;
+            const client = await getClient(proxy);
+            htmlResp = (await client.get(url)).data;
         }
         const feed = await parser.parseString(htmlResp);
         return feed.items.reverse();
@@ -42,8 +43,9 @@ export const parseRSSFeed = async (url: string, full = false) => {
         logger.warn(`Failed to parse RSS feed ${url}: ${mapError(e)}`);
         if (config.flaresolverr) {
             logger.info("Trying to parse RSS feed using FlareSolver");
+            const client = await getClient();
             const htmlRaw = (
-                await getClient().post(`${config.flaresolverr}/v1`, {
+                await client.post(`${config.flaresolverr}/v1`, {
                     cmd: "request.get",
                     url: url,
                     maxTimeout: 60000,

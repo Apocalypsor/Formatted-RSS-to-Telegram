@@ -3,13 +3,13 @@ import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
 import { JSDOM } from "jsdom";
-import logger from "@utils/logger.ts";
+import { logger } from "./logger";
 
-const hash = (string: string): string => {
+export const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
 };
 
-const expandArrayInObject = (obj: any, key: string | number): any[] => {
+export const expandArrayInObject = (obj: any, key: string | number): any[] => {
     if (!obj) {
         return [];
     }
@@ -26,7 +26,7 @@ const expandArrayInObject = (obj: any, key: string | number): any[] => {
     });
 };
 
-const getObj = (obj: any, s: string) => {
+export const getObj = (obj: any, s: string) => {
     const paths = s.split(".");
     let result = obj;
     for (const path of paths) {
@@ -45,13 +45,13 @@ const getObj = (obj: any, s: string) => {
     return result;
 };
 
-const createDirIfNotExists = async (dir: fs.PathLike) => {
+export const createDirIfNotExists = async (dir: fs.PathLike) => {
     if (!fs.existsSync(dir)) {
         await fs.promises.mkdir(dir, { recursive: true });
     }
 };
 
-const parseIPFromURL = async (url: string | URL): Promise<string> => {
+export const parseIPFromURL = async (url: string | URL): Promise<string> => {
     const parsed = new URL(url);
     return new Promise((resolve, reject) => {
         dns.lookup(parsed.hostname, (err, address) => {
@@ -64,7 +64,7 @@ const parseIPFromURL = async (url: string | URL): Promise<string> => {
     });
 };
 
-const isIntranet = (ip: string): boolean => {
+export const isIntranet = (ip: string): boolean => {
     const parts = ip.split(".");
     if (parts[0] === "10") {
         return true;
@@ -82,7 +82,7 @@ const isIntranet = (ip: string): boolean => {
     return parts[0] === "192" && parts[1] === "168";
 };
 
-const htmlDecode = (input: string): string | null => {
+export const htmlDecode = (input: string): string | null => {
     const doc = new JSDOM(input);
     const body = doc.window.document.body.textContent;
     if (!body) {
@@ -101,11 +101,11 @@ const htmlDecode = (input: string): string | null => {
     }
 };
 
-const trimWhiteSpace = (input: string): string => {
+export const trimWhiteSpace = (input: string): string => {
     return input.replace(/^\s+|\s+$/g, "").trim();
 };
 
-const mapError = (error: unknown): string => {
+export const mapError = (error: unknown): string => {
     if (error instanceof Error) {
         return error.message;
     } else {
@@ -113,7 +113,7 @@ const mapError = (error: unknown): string => {
     }
 };
 
-const extractMediaUrls = (
+export const extractMediaUrls = (
     htmlContent: string,
     baseUrl?: string,
 ): { type: "photo" | "video"; url: string }[] => {
@@ -163,17 +163,4 @@ const extractMediaUrls = (
     }
 
     return imgUrls;
-};
-
-export {
-    hash,
-    expandArrayInObject,
-    getObj,
-    createDirIfNotExists,
-    parseIPFromURL,
-    isIntranet,
-    htmlDecode,
-    trimWhiteSpace,
-    mapError,
-    extractMediaUrls,
 };
