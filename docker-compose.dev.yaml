@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: rss-to-telegram-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:../config/db.sqlite
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      # Mount config directory for persistence
+      - ./config:/app/config
+      # Mount logs directory
+      - ./logs:/app/logs
+    command: bun --watch ./src/index.ts
