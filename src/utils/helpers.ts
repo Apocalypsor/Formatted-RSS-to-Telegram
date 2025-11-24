@@ -117,12 +117,16 @@ export const extractMediaUrls = (
     htmlContent: string,
     baseUrl?: string,
 ): { type: "photo" | "video"; url: string }[] => {
+    if (!baseUrl) {
+        return [];
+    }
+
     let baseUrlFormatted = {
         origin: "",
         pathname: "",
     };
     try {
-        baseUrlFormatted = new URL(baseUrl || "");
+        baseUrlFormatted = new URL(baseUrl);
     } catch (error) {
         logger.debug(`Failed to parse URL: ${mapError(error)}`);
     }

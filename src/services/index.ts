@@ -7,7 +7,8 @@ import {
 } from "@database";
 import { parseRSSFeed } from "./parser";
 import { render } from "./render";
-import { edit, getSender, notify, send } from "./sender";
+import { getSender, notify } from "./sender";
+import { messageQueue } from "./queue";
 import {
     extractMediaUrls,
     getObj,
@@ -114,7 +115,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
         try {
-            const messageId = await send(
+            const messageId = await messageQueue.enqueueSend(
                 tmpSender,
                 text,
                 initialized,
@@ -138,7 +139,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
         const messageId = existed.telegram_message_id;
         if (messageId > 0 && text_hash !== existed.text_hash) {
             try {
-                await edit(tmpSender, messageId, text);
+                await messageQueue.enqueueEdit(tmpSender, messageId, text);
                 await updateHistory(existed.id, text_hash, messageId);
             } catch (e) {
                 logger.error(`Failed to edit RSS item: ${mapError(e)}`);
@@ -207,3 +208,4 @@ const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
 };
 
 export default processRSS;
+export * from "./queue";

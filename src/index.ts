@@ -1,6 +1,6 @@
 import { config, rss } from "@config";
 import { checkHistoryInitialized, clean } from "@database";
-import processRSS from "@services";
+import processRSS, { messageQueue } from "@services";
 import { createDirIfNotExists, getClient, logger, mapError } from "@utils";
 import { scheduleJob } from "node-schedule";
 
@@ -55,6 +55,7 @@ const main = async () => {
     logger.info(`IP:\n${ipInfo}`);
     await createDirIfNotExists("./config");
     await createDirIfNotExists("./logs/screenshots");
+
     for (const item of rss) {
         try {
             await processRSS(item);
@@ -62,9 +63,18 @@ const main = async () => {
             logger.error(`Failed to process RSS item: ${mapError(e)}`);
         }
     }
+
+    // Log queue status
+    const queueSize = messageQueue.getQueueSize();
+    if (queueSize > 0) {
+        logger.info(`Message queue has ${queueSize} tasks pending`);
+    }
 };
 
-main()
+// Recover pending tasks from database on startup
+messageQueue
+    .recoverPendingTasks()
+    .then(() => main())
     .then(() => {
         logger.info("Initial RSS processing finished");
         logger.info(
@@ -79,6 +89,12 @@ main()
             logger.info("Start cleaning database");
             await clean(config.expireTime);
             logger.info("Finished cleaning database");
+        });
+        // Clean up completed queue tasks daily at 3 AM
+        scheduleJob("0 3 * * *", async function () {
+            logger.info("Start cleaning completed queue tasks");
+            await messageQueue.cleanupCompletedTasks(24);
+            logger.info("Finished cleaning completed queue tasks");
         });
     })
     .catch((e) => {

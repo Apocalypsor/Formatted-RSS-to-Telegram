@@ -9,8 +9,8 @@
         "build": "bun build ./src/index.ts --outdir ./dist --target bun --external '*'",
         "start": "bun run dist/index.js",
         "dev": "NODE_ENV=development prisma migrate deploy && bun --watch ./src/index.ts",
-        "lint": "eslint src --ext .ts",
-        "lint:fix": "eslint src --ext .ts --fix"
+        "lint": "eslint \"src/**/*.ts\"",
+        "lint:fix": "eslint \"src/**/*.ts\" --fix"
     },
     "repository": {
         "type": "git",

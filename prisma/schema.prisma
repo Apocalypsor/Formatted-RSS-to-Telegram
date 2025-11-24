@@ -30,3 +30,16 @@ model Expire {
     created_at DateTime @default(now())
     updated_at DateTime @updatedAt
 }
+
+model MessageQueue {
+    id          Int      @id @default(autoincrement())
+    task_type   String   // "send" or "edit"
+    task_data   String   // JSON serialized task data
+    status      String   @default("pending") // "pending", "processing", "completed", "failed"
+    retry_count Int      @default(0)
+    error       String?
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
+    
+    @@index([status, created_at])
+}
