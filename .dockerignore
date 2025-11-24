@@ -2,7 +2,7 @@ config/
 
 # Node modules
 node_modules/
-yarn.lock
+bun.lockb
 
 # Logs
 logs/
@@ -51,7 +51,5 @@ docker-compose.yml
 *.tgz
 *.tsbuildinfo
 .pnp.*
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
+yarn.lock
+.yarn/

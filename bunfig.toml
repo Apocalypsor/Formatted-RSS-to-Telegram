@@ -1,0 +1,15 @@
+[install]
+# Configure package installation
+registry = "https://registry.npmjs.org/"
+
+[install.lockfile]
+# Save lockfile in Bun's native format
+save = true
+
+[test]
+# Configure test runner
+preload = ["./src/config/index.ts"]
+
+[run]
+# Configure runtime behavior
+bun = true

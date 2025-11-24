@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
-yarn prisma:migrate:deploy
-yarn start
+bun run prisma:migrate:deploy
+bun run start

@@ -1,11 +1,23 @@
 {
     "compilerOptions": {
+        "lib": ["ESNext"],
         "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "node",
+        "module": "Preserve",
+        "moduleDetection": "force",
+        "jsx": "react-jsx",
+        "allowJs": true,
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
         "strict": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "noPropertyAccessFromIndexSignature": false,
         "outDir": "./dist",
         "rootDir": "./src",
         "baseUrl": "./src",
@@ -18,10 +30,6 @@
             "@errors/*": ["./errors/*"],
             "@config": ["./config"],
             "@services": ["./services"]
-        },
-        "allowJs": true,
-        "resolveJsonModule": true
-    },
-    "include": ["./src/**/*"],
-    "exclude": ["node_modules", "**/*.spec.ts"]
+        }
+    }
 }

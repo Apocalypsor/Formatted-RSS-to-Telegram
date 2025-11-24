@@ -6,8 +6,6 @@ import { createDirIfNotExists, mapError } from "@utils/helpers";
 import logger from "@utils/logger";
 import { scheduleJob } from "node-schedule";
 
-require("dotenv").config();
-
 // workaround for BigInt serialization
 declare global {
     interface BigInt {
