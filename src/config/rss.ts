@@ -3,7 +3,6 @@ import { expandArrayInObject } from "@utils/helpers";
 import fs from "fs";
 import { parse } from "yaml";
 import { type RSS, RSSItemSchema } from "@config/types";
-import { ZodError } from "zod";
 
 const parseRSS = (rss: unknown): RSS[] => {
     if (!rss || !Array.isArray(rss) || rss.length === 0) {
@@ -35,15 +34,8 @@ const parseRSS = (rss: unknown): RSS[] => {
 
         // Validate and parse each expanded item with Zod
         for (const item of rssExpandSendTo) {
-            try {
-                const validated = RSSItemSchema.parse(item);
-                parsedRSS.push(validated);
-            } catch (error) {
-                if (error instanceof ZodError) {
-                    console.error(`RSS item validation error:`, error.errors);
-                }
-                throw error;
-            }
+            const validated = RSSItemSchema.parse(item);
+            parsedRSS.push(validated);
         }
     }
 

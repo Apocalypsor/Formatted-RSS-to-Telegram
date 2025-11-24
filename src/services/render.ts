@@ -18,33 +18,23 @@ const render = (
 const escapeTemplate = (template: string, parseMode = "markdown"): string => {
     if (parseMode.toLowerCase() === "markdownv2") {
         const escapedCh = [">", "#", "+", "-", "=", "|", "{", "}", ".", "!"];
-        const regex = new RegExp(/{{.+?}}|{%.+?%}/g);
-        const templateOut = template.split(regex);
-        const templateIn = template.match(regex);
 
-        templateOut.forEach((part, i) => {
-            if (part !== undefined) {
-                escapedCh.forEach((ch) => {
-                    if (ch !== undefined) {
-                        templateOut[i] = part.replaceAll(ch, "\\" + ch);
-                    }
-                });
+        const escapeChars = (text: string): string => {
+            let escaped = text;
+            for (const ch of escapedCh) {
+                escaped = escaped.replaceAll(ch, "\\" + ch);
             }
-        });
+            return escaped;
+        };
 
-        const finalTemplate: string[] = [];
-        templateOut.forEach((part, i) => {
-            finalTemplate.push(part);
-            if (
-                templateIn &&
-                templateIn.length > i &&
-                templateIn[i] !== undefined
-            ) {
-                finalTemplate.push(templateIn[i]);
-            }
-        });
-
-        return finalTemplate.join("");
+        // Split by template tags, escape the text parts, keep tags unchanged
+        const parts = template.split(/({{.+?}}|{%.+?%})/g);
+        return parts
+            .map((part, i) =>
+                // Odd indices are template tags (captured groups), even are text
+                i % 2 === 1 ? part : escapeChars(part),
+            )
+            .join("");
     } else {
         return template;
     }
