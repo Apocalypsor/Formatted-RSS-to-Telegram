@@ -33,12 +33,14 @@ export type MessageTaskData = SendMessageTaskData | EditMessageTaskData;
 // In-memory task with callbacks (for Promise resolution)
 interface SendMessageTask extends SendMessageTaskData {
     dbId?: number;
+    retryCount?: number;
     onSuccess: (messageId: bigint | undefined) => void;
     onError: (error: Error) => void;
 }
 
 interface EditMessageTask extends EditMessageTaskData {
     dbId?: number;
+    retryCount?: number;
     onSuccess: () => void;
     onError: (error: Error) => void;
 }
@@ -276,10 +278,8 @@ class MessageQueue {
     /**
      * Execute a single task with retry logic
      */
-    private async executeTask(
-        task: MessageTask,
-        retryCount = 0,
-    ): Promise<void> {
+    private async executeTask(task: MessageTask): Promise<void> {
+        const retryCount = task.retryCount ?? 0;
         try {
             if (task.type === "send") {
                 logger.debug(
@@ -322,10 +322,18 @@ class MessageQueue {
             // Check if we should retry
             if (retryCount < this.maxRetries) {
                 logger.warn(
-                    `Task (DB ID: ${task.dbId}) failed (attempt ${retryCount + 1}/${this.maxRetries}), retrying...`,
+                    `Task (DB ID: ${task.dbId}) failed (attempt ${retryCount + 1}/${this.maxRetries}), re-enqueueing for retry...`,
                 );
-                await this.delay(this.delayBetweenMessages * (retryCount + 1));
-                await this.executeTask(task, retryCount + 1);
+                
+                // Re-enqueue the task with incremented retry count
+                // This ensures the task goes through the normal queue processing
+                // and respects rate limiting
+                task.retryCount = retryCount + 1;
+                this.queue.push(task);
+                
+                logger.debug(
+                    `Task re-enqueued (DB ID: ${task.dbId}). Queue size: ${this.queue.length}`,
+                );
             } else {
                 const errorMsg =
                     error instanceof Error ? error.message : String(error);
