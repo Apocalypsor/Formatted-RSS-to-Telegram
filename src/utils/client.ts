@@ -1,13 +1,11 @@
-import { config } from "@config";
-import logger from "@utils/logger";
-import axios, { AxiosInstance } from "axios";
+import { logger } from "./logger";
+import axios, { type AxiosInstance } from "axios";
 import axiosRetry from "axios-retry";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
 const client = axios.create({
     timeout: 10000,
     headers: {
-        "User-Agent": config.userAgent,
         "Accept-Encoding": "gzip, deflate, compress",
         "Accept": "application/rss+xml, application/json",
         "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
@@ -48,7 +46,13 @@ client.interceptors.response.use(
     },
 );
 
-const getClient = (proxy = false): AxiosInstance => {
+export const getClient = async (proxy = false): Promise<AxiosInstance> => {
+    // Lazy import to avoid circular dependency
+    const { config } = await import("@config");
+
+    // Set User-Agent header
+    client.defaults.headers.common["User-Agent"] = config.userAgent;
+
     if (config.proxy.enabled && proxy) {
         if (config.proxy.protocol === "http") {
             client.defaults.proxy = {
@@ -82,5 +86,3 @@ const getClient = (proxy = false): AxiosInstance => {
 
     return client;
 };
-
-export { getClient };

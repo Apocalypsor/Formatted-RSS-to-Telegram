@@ -22,14 +22,12 @@
         "rootDir": "./src",
         "baseUrl": "./src",
         "paths": {
-            "@services/*": ["./services/*"],
-            "@utils/*": ["./utils/*"],
-            "@config/*": ["./config/*"],
-            "@consts/*": ["./consts/*"],
-            "@database/*": ["./database/*"],
-            "@errors/*": ["./errors/*"],
-            "@config": ["./config"],
-            "@services": ["./services"]
+            "@utils": ["./utils/index.ts"],
+            "@consts": ["./consts.ts"],
+            "@database": ["./database/index.ts"],
+            "@errors": ["./errors/index.ts"],
+            "@config": ["./config/index.ts"],
+            "@services": ["./services/index.ts"]
         }
     }
 }

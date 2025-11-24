@@ -1,14 +1,13 @@
+import type { Telegram } from "@config";
 import { config } from "@config";
-import { Telegram } from "@config/interfaces/config.interfaces";
 import {
     FailedToEditMessageError,
     MessageNotFoundError,
     SenderNotFoundError,
     SendMessageFailedError,
-} from "@errors/services";
-import { getClient } from "@utils/client";
-import logger from "@utils/logger";
-import { AxiosError, AxiosResponse } from "axios";
+} from "@errors";
+import { getClient, logger } from "@utils";
+import { AxiosError } from "axios";
 
 const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -32,8 +31,7 @@ const send = async (
         return BigInt(-1);
     } else {
         let sendByText = true;
-        let resp: AxiosResponse | null;
-        let payload: any;
+        let payload: any; // eslint-disable-line @typescript-eslint/no-explicit-any
         let endpoint: string = "";
 
         if (mediaUrls) {
@@ -50,7 +48,7 @@ const send = async (
                     disable_notification: sender.disableNotification,
                 };
                 endpoint = `https://api.telegram.org/bot${sender.token}/sendMediaGroup`;
-            } else if (mediaUrls.length === 1) {
+            } else if (mediaUrls.length === 1 && mediaUrls[0]) {
                 sendByText = false;
                 payload = {
                     chat_id: sender.chatId,
@@ -83,7 +81,8 @@ const send = async (
             } to ${sender.name}:\n${JSON.stringify(payload)}`,
         );
 
-        resp = await getClient().post(endpoint, payload);
+        const client = await getClient();
+        const resp = await client.post(endpoint, payload);
 
         if (resp && resp?.data.ok) {
             const messageId = BigInt(
@@ -108,7 +107,8 @@ const editText = async (sender: Telegram, messageId: bigint, text: string) => {
         disable_web_page_preview: sender.disableWebPagePreview,
         disable_notification: sender.disableNotification,
     };
-    const resp = await getClient().post(endpoint, payload);
+    const client = await getClient();
+    const resp = await client.post(endpoint, payload);
     return resp.data.ok;
 };
 
@@ -124,7 +124,8 @@ const editCaption = async (
         caption: caption,
         parse_mode: sender.parseMode,
     };
-    const resp = await getClient().post(endpoint, payload);
+    const client = await getClient();
+    const resp = await client.post(endpoint, payload);
     return resp.data.ok;
 };
 
@@ -183,7 +184,7 @@ const notify = async (url: string) => {
         );
     } else {
         const sender = config.telegram[0];
-        const endpoint = `https://api.telegram.org/bot${sender.token}/sendMessage`;
+        const endpoint = `https://api.telegram.org/bot${sender?.token}/sendMessage`;
         const payload = {
             chat_id: config.notifyTelegramChatId,
             text: "*FR2T detected a link expired*\n\n" + url,
@@ -191,8 +192,9 @@ const notify = async (url: string) => {
             disable_web_page_preview: true,
         };
 
-        logger.info(`Sending notification to ${sender.name}:\n${url}`);
-        await getClient(true).post(endpoint, payload);
+        logger.info(`Sending notification to ${sender?.name}:\n${url}`);
+        const client = await getClient(true);
+        await client.post(endpoint, payload);
     }
 };
 

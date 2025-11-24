@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from "winston";
 import "winston-daily-rotate-file";
 
-const logger = createLogger({
+export const logger = createLogger({
     level: process.env.NODE_ENV !== "production" ? "debug" : "info",
     format: format.combine(
         format.timestamp({
@@ -36,5 +36,3 @@ const logger = createLogger({
         }),
     ],
 });
-
-export default logger;

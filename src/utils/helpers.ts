@@ -1,16 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
 import { JSDOM } from "jsdom";
+import { logger } from "./logger";
 
-const hash = (string: string): string => {
+export const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
 };
 
-const expandArrayInObject = (
-    obj: { [x: string]: any },
-    key: string | number,
-): { [x: string]: any }[] => {
+export const expandArrayInObject = (obj: any, key: string | number): any[] => {
+    if (!obj) {
+        return [];
+    }
+
     const newObj = { ...obj };
     if (!Array.isArray(obj[key])) {
         return [newObj];
@@ -23,10 +26,10 @@ const expandArrayInObject = (
     });
 };
 
-const getObj = (obj: any, s: string) => {
+export const getObj = (obj: any, s: string) => {
     const paths = s.split(".");
     let result = obj;
-    for (let path of paths) {
+    for (const path of paths) {
         if (result === undefined) {
             break;
         }
@@ -42,13 +45,13 @@ const getObj = (obj: any, s: string) => {
     return result;
 };
 
-const createDirIfNotExists = async (dir: fs.PathLike) => {
+export const createDirIfNotExists = async (dir: fs.PathLike) => {
     if (!fs.existsSync(dir)) {
         await fs.promises.mkdir(dir, { recursive: true });
     }
 };
 
-const parseIPFromURL = async (url: string | URL): Promise<string> => {
+export const parseIPFromURL = async (url: string | URL): Promise<string> => {
     const parsed = new URL(url);
     return new Promise((resolve, reject) => {
         dns.lookup(parsed.hostname, (err, address) => {
@@ -61,22 +64,25 @@ const parseIPFromURL = async (url: string | URL): Promise<string> => {
     });
 };
 
-const isIntranet = (ip: string): boolean => {
+export const isIntranet = (ip: string): boolean => {
     const parts = ip.split(".");
     if (parts[0] === "10") {
         return true;
     }
+
     if (
         parts[0] === "172" &&
+        parts[1] &&
         parseInt(parts[1]) >= 16 &&
         parseInt(parts[1]) <= 31
     ) {
         return true;
     }
+
     return parts[0] === "192" && parts[1] === "168";
 };
 
-const htmlDecode = (input: string): string | null => {
+export const htmlDecode = (input: string): string | null => {
     const doc = new JSDOM(input);
     const body = doc.window.document.body.textContent;
     if (!body) {
@@ -95,11 +101,11 @@ const htmlDecode = (input: string): string | null => {
     }
 };
 
-const trimWhiteSpace = (input: string): string => {
+export const trimWhiteSpace = (input: string): string => {
     return input.replace(/^\s+|\s+$/g, "").trim();
 };
 
-const mapError = (error: any): string => {
+export const mapError = (error: unknown): string => {
     if (error instanceof Error) {
         return error.message;
     } else {
@@ -107,7 +113,7 @@ const mapError = (error: any): string => {
     }
 };
 
-const extractMediaUrls = (
+export const extractMediaUrls = (
     htmlContent: string,
     baseUrl?: string,
 ): { type: "photo" | "video"; url: string }[] => {
@@ -117,7 +123,9 @@ const extractMediaUrls = (
     };
     try {
         baseUrlFormatted = new URL(baseUrl || "");
-    } catch (error) {}
+    } catch (error) {
+        logger.debug(`Failed to parse URL: ${mapError(error)}`);
+    }
 
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
     const imgRegex =
@@ -126,11 +134,18 @@ const extractMediaUrls = (
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
-        if (/class\s*=\s*(['"]).*(emoji|avatar|site-icon|thumbnail)/gi.test(match[0])) {
+        if (
+            /class\s*=\s*(['"]).*(emoji|avatar|site-icon|thumbnail)/gi.test(
+                match[0],
+            )
+        ) {
             continue;
         }
 
         let imgUrl = match[3];
+        if (!imgUrl) {
+            continue;
+        }
         if (imgUrl.startsWith("./")) {
             imgUrl =
                 baseUrlFormatted.origin +
@@ -148,17 +163,4 @@ const extractMediaUrls = (
     }
 
     return imgUrls;
-};
-
-export {
-    hash,
-    expandArrayInObject,
-    getObj,
-    createDirIfNotExists,
-    parseIPFromURL,
-    isIntranet,
-    htmlDecode,
-    trimWhiteSpace,
-    mapError,
-    extractMediaUrls,
 };

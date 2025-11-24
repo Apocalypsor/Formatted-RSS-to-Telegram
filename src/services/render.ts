@@ -4,7 +4,7 @@ nunjucks.configure({ autoescape: false });
 
 const render = (
     template: string,
-    data: any,
+    data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     parseMode = "markdown",
 ): string => {
     return nunjucks
@@ -18,28 +18,23 @@ const render = (
 const escapeTemplate = (template: string, parseMode = "markdown"): string => {
     if (parseMode.toLowerCase() === "markdownv2") {
         const escapedCh = [">", "#", "+", "-", "=", "|", "{", "}", ".", "!"];
-        const regex = new RegExp(/{{.+?}}|{%.+?%}/g);
-        const templateOut = template.split(regex);
-        const templateIn = template.match(regex);
 
-        for (let i = 0; i < templateOut.length; i++) {
-            for (let j = 0; j < escapedCh.length; j++) {
-                templateOut[i] = templateOut[i].replaceAll(
-                    escapedCh[j],
-                    "\\" + escapedCh[j],
-                );
+        const escapeChars = (text: string): string => {
+            let escaped = text;
+            for (const ch of escapedCh) {
+                escaped = escaped.replaceAll(ch, "\\" + ch);
             }
-        }
+            return escaped;
+        };
 
-        const finalTemplate = [];
-        for (let i = 0; i < templateOut.length; i++) {
-            finalTemplate.push(templateOut[i]);
-            if (templateIn && templateIn.length > i) {
-                finalTemplate.push(templateIn[i]);
-            }
-        }
-
-        return finalTemplate.join("");
+        // Split by template tags, escape the text parts, keep tags unchanged
+        const parts = template.split(/({{.+?}}|{%.+?%})/g);
+        return parts
+            .map((part, i) =>
+                // Odd indices are template tags (captured groups), even are text
+                i % 2 === 1 ? part : escapeChars(part),
+            )
+            .join("");
     } else {
         return template;
     }
@@ -72,20 +67,21 @@ const escapeText = (text: string, parseMode = "markdown"): string => {
         escapedCh = ["_", "*", "`", "["];
     }
 
-    for (let e of escapedCh) {
+    escapedCh.forEach((e) => {
         text = text.replaceAll(e, "\\" + e);
-    }
+    });
 
     return text;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const escapeAll = (obj: any, parseMode = "markdown"): any => {
     if (typeof obj === "string") {
         return escapeText(obj, parseMode);
     } else if (Array.isArray(obj)) {
         return obj.map((o) => escapeAll(o, parseMode));
     } else if (typeof obj === "object") {
-        for (let key in obj) {
+        for (const key in obj) {
             obj[key] = escapeAll(obj[key], parseMode);
         }
         return obj;
