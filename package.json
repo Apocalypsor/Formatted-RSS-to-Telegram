@@ -6,7 +6,7 @@
         "prisma:generate": "prisma generate",
         "prisma:migrate:dev": "prisma migrate dev",
         "prisma:migrate:deploy": "prisma migrate deploy",
-        "build": "bun build ./src/index.ts --outdir ./dist --target bun --external '*'",
+        "build": "bun build ./src/index.ts --outdir ./dist --target bun --packages external",
         "start": "bun run dist/index.js",
         "dev": "NODE_ENV=development prisma migrate deploy && bun --watch ./src/index.ts",
         "lint": "eslint \"src/**/*.ts\"",
