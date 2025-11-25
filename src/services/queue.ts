@@ -1,14 +1,31 @@
 import type { Telegram } from "@config";
 import {
+    addHistory,
     deleteCompletedMessages,
     enqueueMessage,
     getPendingMessages,
     incrementRetryCount,
+    updateHistory,
     updateMessageStatus,
 } from "@database";
 import { logger } from "@utils";
 import { edit, send } from "./sender";
 import { MediaType, TaskType } from "@consts";
+import { AxiosError } from "axios";
+
+// History metadata for saving after task execution
+export interface HistoryMetadata {
+    uniqueHash: string;
+    url: string;
+    textHash: string;
+    senderName: string;
+    chatId: bigint;
+}
+
+export interface EditHistoryMetadata {
+    historyId: number;
+    textHash: string;
+}
 
 // Serializable task data (no callbacks)
 export interface SendMessageTaskData {
@@ -20,6 +37,7 @@ export interface SendMessageTaskData {
         type: MediaType;
         url: string;
     }[];
+    historyMetadata?: HistoryMetadata; // For saving to history after send
 }
 
 export interface EditMessageTaskData {
@@ -27,23 +45,22 @@ export interface EditMessageTaskData {
     sender: Telegram;
     messageId: string; // BigInt serialized as string
     text: string;
+    editHistoryMetadata?: EditHistoryMetadata; // For updating history after edit
 }
 
 export type MessageTaskData = SendMessageTaskData | EditMessageTaskData;
 
-// In-memory task with callbacks (for Promise resolution)
+// In-memory task (extends serializable data with runtime fields)
 interface SendMessageTask extends SendMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    onSuccess: (messageId: bigint | undefined) => void;
-    onError: (error: Error) => void;
+    uniqueKey?: string; // For deduplication
 }
 
 interface EditMessageTask extends EditMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    onSuccess: () => void;
-    onError: (error: Error) => void;
+    uniqueKey?: string; // For deduplication
 }
 
 type MessageTask = SendMessageTask | EditMessageTask;
@@ -53,19 +70,38 @@ class MessageQueue {
     private processing = false;
     private readonly delayBetweenMessages = 1000; // 1 second between messages
     private readonly maxRetries = 3;
+    private readonly processedKeys = new Set<string>(); // Track processed unique keys for deduplication
 
     /**
      * Add a message task to the queue (persists to database)
      */
     async enqueue(task: MessageTask): Promise<void> {
-        // Serialize task data (without callbacks)
+        // Check for duplicate using uniqueKey if provided
+        if (task.uniqueKey) {
+            if (this.processedKeys.has(task.uniqueKey)) {
+                logger.debug(
+                    `Task with key ${task.uniqueKey} already processed, skipping`,
+                );
+                return;
+            }
+            this.processedKeys.add(task.uniqueKey);
+        }
+
+        // Serialize task data (includes history metadata for persistence)
         const taskData: MessageTaskData = {
             type: task.type,
             sender: task.sender,
             text: task.text,
-            initialized: task.type === "send" ? task.initialized : undefined,
-            mediaUrls: task.type === "send" ? task.mediaUrls : undefined,
-            messageId: task.type === "edit" ? task.messageId : undefined,
+            initialized:
+                task.type === TaskType.SEND ? task.initialized : undefined,
+            mediaUrls: task.type === TaskType.SEND ? task.mediaUrls : undefined,
+            historyMetadata:
+                task.type === TaskType.SEND ? task.historyMetadata : undefined,
+            messageId: task.type === TaskType.EDIT ? task.messageId : undefined,
+            editHistoryMetadata:
+                task.type === TaskType.EDIT
+                    ? task.editHistoryMetadata
+                    : undefined,
         } as MessageTaskData;
 
         // Persist to database
@@ -85,7 +121,7 @@ class MessageQueue {
     }
 
     /**
-     * Add a send message task (fire-and-forget with callbacks)
+     * Add a send message task (fire-and-forget)
      */
     enqueueSend(
         sender: Telegram,
@@ -95,8 +131,8 @@ class MessageQueue {
             type: MediaType;
             url: string;
         }[],
-        onSuccess?: (messageId: bigint | undefined) => void | Promise<void>,
-        onError?: (error: Error) => void | Promise<void>,
+        uniqueKey?: string,
+        historyMetadata?: HistoryMetadata,
     ): void {
         void this.enqueue({
             type: TaskType.SEND,
@@ -104,28 +140,28 @@ class MessageQueue {
             text,
             initialized,
             mediaUrls,
-            onSuccess: onSuccess || (() => {}),
-            onError: onError || (() => {}),
+            uniqueKey,
+            historyMetadata,
         });
     }
 
     /**
-     * Add an edit message task (fire-and-forget with callbacks)
+     * Add an edit message task (fire-and-forget)
      */
     enqueueEdit(
         sender: Telegram,
         messageId: bigint,
         text: string,
-        onSuccess?: () => void | Promise<void>,
-        onError?: (error: Error) => void | Promise<void>,
+        uniqueKey?: string,
+        editHistoryMetadata?: EditHistoryMetadata,
     ): void {
         void this.enqueue({
             type: TaskType.EDIT,
             sender,
             messageId: messageId.toString(), // Convert BigInt to string for serialization
             text,
-            onSuccess: onSuccess || (() => {}),
-            onError: onError || (() => {}),
+            uniqueKey,
+            editHistoryMetadata,
         });
     }
 
@@ -190,47 +226,24 @@ class MessageQueue {
             try {
                 const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
 
-                // Create in-memory task (without callbacks - will just process)
+                // Create in-memory task from recovered data
                 if (taskData.type === TaskType.SEND) {
                     const task: SendMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
-                        onSuccess: () => {
-                            logger.info(
-                                `Recovered task ${dbTask.id} completed successfully`,
-                            );
-                        },
-                        onError: (error) => {
-                            logger.error(
-                                `Recovered task ${dbTask.id} failed: ${error.message}`,
-                            );
-                        },
+                        retryCount: dbTask.retry_count,
                     };
                     this.queue.push(task);
                 } else if (taskData.type === TaskType.EDIT) {
                     const task: EditMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
-                        onSuccess: () => {
-                            logger.info(
-                                `Recovered task ${dbTask.id} completed successfully`,
-                            );
-                        },
-                        onError: (error) => {
-                            logger.error(
-                                `Recovered task ${dbTask.id} failed: ${error.message}`,
-                            );
-                        },
+                        retryCount: dbTask.retry_count,
                     };
                     this.queue.push(task);
                 }
             } catch (error) {
-                logger.error(`Failed to parse task ${dbTask.id}: ${error}`);
-                await updateMessageStatus(
-                    dbTask.id,
-                    "failed",
-                    "Failed to parse task data",
-                );
+                logger.error(`Failed to recover task ${dbTask.id}: ${error}`);
             }
         }
 
@@ -264,7 +277,32 @@ class MessageQueue {
             const task = this.queue.shift();
             if (!task) break;
 
-            await this.executeTask(task);
+            try {
+                await this.executeTask(task);
+            } catch (error) {
+                // Check if this is a 429 rate limit error
+                if (
+                    error instanceof AxiosError &&
+                    error.response?.status === 429
+                ) {
+                    // Extract retry_after from Telegram API response
+                    const retryAfter =
+                        error.response?.data?.parameters?.retry_after || 60;
+                    const retryAfterMs = retryAfter * 1000;
+
+                    logger.warn(
+                        `Rate limited (429). Waiting ${retryAfter}s before continuing...`,
+                    );
+
+                    // Put the task back at the front of the queue
+                    this.queue.unshift(task);
+
+                    // Wait for the retry-after period
+                    await this.delay(retryAfterMs - this.delayBetweenMessages);
+                    continue;
+                }
+                // For other errors, executeTask already handles retry logic
+            }
 
             // Wait before processing next message to avoid rate limiting
             if (this.queue.length > 0) {
@@ -293,12 +331,30 @@ class MessageQueue {
                     task.mediaUrls,
                 );
 
+                // Save to history if metadata provided
+                if (messageId && task.historyMetadata) {
+                    try {
+                        await addHistory(
+                            task.historyMetadata.uniqueHash,
+                            task.historyMetadata.url,
+                            task.historyMetadata.textHash,
+                            task.historyMetadata.senderName,
+                            messageId,
+                            task.historyMetadata.chatId,
+                            "",
+                        );
+                        logger.debug(`Saved history for message ${messageId}`);
+                    } catch (e) {
+                        logger.error(
+                            `Failed to save history for message ${messageId}: ${e}`,
+                        );
+                    }
+                }
+
                 // Mark as completed in database
                 if (task.dbId) {
                     await updateMessageStatus(task.dbId, "completed");
                 }
-
-                task.onSuccess(messageId);
             } else if (task.type === TaskType.EDIT) {
                 logger.debug(
                     `Processing edit task (DB ID: ${task.dbId}) for ${task.sender.name}, message ${task.messageId} (attempt ${retryCount + 1})`,
@@ -307,15 +363,36 @@ class MessageQueue {
                 const messageIdBigInt = BigInt(task.messageId);
                 await edit(task.sender, messageIdBigInt, task.text);
 
+                // Update history if metadata provided
+                if (task.editHistoryMetadata) {
+                    try {
+                        await updateHistory(
+                            task.editHistoryMetadata.historyId,
+                            task.editHistoryMetadata.textHash,
+                            messageIdBigInt,
+                        );
+                        logger.debug(
+                            `Updated history for message ${task.messageId}`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to update history for message ${task.messageId}: ${e}`,
+                        );
+                    }
+                }
+
                 // Mark as completed in database
                 if (task.dbId) {
                     await updateMessageStatus(task.dbId, "completed");
                 }
-
-                task.onSuccess();
             }
         } catch (error) {
-            // Increment retry count in database
+            // Re-throw 429 errors immediately for processQueue to handle
+            if (error instanceof AxiosError && error.response?.status === 429) {
+                throw error;
+            }
+
+            // Increment retry count in database for other errors
             if (task.dbId) {
                 await incrementRetryCount(task.dbId);
             }
@@ -346,10 +423,6 @@ class MessageQueue {
                 if (task.dbId) {
                     await updateMessageStatus(task.dbId, "failed", errorMsg);
                 }
-
-                task.onError(
-                    error instanceof Error ? error : new Error(String(error)),
-                );
             }
         }
     }
