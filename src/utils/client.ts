@@ -1,6 +1,7 @@
 import { logger } from "./logger";
 import axios, { type AxiosInstance } from "axios";
 import { SocksProxyAgent } from "socks-proxy-agent";
+import { AXIOS_TIMEOUT } from "@consts";
 
 // Cache for configured clients
 let cachedClientWithProxy: AxiosInstance | null = null;
@@ -8,7 +9,7 @@ let cachedClientWithoutProxy: AxiosInstance | null = null;
 let configLoaded = false;
 
 const client = axios.create({
-    timeout: 10000,
+    timeout: AXIOS_TIMEOUT,
     headers: {
         "Accept-Encoding": "gzip, deflate, compress",
         "Accept": "application/rss+xml, application/json",
@@ -26,7 +27,7 @@ client.interceptors.response.use(
                 error.response.statusText
             } - ${JSON.stringify(error.response.data)}`;
         }
-        logger.debug(errMsg);
+        logger.error(errMsg);
         return Promise.reject(error);
     },
 );
@@ -47,7 +48,6 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
     if (config.proxy.enabled) {
         const clientWithProxy = axios.create({
             ...client.defaults,
-            timeout: 10000,
             headers: {
                 ...client.defaults.headers,
             },
@@ -63,7 +63,7 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
                         error.response.statusText
                     } - ${JSON.stringify(error.response.data)}`;
                 }
-                logger.debug(errMsg);
+                logger.error(errMsg);
                 return Promise.reject(error);
             },
         );
