@@ -1,7 +1,7 @@
 import { ConfigFileNotFoundError, LoadConfigError } from "@errors";
 import fs from "fs";
 import { parse } from "yaml";
-import { type Config, ConfigSchema } from "./types";
+import { type Config, ConfigSchema } from "./schema";
 
 export const loadConfigFile = (configFile: string | undefined): Config => {
     const configPath = "./config/" + (configFile || "config.yaml");

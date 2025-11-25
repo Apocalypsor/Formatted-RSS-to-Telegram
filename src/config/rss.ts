@@ -2,7 +2,7 @@ import { LoadRSSFileError, RSSFileNotFoundError } from "@errors";
 import { expandArrayInObject } from "@utils";
 import fs from "fs";
 import { parse } from "yaml";
-import { type RSS, RSSItemSchema } from "./types";
+import { type RSS, RSSItemSchema } from "./schema";
 
 const parseRSS = (rss: unknown): RSS[] => {
     if (!rss || !Array.isArray(rss) || rss.length === 0) {
