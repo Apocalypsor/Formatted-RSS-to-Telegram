@@ -311,6 +311,7 @@ class MessageQueue {
         }
 
         this.processing = false;
+        this.processedKeys.clear();
         logger.debug("Queue processing completed");
     }
 
