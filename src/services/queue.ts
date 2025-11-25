@@ -71,6 +71,7 @@ class MessageQueue {
     private readonly delayBetweenMessages = 1000; // 1 second between messages
     private readonly maxRetries = 3;
     private readonly processedKeys = new Set<string>(); // Track processed unique keys for deduplication
+    private readonly maxProcessedKeys = 10000; // Max size before clearing to prevent memory leak
 
     /**
      * Add a message task to the queue (persists to database)
@@ -85,6 +86,14 @@ class MessageQueue {
                 return;
             }
             this.processedKeys.add(task.uniqueKey);
+
+            // Prevent memory leak: clear if size exceeds limit
+            if (this.processedKeys.size >= this.maxProcessedKeys) {
+                logger.info(
+                    `Processed keys reached ${this.maxProcessedKeys}, clearing to prevent memory leak`,
+                );
+                this.processedKeys.clear();
+            }
         }
 
         // Serialize task data (includes history metadata for persistence)
@@ -438,6 +447,49 @@ class MessageQueue {
                 // Mark as failed in database
                 if (task.dbId) {
                     await updateMessageStatus(task.dbId, "failed", errorMsg);
+                }
+
+                // Mark in history database as well
+                if (task.type === TaskType.SEND && task.historyMetadata) {
+                    try {
+                        await addHistory(
+                            task.historyMetadata.uniqueHash,
+                            task.historyMetadata.url,
+                            task.historyMetadata.textHash,
+                            task.historyMetadata.senderName,
+                            BigInt(0), // Use 0 to indicate failed message
+                            task.historyMetadata.chatId,
+                            "",
+                        );
+                        logger.debug(
+                            `Marked failed send task in history with message_id=0`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to mark failed send task in history: ${e}`,
+                        );
+                    }
+                } else if (
+                    task.type === TaskType.EDIT &&
+                    task.editHistoryMetadata
+                ) {
+                    try {
+                        // For edit tasks, update the existing history record
+                        // Keep the original message_id but update with new text_hash
+                        const messageIdBigInt = BigInt(task.messageId);
+                        await updateHistory(
+                            task.editHistoryMetadata.historyId,
+                            task.editHistoryMetadata.textHash,
+                            messageIdBigInt,
+                        );
+                        logger.debug(
+                            `Marked failed edit task in history (kept original message_id)`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to mark failed edit task in history: ${e}`,
+                        );
+                    }
                 }
             }
         }
