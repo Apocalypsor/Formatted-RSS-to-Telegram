@@ -2,7 +2,7 @@ import nunjucks from "nunjucks";
 
 nunjucks.configure({ autoescape: false });
 
-const render = (
+export const render = (
     template: string,
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     parseMode = "markdown",
@@ -89,5 +89,3 @@ const escapeAll = (obj: any, parseMode = "markdown"): any => {
 
     return obj;
 };
-
-export { render, escapeAll, escapeTemplate, escapeText };

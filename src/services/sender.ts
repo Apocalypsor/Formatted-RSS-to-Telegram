@@ -11,11 +11,11 @@ import { AxiosError } from "axios";
 
 import { MediaType } from "@consts";
 
-const getSender = (sender: string): Telegram | undefined => {
+export const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
 };
 
-const send = async (
+export const send = async (
     sender: Telegram | undefined,
     text: string,
     initialized: boolean = true,
@@ -131,7 +131,11 @@ const editCaption = async (
     return resp.data.ok;
 };
 
-const edit = async (sender: Telegram, messageId: bigint, text: string) => {
+export const edit = async (
+    sender: Telegram,
+    messageId: bigint,
+    text: string,
+) => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else {
@@ -177,7 +181,7 @@ const edit = async (sender: Telegram, messageId: bigint, text: string) => {
     }
 };
 
-const notify = async (url: string) => {
+export const notify = async (url: string) => {
     if (config.telegram.length === 0 || !config.notifyTelegramChatId) {
         logger.warn(
             "No Telegram sender for notification configured, skipping.",
@@ -197,5 +201,3 @@ const notify = async (url: string) => {
         await client.post(endpoint, payload);
     }
 };
-
-export { getSender, send, edit, notify };

@@ -37,6 +37,7 @@ export interface SendMessageTaskData {
         type: MediaType;
         url: string;
     }[];
+    uniqueKey?: string; // For deduplication
     historyMetadata?: HistoryMetadata; // For saving to history after send
 }
 
@@ -45,6 +46,7 @@ export interface EditMessageTaskData {
     sender: Telegram;
     messageId: string; // BigInt serialized as string
     text: string;
+    uniqueKey?: string; // For deduplication
     editHistoryMetadata?: EditHistoryMetadata; // For updating history after edit
 }
 
@@ -54,13 +56,11 @@ export type MessageTaskData = SendMessageTaskData | EditMessageTaskData;
 interface SendMessageTask extends SendMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    uniqueKey?: string; // For deduplication
 }
 
 interface EditMessageTask extends EditMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    uniqueKey?: string; // For deduplication
 }
 
 type MessageTask = SendMessageTask | EditMessageTask;
@@ -92,6 +92,7 @@ class MessageQueue {
             type: task.type,
             sender: task.sender,
             text: task.text,
+            uniqueKey: task.uniqueKey,
             initialized:
                 task.type === TaskType.SEND ? task.initialized : undefined,
             mediaUrls: task.type === TaskType.SEND ? task.mediaUrls : undefined,
@@ -233,6 +234,12 @@ class MessageQueue {
                         dbId: dbTask.id,
                         retryCount: dbTask.retry_count,
                     };
+
+                    // Recover unique key for deduplication
+                    if (task.uniqueKey) {
+                        this.processedKeys.add(task.uniqueKey);
+                    }
+
                     this.queue.push(task);
                 } else if (taskData.type === TaskType.EDIT) {
                     const task: EditMessageTask = {
@@ -240,6 +247,12 @@ class MessageQueue {
                         dbId: dbTask.id,
                         retryCount: dbTask.retry_count,
                     };
+
+                    // Recover unique key for deduplication
+                    if (task.uniqueKey) {
+                        this.processedKeys.add(task.uniqueKey);
+                    }
+
                     this.queue.push(task);
                 }
             } catch (error) {
@@ -298,7 +311,9 @@ class MessageQueue {
                     this.queue.unshift(task);
 
                     // Wait for the retry-after period
-                    await this.delay(retryAfterMs - this.delayBetweenMessages);
+                    await this.delay(
+                        Math.max(0, retryAfterMs - this.delayBetweenMessages),
+                    );
                     continue;
                 }
                 // For other errors, executeTask already handles retry logic
