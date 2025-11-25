@@ -9,7 +9,7 @@ import {
 import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
 
-import { MediaType } from "@consts";
+import { MEDIA_TYPE } from "@consts";
 
 export const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -20,7 +20,7 @@ export const send = async (
     text: string,
     initialized: boolean = true,
     mediaUrls?: {
-        type: MediaType;
+        type: MEDIA_TYPE;
         url: string;
     }[],
 ): Promise<bigint | undefined> => {

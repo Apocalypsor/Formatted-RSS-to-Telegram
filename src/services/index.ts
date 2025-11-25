@@ -5,7 +5,11 @@ import { getSender, notify } from "./sender";
 import { messageQueue } from "./queue";
 import { extractMediaUrls, getObj, hash, logger, trimWhiteSpace } from "@utils";
 import type { RSS, RSSFilter, RSSRule, Telegram } from "@config";
-import { TELEGRAM_MESSAGE_LIMIT } from "@consts";
+import {
+    RSS_FILTER_TYPE,
+    RSS_RULE_TYPE,
+    TELEGRAM_MESSAGE_LIMIT,
+} from "@consts";
 
 const uninitialized = new Set();
 
@@ -143,7 +147,7 @@ const processRules = (rules: RSSRule[], content: unknown) => {
     for (const rule of rules) {
         const obj = getObj(contentObj, rule.obj);
         if (obj) {
-            if (rule.type === "regex") {
+            if (rule.type === RSS_RULE_TYPE.REGEX) {
                 const regex = new RegExp(rule.matcher);
                 const match = regex.exec(obj);
                 if (match) {
@@ -154,7 +158,7 @@ const processRules = (rules: RSSRule[], content: unknown) => {
                         contentObj[rule.dest] = match;
                     }
                 }
-            } else if (rule.type === "func") {
+            } else if (rule.type === RSS_RULE_TYPE.FUNC) {
                 const func = new Function("obj", rule.matcher);
                 const result = func(content);
                 if (result) {
@@ -172,7 +176,7 @@ const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
     for (const filter of filters) {
         const obj = getObj(contentObj, filter.obj);
         if (!obj) continue;
-        if (filter.type === "in") {
+        if (filter.type === RSS_FILTER_TYPE.IN) {
             filterOut = true;
             const regex = new RegExp(filter.matcher);
             const match = regex.exec(obj);
@@ -180,7 +184,7 @@ const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
                 filterOut = false;
                 break;
             }
-        } else if (filter.type === "out") {
+        } else if (filter.type === RSS_FILTER_TYPE.OUT) {
             filterOut = false;
             const regex = new RegExp(filter.matcher);
             const match = regex.exec(obj);

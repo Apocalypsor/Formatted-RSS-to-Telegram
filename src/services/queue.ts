@@ -10,7 +10,7 @@ import {
 } from "@database";
 import { logger } from "@utils";
 import { edit, send } from "./sender";
-import { MediaType, TaskType } from "@consts";
+import { MEDIA_TYPE, QUEUE_STATUS, TASK_TYPE } from "@consts";
 import { AxiosError } from "axios";
 
 // History metadata for saving after task execution
@@ -29,12 +29,12 @@ export interface EditHistoryMetadata {
 
 // Serializable task data (no callbacks)
 export interface SendMessageTaskData {
-    type: TaskType.SEND;
+    type: TASK_TYPE.SEND;
     sender: Telegram;
     text: string;
     initialized: boolean;
     mediaUrls?: {
-        type: MediaType;
+        type: MEDIA_TYPE;
         url: string;
     }[];
     uniqueKey?: string; // For deduplication
@@ -42,7 +42,7 @@ export interface SendMessageTaskData {
 }
 
 export interface EditMessageTaskData {
-    type: TaskType.EDIT;
+    type: TASK_TYPE.EDIT;
     sender: Telegram;
     messageId: string; // BigInt serialized as string
     text: string;
@@ -103,13 +103,15 @@ class MessageQueue {
             text: task.text,
             uniqueKey: task.uniqueKey,
             initialized:
-                task.type === TaskType.SEND ? task.initialized : undefined,
-            mediaUrls: task.type === TaskType.SEND ? task.mediaUrls : undefined,
+                task.type === TASK_TYPE.SEND ? task.initialized : undefined,
+            mediaUrls:
+                task.type === TASK_TYPE.SEND ? task.mediaUrls : undefined,
             historyMetadata:
-                task.type === TaskType.SEND ? task.historyMetadata : undefined,
-            messageId: task.type === TaskType.EDIT ? task.messageId : undefined,
+                task.type === TASK_TYPE.SEND ? task.historyMetadata : undefined,
+            messageId:
+                task.type === TASK_TYPE.EDIT ? task.messageId : undefined,
             editHistoryMetadata:
-                task.type === TaskType.EDIT
+                task.type === TASK_TYPE.EDIT
                     ? task.editHistoryMetadata
                     : undefined,
         } as MessageTaskData;
@@ -138,14 +140,14 @@ class MessageQueue {
         text: string,
         initialized: boolean,
         mediaUrls?: {
-            type: MediaType;
+            type: MEDIA_TYPE;
             url: string;
         }[],
         uniqueKey?: string,
         historyMetadata?: HistoryMetadata,
     ): void {
         void this.enqueue({
-            type: TaskType.SEND,
+            type: TASK_TYPE.SEND,
             sender,
             text,
             initialized,
@@ -166,7 +168,7 @@ class MessageQueue {
         editHistoryMetadata?: EditHistoryMetadata,
     ): void {
         void this.enqueue({
-            type: TaskType.EDIT,
+            type: TASK_TYPE.EDIT,
             sender,
             messageId: messageId.toString(), // Convert BigInt to string for serialization
             text,
@@ -237,7 +239,7 @@ class MessageQueue {
                 const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
 
                 // Create in-memory task from recovered data
-                if (taskData.type === TaskType.SEND) {
+                if (taskData.type === TASK_TYPE.SEND) {
                     const task: SendMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
@@ -250,7 +252,7 @@ class MessageQueue {
                     }
 
                     this.queue.push(task);
-                } else if (taskData.type === TaskType.EDIT) {
+                } else if (taskData.type === TASK_TYPE.EDIT) {
                     const task: EditMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
@@ -345,7 +347,7 @@ class MessageQueue {
     private async executeTask(task: MessageTask): Promise<void> {
         const retryCount = task.retryCount ?? 0;
         try {
-            if (task.type === TaskType.SEND) {
+            if (task.type === TASK_TYPE.SEND) {
                 logger.debug(
                     `Processing send task (DB ID: ${task.dbId}) for ${task.sender.name} (attempt ${retryCount + 1})`,
                 );
@@ -378,9 +380,12 @@ class MessageQueue {
 
                 // Mark as completed in database
                 if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "completed");
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.COMPLETED,
+                    );
                 }
-            } else if (task.type === TaskType.EDIT) {
+            } else if (task.type === TASK_TYPE.EDIT) {
                 logger.debug(
                     `Processing edit task (DB ID: ${task.dbId}) for ${task.sender.name}, message ${task.messageId} (attempt ${retryCount + 1})`,
                 );
@@ -408,7 +413,10 @@ class MessageQueue {
 
                 // Mark as completed in database
                 if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "completed");
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.COMPLETED,
+                    );
                 }
             }
         } catch (error) {
@@ -446,11 +454,15 @@ class MessageQueue {
 
                 // Mark as failed in database
                 if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "failed", errorMsg);
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.FAILED,
+                        errorMsg,
+                    );
                 }
 
                 // Mark in history database as well
-                if (task.type === TaskType.SEND && task.historyMetadata) {
+                if (task.type === TASK_TYPE.SEND && task.historyMetadata) {
                     try {
                         await addHistory(
                             task.historyMetadata.uniqueHash,
@@ -470,7 +482,7 @@ class MessageQueue {
                         );
                     }
                 } else if (
-                    task.type === TaskType.EDIT &&
+                    task.type === TASK_TYPE.EDIT &&
                     task.editHistoryMetadata
                 ) {
                     try {

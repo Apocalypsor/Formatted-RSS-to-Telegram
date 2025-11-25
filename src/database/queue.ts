@@ -1,4 +1,5 @@
 import { prisma } from "./client";
+import { QUEUE_STATUS } from "@consts";
 
 export const enqueueMessage = async (
     taskType: string,
@@ -8,7 +9,7 @@ export const enqueueMessage = async (
         data: {
             task_type: taskType,
             task_data: taskData,
-            status: "pending",
+            status: QUEUE_STATUS.PENDING,
         },
     });
     return task.id;
@@ -17,7 +18,7 @@ export const enqueueMessage = async (
 export const getPendingMessages = async () => {
     return prisma.messageQueue.findMany({
         where: {
-            status: "pending",
+            status: QUEUE_STATUS.PENDING,
         },
         orderBy: {
             created_at: "asc",
@@ -54,7 +55,7 @@ export const deleteCompletedMessages = async (olderThanHours = 24) => {
 
     await prisma.messageQueue.deleteMany({
         where: {
-            status: "completed",
+            status: QUEUE_STATUS.COMPLETED,
             updated_at: {
                 lt: cutoffDate,
             },

@@ -15,7 +15,10 @@ export const render = (
         .replaceAll("&amp;", "&");
 };
 
-const escapeTemplate = (template: string, parseMode = "markdown"): string => {
+export const escapeTemplate = (
+    template: string,
+    parseMode = "markdown",
+): string => {
     if (parseMode.toLowerCase() === "markdownv2") {
         const escapedCh = [">", "#", "+", "-", "=", "|", "{", "}", ".", "!"];
 
@@ -40,7 +43,7 @@ const escapeTemplate = (template: string, parseMode = "markdown"): string => {
     }
 };
 
-const escapeText = (text: string, parseMode = "markdown"): string => {
+export const escapeText = (text: string, parseMode = "markdown"): string => {
     let escapedCh: string[] = [];
     if (parseMode.toLowerCase() === "markdownv2") {
         escapedCh = [
@@ -75,7 +78,7 @@ const escapeText = (text: string, parseMode = "markdown"): string => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const escapeAll = (obj: any, parseMode = "markdown"): any => {
+export const escapeAll = (obj: any, parseMode = "markdown"): any => {
     if (typeof obj === "string") {
         return escapeText(obj, parseMode);
     } else if (Array.isArray(obj)) {
