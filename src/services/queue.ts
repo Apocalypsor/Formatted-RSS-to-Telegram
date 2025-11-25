@@ -1,48 +1,66 @@
 import type { Telegram } from "@config";
 import {
+    addHistory,
     deleteCompletedMessages,
     enqueueMessage,
     getPendingMessages,
     incrementRetryCount,
+    updateHistory,
     updateMessageStatus,
 } from "@database";
 import { logger } from "@utils";
 import { edit, send } from "./sender";
+import { MEDIA_TYPE, QUEUE_STATUS, TASK_TYPE } from "@consts";
+import { AxiosError } from "axios";
+
+// History metadata for saving after task execution
+export interface HistoryMetadata {
+    uniqueHash: string;
+    url: string;
+    textHash: string;
+    senderName: string;
+    chatId: bigint;
+}
+
+export interface EditHistoryMetadata {
+    historyId: number;
+    textHash: string;
+}
 
 // Serializable task data (no callbacks)
 export interface SendMessageTaskData {
-    type: "send";
+    type: TASK_TYPE.SEND;
     sender: Telegram;
     text: string;
     initialized: boolean;
     mediaUrls?: {
-        type: "photo" | "video";
+        type: MEDIA_TYPE;
         url: string;
     }[];
+    uniqueKey?: string; // For deduplication
+    historyMetadata?: HistoryMetadata; // For saving to history after send
 }
 
 export interface EditMessageTaskData {
-    type: "edit";
+    type: TASK_TYPE.EDIT;
     sender: Telegram;
     messageId: string; // BigInt serialized as string
     text: string;
+    uniqueKey?: string; // For deduplication
+    editHistoryMetadata?: EditHistoryMetadata; // For updating history after edit
 }
 
 export type MessageTaskData = SendMessageTaskData | EditMessageTaskData;
 
-// In-memory task with callbacks (for Promise resolution)
+// In-memory task (extends serializable data with runtime fields)
 interface SendMessageTask extends SendMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    onSuccess: (messageId: bigint | undefined) => void;
-    onError: (error: Error) => void;
 }
 
 interface EditMessageTask extends EditMessageTaskData {
     dbId?: number;
     retryCount?: number;
-    onSuccess: () => void;
-    onError: (error: Error) => void;
 }
 
 type MessageTask = SendMessageTask | EditMessageTask;
@@ -52,19 +70,50 @@ class MessageQueue {
     private processing = false;
     private readonly delayBetweenMessages = 1000; // 1 second between messages
     private readonly maxRetries = 3;
+    private readonly processedKeys = new Set<string>(); // Track processed unique keys for deduplication
+    private readonly maxProcessedKeys = 10000; // Max size before clearing to prevent memory leak
 
     /**
      * Add a message task to the queue (persists to database)
      */
     async enqueue(task: MessageTask): Promise<void> {
-        // Serialize task data (without callbacks)
+        // Check for duplicate using uniqueKey if provided
+        if (task.uniqueKey) {
+            if (this.processedKeys.has(task.uniqueKey)) {
+                logger.debug(
+                    `Task with key ${task.uniqueKey} already processed, skipping`,
+                );
+                return;
+            }
+            this.processedKeys.add(task.uniqueKey);
+
+            // Prevent memory leak: clear if size exceeds limit
+            if (this.processedKeys.size >= this.maxProcessedKeys) {
+                logger.info(
+                    `Processed keys reached ${this.maxProcessedKeys}, clearing to prevent memory leak`,
+                );
+                this.processedKeys.clear();
+            }
+        }
+
+        // Serialize task data (includes history metadata for persistence)
         const taskData: MessageTaskData = {
             type: task.type,
             sender: task.sender,
             text: task.text,
-            initialized: task.type === "send" ? task.initialized : undefined,
-            mediaUrls: task.type === "send" ? task.mediaUrls : undefined,
-            messageId: task.type === "edit" ? task.messageId : undefined,
+            uniqueKey: task.uniqueKey,
+            initialized:
+                task.type === TASK_TYPE.SEND ? task.initialized : undefined,
+            mediaUrls:
+                task.type === TASK_TYPE.SEND ? task.mediaUrls : undefined,
+            historyMetadata:
+                task.type === TASK_TYPE.SEND ? task.historyMetadata : undefined,
+            messageId:
+                task.type === TASK_TYPE.EDIT ? task.messageId : undefined,
+            editHistoryMetadata:
+                task.type === TASK_TYPE.EDIT
+                    ? task.editHistoryMetadata
+                    : undefined,
         } as MessageTaskData;
 
         // Persist to database
@@ -84,47 +133,47 @@ class MessageQueue {
     }
 
     /**
-     * Add a send message task and return a promise
+     * Add a send message task (fire-and-forget)
      */
-    async enqueueSend(
+    enqueueSend(
         sender: Telegram,
         text: string,
         initialized: boolean,
         mediaUrls?: {
-            type: "photo" | "video";
+            type: MEDIA_TYPE;
             url: string;
         }[],
-    ): Promise<bigint | undefined> {
-        return new Promise((resolve, reject) => {
-            void this.enqueue({
-                type: "send",
-                sender,
-                text,
-                initialized,
-                mediaUrls,
-                onSuccess: resolve,
-                onError: reject,
-            });
+        uniqueKey?: string,
+        historyMetadata?: HistoryMetadata,
+    ): void {
+        void this.enqueue({
+            type: TASK_TYPE.SEND,
+            sender,
+            text,
+            initialized,
+            mediaUrls,
+            uniqueKey,
+            historyMetadata,
         });
     }
 
     /**
-     * Add an edit message task and return a promise
+     * Add an edit message task (fire-and-forget)
      */
-    async enqueueEdit(
+    enqueueEdit(
         sender: Telegram,
         messageId: bigint,
         text: string,
-    ): Promise<void> {
-        return new Promise((resolve, reject) => {
-            void this.enqueue({
-                type: "edit",
-                sender,
-                messageId: messageId.toString(), // Convert BigInt to string for serialization
-                text,
-                onSuccess: resolve,
-                onError: reject,
-            });
+        uniqueKey?: string,
+        editHistoryMetadata?: EditHistoryMetadata,
+    ): void {
+        void this.enqueue({
+            type: TASK_TYPE.EDIT,
+            sender,
+            messageId: messageId.toString(), // Convert BigInt to string for serialization
+            text,
+            uniqueKey,
+            editHistoryMetadata,
         });
     }
 
@@ -189,47 +238,36 @@ class MessageQueue {
             try {
                 const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
 
-                // Create in-memory task (without callbacks - will just process)
-                if (taskData.type === "send") {
+                // Create in-memory task from recovered data
+                if (taskData.type === TASK_TYPE.SEND) {
                     const task: SendMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
-                        onSuccess: () => {
-                            logger.info(
-                                `Recovered task ${dbTask.id} completed successfully`,
-                            );
-                        },
-                        onError: (error) => {
-                            logger.error(
-                                `Recovered task ${dbTask.id} failed: ${error.message}`,
-                            );
-                        },
+                        retryCount: dbTask.retry_count,
                     };
+
+                    // Recover unique key for deduplication
+                    if (task.uniqueKey) {
+                        this.processedKeys.add(task.uniqueKey);
+                    }
+
                     this.queue.push(task);
-                } else if (taskData.type === "edit") {
+                } else if (taskData.type === TASK_TYPE.EDIT) {
                     const task: EditMessageTask = {
                         ...taskData,
                         dbId: dbTask.id,
-                        onSuccess: () => {
-                            logger.info(
-                                `Recovered task ${dbTask.id} completed successfully`,
-                            );
-                        },
-                        onError: (error) => {
-                            logger.error(
-                                `Recovered task ${dbTask.id} failed: ${error.message}`,
-                            );
-                        },
+                        retryCount: dbTask.retry_count,
                     };
+
+                    // Recover unique key for deduplication
+                    if (task.uniqueKey) {
+                        this.processedKeys.add(task.uniqueKey);
+                    }
+
                     this.queue.push(task);
                 }
             } catch (error) {
-                logger.error(`Failed to parse task ${dbTask.id}: ${error}`);
-                await updateMessageStatus(
-                    dbTask.id,
-                    "failed",
-                    "Failed to parse task data",
-                );
+                logger.error(`Failed to recover task ${dbTask.id}: ${error}`);
             }
         }
 
@@ -263,7 +301,34 @@ class MessageQueue {
             const task = this.queue.shift();
             if (!task) break;
 
-            await this.executeTask(task);
+            try {
+                await this.executeTask(task);
+            } catch (error) {
+                // Check if this is a 429 rate limit error
+                if (
+                    error instanceof AxiosError &&
+                    error.response?.status === 429
+                ) {
+                    // Extract retry_after from Telegram API response
+                    const retryAfter =
+                        error.response?.data?.parameters?.retry_after || 60;
+                    const retryAfterMs = retryAfter * 1000;
+
+                    logger.warn(
+                        `Rate limited (429). Waiting ${retryAfter}s before continuing...`,
+                    );
+
+                    // Put the task back at the front of the queue
+                    this.queue.unshift(task);
+
+                    // Wait for the retry-after period
+                    await this.delay(
+                        Math.max(0, retryAfterMs - this.delayBetweenMessages),
+                    );
+                    continue;
+                }
+                // For other errors, executeTask already handles retry logic
+            }
 
             // Wait before processing next message to avoid rate limiting
             if (this.queue.length > 0) {
@@ -272,6 +337,7 @@ class MessageQueue {
         }
 
         this.processing = false;
+        this.processedKeys.clear();
         logger.debug("Queue processing completed");
     }
 
@@ -281,7 +347,7 @@ class MessageQueue {
     private async executeTask(task: MessageTask): Promise<void> {
         const retryCount = task.retryCount ?? 0;
         try {
-            if (task.type === "send") {
+            if (task.type === TASK_TYPE.SEND) {
                 logger.debug(
                     `Processing send task (DB ID: ${task.dbId}) for ${task.sender.name} (attempt ${retryCount + 1})`,
                 );
@@ -292,13 +358,34 @@ class MessageQueue {
                     task.mediaUrls,
                 );
 
-                // Mark as completed in database
-                if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "completed");
+                // Save to history if metadata provided
+                if (messageId && task.historyMetadata) {
+                    try {
+                        await addHistory(
+                            task.historyMetadata.uniqueHash,
+                            task.historyMetadata.url,
+                            task.historyMetadata.textHash,
+                            task.historyMetadata.senderName,
+                            messageId,
+                            task.historyMetadata.chatId,
+                            "",
+                        );
+                        logger.debug(`Saved history for message ${messageId}`);
+                    } catch (e) {
+                        logger.error(
+                            `Failed to save history for message ${messageId}: ${e}`,
+                        );
+                    }
                 }
 
-                task.onSuccess(messageId);
-            } else if (task.type === "edit") {
+                // Mark as completed in database
+                if (task.dbId) {
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.COMPLETED,
+                    );
+                }
+            } else if (task.type === TASK_TYPE.EDIT) {
                 logger.debug(
                     `Processing edit task (DB ID: ${task.dbId}) for ${task.sender.name}, message ${task.messageId} (attempt ${retryCount + 1})`,
                 );
@@ -306,15 +393,39 @@ class MessageQueue {
                 const messageIdBigInt = BigInt(task.messageId);
                 await edit(task.sender, messageIdBigInt, task.text);
 
-                // Mark as completed in database
-                if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "completed");
+                // Update history if metadata provided
+                if (task.editHistoryMetadata) {
+                    try {
+                        await updateHistory(
+                            task.editHistoryMetadata.historyId,
+                            task.editHistoryMetadata.textHash,
+                            messageIdBigInt,
+                        );
+                        logger.debug(
+                            `Updated history for message ${task.messageId}`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to update history for message ${task.messageId}: ${e}`,
+                        );
+                    }
                 }
 
-                task.onSuccess();
+                // Mark as completed in database
+                if (task.dbId) {
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.COMPLETED,
+                    );
+                }
             }
         } catch (error) {
-            // Increment retry count in database
+            // Re-throw 429 errors immediately for processQueue to handle
+            if (error instanceof AxiosError && error.response?.status === 429) {
+                throw error;
+            }
+
+            // Increment retry count in database for other errors
             if (task.dbId) {
                 await incrementRetryCount(task.dbId);
             }
@@ -324,13 +435,13 @@ class MessageQueue {
                 logger.warn(
                     `Task (DB ID: ${task.dbId}) failed (attempt ${retryCount + 1}/${this.maxRetries}), re-enqueueing for retry...`,
                 );
-                
+
                 // Re-enqueue the task with incremented retry count
                 // This ensures the task goes through the normal queue processing
                 // and respects rate limiting
                 task.retryCount = retryCount + 1;
                 this.queue.push(task);
-                
+
                 logger.debug(
                     `Task re-enqueued (DB ID: ${task.dbId}). Queue size: ${this.queue.length}`,
                 );
@@ -343,12 +454,55 @@ class MessageQueue {
 
                 // Mark as failed in database
                 if (task.dbId) {
-                    await updateMessageStatus(task.dbId, "failed", errorMsg);
+                    await updateMessageStatus(
+                        task.dbId,
+                        QUEUE_STATUS.FAILED,
+                        errorMsg,
+                    );
                 }
 
-                task.onError(
-                    error instanceof Error ? error : new Error(String(error)),
-                );
+                // Mark in history database as well
+                if (task.type === TASK_TYPE.SEND && task.historyMetadata) {
+                    try {
+                        await addHistory(
+                            task.historyMetadata.uniqueHash,
+                            task.historyMetadata.url,
+                            task.historyMetadata.textHash,
+                            task.historyMetadata.senderName,
+                            BigInt(0), // Use 0 to indicate failed message
+                            task.historyMetadata.chatId,
+                            "",
+                        );
+                        logger.debug(
+                            `Marked failed send task in history with message_id=0`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to mark failed send task in history: ${e}`,
+                        );
+                    }
+                } else if (
+                    task.type === TASK_TYPE.EDIT &&
+                    task.editHistoryMetadata
+                ) {
+                    try {
+                        // For edit tasks, update the existing history record
+                        // Keep the original message_id but update with new text_hash
+                        const messageIdBigInt = BigInt(task.messageId);
+                        await updateHistory(
+                            task.editHistoryMetadata.historyId,
+                            task.editHistoryMetadata.textHash,
+                            messageIdBigInt,
+                        );
+                        logger.debug(
+                            `Marked failed edit task in history (kept original message_id)`,
+                        );
+                    } catch (e) {
+                        logger.error(
+                            `Failed to mark failed edit task in history: ${e}`,
+                        );
+                    }
+                }
             }
         }
     }

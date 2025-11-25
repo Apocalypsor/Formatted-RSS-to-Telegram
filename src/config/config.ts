@@ -1,10 +1,11 @@
 import { ConfigFileNotFoundError, LoadConfigError } from "@errors";
 import fs from "fs";
 import { parse } from "yaml";
-import { type Config, ConfigSchema } from "./types";
+import { type Config, ConfigSchema } from "./schema";
+import { DEFAULT_CONFIG_FILE, DEFAULT_DATA_PATH } from "@consts";
 
 export const loadConfigFile = (configFile: string | undefined): Config => {
-    const configPath = "./config/" + (configFile || "config.yaml");
+    const configPath = DEFAULT_DATA_PATH + (configFile || DEFAULT_CONFIG_FILE);
     if (!fs.existsSync(configPath)) {
         throw new ConfigFileNotFoundError(configPath);
     }

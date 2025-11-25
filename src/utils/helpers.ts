@@ -5,6 +5,8 @@ import fs from "fs";
 import { JSDOM } from "jsdom";
 import { logger } from "./logger";
 
+import { MEDIA_TYPE } from "@consts";
+
 export const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
 };
@@ -116,7 +118,7 @@ export const mapError = (error: unknown): string => {
 export const extractMediaUrls = (
     htmlContent: string,
     baseUrl?: string,
-): { type: "photo" | "video"; url: string }[] => {
+): { type: MEDIA_TYPE; url: string }[] => {
     let baseUrlFormatted = {
         origin: "",
         pathname: "",
@@ -135,7 +137,7 @@ export const extractMediaUrls = (
     const uncommentedHtml = htmlContent.replace(/<!--[\s\S]*?-->/g, "");
     const imgRegex =
         /<(img|video|source)\s+[^>]*src\s*=\s*(['"])(.*?)(['"]).*?>/gi;
-    const imgUrls: { type: "photo" | "video"; url: string }[] = [];
+    const imgUrls: { type: MEDIA_TYPE; url: string }[] = [];
     let match;
 
     while ((match = imgRegex.exec(uncommentedHtml)) !== null) {
@@ -162,7 +164,7 @@ export const extractMediaUrls = (
         }
 
         imgUrls.push({
-            type: match[1] === "img" ? "photo" : "video",
+            type: match[1] === "img" ? MEDIA_TYPE.PHOTO : MEDIA_TYPE.VIDEO,
             url: imgUrl,
         });
     }

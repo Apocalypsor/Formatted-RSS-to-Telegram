@@ -9,16 +9,18 @@ import {
 import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
 
-const getSender = (sender: string): Telegram | undefined => {
+import { MEDIA_TYPE } from "@consts";
+
+export const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
 };
 
-const send = async (
+export const send = async (
     sender: Telegram | undefined,
     text: string,
     initialized: boolean = true,
     mediaUrls?: {
-        type: "photo" | "video";
+        type: MEDIA_TYPE;
         url: string;
     }[],
 ): Promise<bigint | undefined> => {
@@ -129,12 +131,14 @@ const editCaption = async (
     return resp.data.ok;
 };
 
-const edit = async (sender: Telegram, messageId: bigint, text: string) => {
+export const edit = async (
+    sender: Telegram,
+    messageId: bigint,
+    text: string,
+) => {
     if (!sender) {
         throw new SenderNotFoundError();
     } else {
-        // TODO: Edit images, add a database to store media type and media link
-
         try {
             try {
                 if (await editText(sender, messageId, text)) {
@@ -177,7 +181,7 @@ const edit = async (sender: Telegram, messageId: bigint, text: string) => {
     }
 };
 
-const notify = async (url: string) => {
+export const notify = async (url: string) => {
     if (config.telegram.length === 0 || !config.notifyTelegramChatId) {
         logger.warn(
             "No Telegram sender for notification configured, skipping.",
@@ -197,5 +201,3 @@ const notify = async (url: string) => {
         await client.post(endpoint, payload);
     }
 };
-
-export { getSender, send, edit, notify };

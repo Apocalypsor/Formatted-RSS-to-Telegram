@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { UA } from "@consts";
+import { RSS_FILTER_TYPE, RSS_RULE_TYPE, UA } from "@consts";
 
 // Proxy schemas
 export const EnabledProxySchema = z.object({
@@ -48,14 +48,14 @@ export const ConfigSchema = z.object({
 // RSS schemas
 export const RSSRuleSchema = z.object({
     obj: z.string(),
-    type: z.enum(["regex", "func"]),
+    type: z.nativeEnum(RSS_RULE_TYPE),
     matcher: z.string(),
     dest: z.string(),
 });
 
 export const RSSFilterSchema = z.object({
     obj: z.string(),
-    type: z.enum(["out", "in"]),
+    type: z.nativeEnum(RSS_FILTER_TYPE),
     matcher: z.string(),
 });
 
