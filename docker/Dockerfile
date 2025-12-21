@@ -26,6 +26,10 @@ ENV DATABASE_URL="file:../config/db.sqlite"
 
 WORKDIR /app
 
+# Install only runtime dependencies
+RUN apk add --no-cache openssl \
+    && rm -rf /root/.cache /tmp/*
+
 # Copy only necessary files from builder
 COPY --from=builder /app/package.json /app/bun.lockb* ./
 COPY --from=builder /app/dist ./dist
