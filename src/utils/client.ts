@@ -1,6 +1,7 @@
 import { logger } from "./logger";
 import axios, { type AxiosInstance } from "axios";
 import { SocksProxyAgent } from "socks-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { AXIOS_TIMEOUT } from "@consts";
 
 // Cache for configured clients
@@ -68,16 +69,19 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
             },
         );
 
-        if (config.proxy.protocol === "http") {
-            clientWithProxy.defaults.proxy = {
-                protocol: config.proxy.protocol,
-                host: config.proxy.host,
-                port: config.proxy.port,
-                auth: {
-                    username: config.proxy.auth.username || "",
-                    password: config.proxy.auth.password || "",
-                },
-            };
+        if (
+            config.proxy.protocol === "http" ||
+            config.proxy.protocol === "https"
+        ) {
+            const auth =
+                config.proxy.auth.username && config.proxy.auth.password
+                    ? `${config.proxy.auth.username}:${config.proxy.auth.password}@`
+                    : "";
+            const proxyAgent = new HttpsProxyAgent(
+                `${config.proxy.protocol}://${auth}${config.proxy.host}:${config.proxy.port}`,
+            );
+            clientWithProxy.defaults.httpsAgent = proxyAgent;
+            clientWithProxy.defaults.httpAgent = proxyAgent;
         } else if (
             config.proxy.protocol === "socks4" ||
             config.proxy.protocol === "socks5"
