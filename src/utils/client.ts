@@ -87,7 +87,7 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
                     ? `${config.proxy.auth.username}:${config.proxy.auth.password}@`
                     : "";
             const proxyAgent = new SocksProxyAgent(
-                `socks5://${auth}${config.proxy.host}:${config.proxy.port}`,
+                `${config.proxy.protocol}://${auth}${config.proxy.host}:${config.proxy.port}`,
             );
             clientWithProxy.defaults.httpsAgent = proxyAgent;
             clientWithProxy.defaults.httpAgent = proxyAgent;
