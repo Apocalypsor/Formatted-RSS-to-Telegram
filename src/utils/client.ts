@@ -3,6 +3,7 @@ import axios, { type AxiosInstance } from "axios";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { AXIOS_TIMEOUT } from "@consts";
+import { mapError } from "./helpers";
 
 // Cache for configured clients
 let cachedClientWithProxy: AxiosInstance | null = null;
@@ -109,4 +110,32 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
     configLoaded = true;
 
     return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
+};
+
+/**
+ * Fetch content using FlareSolver
+ */
+export const fetchWithFlareSolver = async (
+    url: string,
+): Promise<string | null> => {
+    const { config } = await import("@config");
+
+    if (!config.flaresolverr) {
+        return null;
+    }
+
+    try {
+        logger.debug(`Fetching with FlareSolver for ${url}`);
+        const client = await getClient();
+        return (
+            await client.post(`${config.flaresolverr}/v1`, {
+                cmd: "request.get",
+                url: url,
+                maxTimeout: 60000,
+            })
+        ).data?.solution?.response;
+    } catch (e) {
+        logger.warn(`FlareSolver failed for ${url}: ${mapError(e)}`);
+        return null;
+    }
 };

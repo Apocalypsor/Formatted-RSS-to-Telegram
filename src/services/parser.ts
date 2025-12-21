@@ -1,5 +1,6 @@
 import { config } from "@config";
 import {
+    fetchWithFlareSolver,
     getClient,
     htmlDecode,
     isIntranet,
@@ -8,10 +9,69 @@ import {
     parseIPFromURL,
 } from "@utils";
 import Parser from "rss-parser";
-import { promisify } from "util";
-import { exec as execCallback } from "child_process";
 
-const exec = promisify(execCallback);
+/**
+ * Fetch full content for an article URL
+ * First tries direct fetch, falls back to FlareSolver if that fails
+ */
+const fetchFullContent = async (url: string): Promise<string | null> => {
+    try {
+        logger.debug(`Fetching full content directly for ${url}`);
+        const ip = await parseIPFromURL(url);
+        const client = await getClient(!isIntranet(ip));
+        const response = await client.get(url);
+        if (
+            response.status === 200 &&
+            response.data &&
+            typeof response.data === "string" &&
+            response.data.includes("<html")
+        ) {
+            return response.data;
+        } else {
+            throw new Error(
+                `Unexpected format or status code ${response.status}`,
+            );
+        }
+    } catch (e) {
+        // If direct fetch fails, try FlareSolver
+        logger.debug(`Direct fetch failed, trying FlareSolver for ${url}`);
+        const result = await fetchWithFlareSolver(url);
+        if (!result) {
+            logger.warn(
+                `Failed to fetch full content for ${url}: ${mapError(e)}`,
+            );
+            return null;
+        }
+        return result;
+    }
+};
+
+/**
+ * Process RSS items and optionally fetch full content for each
+ */
+const processItems = async (
+    items: {
+        link?: string;
+        content?: string;
+        contentSnippet?: string;
+    }[],
+    full: boolean,
+) => {
+    if (!full) {
+        return items;
+    }
+
+    for (const item of items) {
+        if (item.link) {
+            const fullContent = await fetchFullContent(item.link);
+            if (fullContent) {
+                item.content = fullContent;
+                item.contentSnippet = fullContent.substring(0, 200);
+            }
+        }
+    }
+    return items;
+};
 
 export const parseRSSFeed = async (url: string, full = false) => {
     const parser = new Parser({
@@ -26,44 +86,35 @@ export const parseRSSFeed = async (url: string, full = false) => {
 
     try {
         logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
-        let htmlResp;
-        if (full) {
-            const execOutput = await exec(`morss --clip "${url}"`);
-            htmlResp = execOutput.stdout;
-        } else {
-            const ip = await parseIPFromURL(url);
-            const proxy = !isIntranet(ip);
-            logger.debug(`Parsed IP for ${url}: ${ip}`);
-            const client = await getClient(proxy);
-            htmlResp = (await client.get(url)).data;
-        }
-        const feed = await parser.parseString(htmlResp);
-        return feed.items.reverse();
-    } catch (e) {
-        logger.warn(`Failed to parse RSS feed ${url}: ${mapError(e)}`);
-        if (config.flaresolverr) {
-            logger.info("Trying to parse RSS feed using FlareSolver");
-            const client = await getClient();
-            const htmlRaw = (
-                await client.post(`${config.flaresolverr}/v1`, {
-                    cmd: "request.get",
-                    url: url,
-                    maxTimeout: 60000,
-                })
-            ).data.solution.response;
-            const html = htmlDecode(htmlRaw);
 
-            if (html) {
-                const feed = await parser.parseString(html);
-                logger.info("Successfully parsed RSS feed using FlareSolver");
-                return feed.items.reverse();
-            } else {
-                logger.warn("Failed to parse RSS feed using FlareSolver");
-                return null;
-            }
-        } else {
-            logger.warn("FlareSolver is not configured, skipping");
+        const ip = await parseIPFromURL(url);
+        logger.debug(`Parsed IP for ${url}: ${ip}`);
+        const client = await getClient(!isIntranet(ip));
+        const htmlResp = (await client.get(url)).data;
+
+        const feed = await parser.parseString(htmlResp);
+        const items = feed.items.reverse();
+        return await processItems(items, full);
+    } catch (e) {
+        logger.warn(
+            `Failed to parse RSS feed ${url}: ${mapError(e)}, falling back to FlareSolver`,
+        );
+
+        const html = await fetchWithFlareSolver(url);
+        if (!html) {
+            logger.warn("FlareSolver returned no content");
             return null;
         }
+
+        const decoded = htmlDecode(html);
+        if (!decoded) {
+            logger.warn("Failed to decode RSS feed from FlareSolver response");
+            return null;
+        }
+
+        const feed = await parser.parseString(decoded);
+        logger.info("Successfully parsed RSS feed using FlareSolver");
+        const items = feed.items.reverse();
+        return await processItems(items, full);
     }
 };
