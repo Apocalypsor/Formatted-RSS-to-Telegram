@@ -29,5 +29,7 @@
             "@config": ["./config/index.ts"],
             "@services": ["./services/index.ts"]
         }
-    }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "prisma"]
 }
