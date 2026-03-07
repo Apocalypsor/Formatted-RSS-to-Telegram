@@ -61,15 +61,17 @@ const processItems = async (
         return items;
     }
 
-    for (const item of items) {
-        if (item.link) {
-            const fullContent = await fetchFullContent(item.link);
-            if (fullContent) {
-                item.content = fullContent;
-                item.contentSnippet = fullContent.substring(0, 200);
+    await Promise.allSettled(
+        items.map(async (item) => {
+            if (item.link) {
+                const fullContent = await fetchFullContent(item.link);
+                if (fullContent) {
+                    item.content = fullContent;
+                    item.contentSnippet = fullContent.substring(0, 200);
+                }
             }
-        }
-    }
+        }),
+    );
     return items;
 };
 

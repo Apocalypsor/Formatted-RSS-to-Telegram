@@ -65,13 +65,44 @@ interface EditMessageTask extends EditMessageTaskData {
 
 type MessageTask = SendMessageTask | EditMessageTask;
 
+class LRUSet {
+    private readonly map = new Map<string, true>();
+    private readonly capacity: number;
+
+    constructor(capacity: number) {
+        this.capacity = capacity;
+    }
+
+    has(key: string): boolean {
+        if (!this.map.has(key)) return false;
+        // Move to most recent by re-inserting
+        this.map.delete(key);
+        this.map.set(key, true);
+        return true;
+    }
+
+    add(key: string): void {
+        if (this.map.has(key)) {
+            this.map.delete(key);
+        } else if (this.map.size >= this.capacity) {
+            // Evict least recently used (first entry in Map)
+            const oldest = this.map.keys().next().value!;
+            this.map.delete(oldest);
+        }
+        this.map.set(key, true);
+    }
+
+    get size(): number {
+        return this.map.size;
+    }
+}
+
 class MessageQueue {
     private queue: MessageTask[] = [];
     private processing = false;
     private readonly delayBetweenMessages = 1000; // 1 second between messages
     private readonly maxRetries = 3;
-    private readonly processedKeys = new Set<string>(); // Track processed unique keys for deduplication
-    private readonly maxProcessedKeys = 10000; // Max size before clearing to prevent memory leak
+    private readonly processedKeys = new LRUSet(10000);
 
     /**
      * Add a message task to the queue (persists to database)
@@ -86,14 +117,6 @@ class MessageQueue {
                 return;
             }
             this.processedKeys.add(task.uniqueKey);
-
-            // Prevent memory leak: clear if size exceeds limit
-            if (this.processedKeys.size >= this.maxProcessedKeys) {
-                logger.info(
-                    `Processed keys reached ${this.maxProcessedKeys}, clearing to prevent memory leak`,
-                );
-                this.processedKeys.clear();
-            }
         }
 
         // Serialize task data (includes history metadata for persistence)
@@ -189,35 +212,6 @@ class MessageQueue {
      */
     isProcessing(): boolean {
         return this.processing;
-    }
-
-    /**
-     * Get queue statistics from database
-     */
-    async getQueueStats(): Promise<{
-        pending: number;
-        processing: number;
-        completed: number;
-        failed: number;
-    }> {
-        const stats = {
-            pending: 0,
-            processing: 0,
-            completed: 0,
-            failed: 0,
-        };
-
-        try {
-            const pendingTasks = await getPendingMessages();
-            stats.pending = pendingTasks.length;
-
-            // You can add more queries here if needed for other statuses
-            // For now, pending is the most important metric
-        } catch (error) {
-            logger.error(`Failed to get queue stats: ${error}`);
-        }
-
-        return stats;
     }
 
     /**
@@ -337,7 +331,6 @@ class MessageQueue {
         }
 
         this.processing = false;
-        this.processedKeys.clear();
         logger.debug("Queue processing completed");
     }
 

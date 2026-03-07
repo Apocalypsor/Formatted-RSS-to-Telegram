@@ -61,7 +61,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     let mediaUrls = undefined;
     if (rssItem.embedMedia) {
         mediaUrls = extractMediaUrls(itemObj.content).filter((item) =>
-            rssItem.embedMediaExclude.some(
+            rssItem.embedMediaExclude.every(
                 (exclude) => !new RegExp(exclude).test(item.url),
             ),
         );
@@ -141,6 +141,16 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     }
 };
 
+const regexCache = new Map<string, RegExp>();
+const getCachedRegex = (pattern: string): RegExp => {
+    let regex = regexCache.get(pattern);
+    if (!regex) {
+        regex = new RegExp(pattern);
+        regexCache.set(pattern, regex);
+    }
+    return regex;
+};
+
 const processRules = (rules: RSSRule[], content: unknown) => {
     const contentObj = content as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -148,7 +158,7 @@ const processRules = (rules: RSSRule[], content: unknown) => {
         const obj = getObj(contentObj, rule.obj);
         if (obj) {
             if (rule.type === RSS_RULE_TYPE.REGEX) {
-                const regex = new RegExp(rule.matcher);
+                const regex = getCachedRegex(rule.matcher);
                 const match = regex.exec(obj);
                 if (match) {
                     match.shift();
@@ -178,23 +188,19 @@ const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
         if (!obj) continue;
         if (filter.type === RSS_FILTER_TYPE.IN) {
             filterOut = true;
-            const regex = new RegExp(filter.matcher);
-            const match = regex.exec(obj);
-            if (match) {
+            const regex = getCachedRegex(filter.matcher);
+            if (regex.exec(obj)) {
                 filterOut = false;
                 break;
             }
         } else if (filter.type === RSS_FILTER_TYPE.OUT) {
             filterOut = false;
-            const regex = new RegExp(filter.matcher);
-            const match = regex.exec(obj);
-            if (match) {
+            const regex = getCachedRegex(filter.matcher);
+            if (regex.exec(obj)) {
                 filterOut = true;
                 break;
             }
         }
-
-        if (filterOut) break;
     }
 
     return filterOut;

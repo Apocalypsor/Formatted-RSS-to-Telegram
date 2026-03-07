@@ -25,8 +25,8 @@
     "dependencies": {
         "@prisma/client": "^5.22.0",
         "axios": "^1.13.2",
+        "cheerio": "^1.2.0",
         "https-proxy-agent": "^7.0.6",
-        "jsdom": "^20.0.3",
         "node-schedule": "^2.1.1",
         "nunjucks": "^3.2.4",
         "rss-parser": "^3.13.0",
@@ -39,11 +39,9 @@
     "devDependencies": {
         "@eslint/js": "^9.39.2",
         "@types/bun": "latest",
-        "@types/jsdom": "^21.1.7",
         "@types/node": "^22.19.3",
         "@types/node-schedule": "^2.1.8",
         "@types/nunjucks": "^3.2.6",
-        "@types/xml2js": "^0.4.14",
         "eslint": "^9.39.2",
         "prettier": "^3.7.4",
         "prisma": "^5.22.0",

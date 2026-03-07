@@ -2,7 +2,7 @@
 import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
-import { JSDOM } from "jsdom";
+import * as cheerio from "cheerio";
 import { logger } from "./logger";
 
 import { MEDIA_TYPE } from "@consts";
@@ -67,11 +67,19 @@ export const parseIPFromURL = async (url: string | URL): Promise<string> => {
 };
 
 export const isIntranet = (ip: string): boolean => {
-    const parts = ip.split(".");
-    if (parts[0] === "10") {
+    // IPv6 loopback and private ranges
+    if (ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd")) {
         return true;
     }
 
+    const parts = ip.split(".");
+    if (parts.length !== 4) return false;
+
+    // IPv4 loopback
+    if (parts[0] === "127") return true;
+    // 10.0.0.0/8
+    if (parts[0] === "10") return true;
+    // 172.16.0.0/12
     if (
         parts[0] === "172" &&
         parts[1] &&
@@ -80,31 +88,22 @@ export const isIntranet = (ip: string): boolean => {
     ) {
         return true;
     }
-
+    // 192.168.0.0/16
     return parts[0] === "192" && parts[1] === "168";
 };
 
 export const htmlDecode = (input: string): string | null => {
-    const doc = new JSDOM(input);
-    const body = doc.window.document.body.textContent;
-    if (!body) {
-        return null;
-    }
-    const regex = new RegExp(/(<rss[\s\S]+\/rss>)/g);
-    let match = regex.exec(body);
-    if (!match) {
-        const regex = new RegExp(/(<feed[\s\S]+\/feed>)/g);
-        match = regex.exec(body);
-    }
-    if (match) {
-        return match[0];
-    } else {
-        return null;
-    }
+    const $ = cheerio.load(input, { xml: false });
+    const text = $("body").text();
+    if (!text) return null;
+    const rssMatch = text.match(/<rss[\s\S]+?<\/rss>/);
+    if (rssMatch) return rssMatch[0];
+    const feedMatch = text.match(/<feed[\s\S]+?<\/feed>/);
+    return feedMatch ? feedMatch[0] : null;
 };
 
 export const trimWhiteSpace = (input: string): string => {
-    return input.replace(/^\s+|\s+$/g, "").trim();
+    return input.trim();
 };
 
 export const mapError = (error: unknown): string => {

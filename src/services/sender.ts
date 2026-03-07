@@ -87,9 +87,12 @@ export const send = async (
         const resp = await client.post(endpoint, payload);
 
         if (resp && resp?.data.ok) {
+            const result = resp.data.result;
             const messageId = BigInt(
                 // there might be a group of messages returned
-                resp.data.result.message_id || resp.data.result[0].message_id,
+                Array.isArray(result)
+                    ? result[0].message_id
+                    : result.message_id,
             );
             logger.info(`Message ${messageId} sent to ${sender.name}.`);
             return messageId;

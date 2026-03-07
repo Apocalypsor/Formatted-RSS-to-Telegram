@@ -56,13 +56,15 @@ const main = async () => {
     await createDirIfNotExists("./config");
     await createDirIfNotExists("./logs/screenshots");
 
-    for (const item of rss) {
-        try {
-            await processRSS(item);
-        } catch (e) {
-            logger.error(`Failed to process RSS item: ${mapError(e)}`);
-        }
-    }
+    await Promise.allSettled(
+        rss.map(async (item) => {
+            try {
+                await processRSS(item);
+            } catch (e) {
+                logger.error(`Failed to process RSS item: ${mapError(e)}`);
+            }
+        }),
+    );
 
     // Log queue status
     const queueSize = messageQueue.getQueueSize();
