@@ -9,9 +9,9 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 ### Core Features
 - 🔄 **Persistent Message Queue** - SQLite-backed queue with automatic crash recovery
 - ⚡ **Rate Limiting & 429 Handling** - Smart rate limiting with dynamic retry-after delays
-- 🔁 **Retry Logic** - Automatic retry with configurable max attempts (default: 3)
+- 🔁 **Retry Logic** - Automatic retry up to 3 attempts with exponential backoff
 - 🎯 **Deduplication** - Memory-efficient deduplication with 10k item limit
-- 📊 **Queue Statistics** - Monitor pending, completed, and failed tasks
+- 📊 **Queue Monitoring** - Track pending task count in real time
 - 🧹 **Auto Cleanup** - Periodic cleanup of completed tasks (default: 24 hours)
 
 ### Content Processing
@@ -19,12 +19,11 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 - 📝 **Template Engine** - Nunjucks-powered message templates
 - 🔍 **Content Filtering** - Regex-based include/exclude filters
 - ⚙️ **Content Rules** - Transform RSS fields with regex or custom functions
-- 📏 **Message Splitting** - Auto-split messages exceeding Telegram's 4096 char limit
 
 ### Network & Proxy
 - 🌐 **Proxy Support** - HTTP/SOCKS4/SOCKS5 proxy with authentication
 - 🛡️ **Cloudflare Bypass** - FlareSolverr integration for protected feeds
-- 🔄 **Axios Caching** - Efficient HTTP request caching
+- 🔄 **Intranet Detection** - Automatic proxy bypass for local network feeds
 
 ### Monitoring & Reliability
 - 📢 **RSS Monitoring** - Telegram notifications for invalid/expired RSS links
@@ -117,7 +116,7 @@ telegram:
   - name: default
     token: YOUR_BOT_TOKEN
     chatId: YOUR_CHAT_ID
-    parseMode: MarkdownV2  # HTML, Markdown, or MarkdownV2
+    parseMode: MarkdownV2  # Markdown or MarkdownV2
     disableNotification: false
     disableWebPagePreview: false
 ```
