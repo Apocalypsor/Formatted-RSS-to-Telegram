@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import * as cheerio from "cheerio";
 import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
-import * as cheerio from "cheerio";
 import * as _ from "lodash-es";
 import { logger } from "./logger";
 
@@ -85,13 +85,15 @@ export const mapError = (error: unknown): string => {
     }
 };
 
-export const getCachedRegex = _.memoize((pattern: string) => new RegExp(pattern));
+export const getCachedRegex = _.memoize(
+    (pattern: string) => new RegExp(pattern),
+);
 
 export const getHostIPInfo = async (): Promise<string | null> => {
     const client = await getClient(true);
     try {
         const resp = await client.get("https://api.dov.moe/ip");
-        if (resp.data.success) return JSON.stringify(resp.data.data);
+        if (resp.data?.data) return JSON.stringify(resp.data.data);
     } catch {
         // fall through to fallback
     }
