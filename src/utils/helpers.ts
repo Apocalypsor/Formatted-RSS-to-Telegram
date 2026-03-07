@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
 import * as cheerio from "cheerio";
+import { get } from "lodash-es";
 import { logger } from "./logger";
 
 import { MEDIA_TYPE } from "@consts";
@@ -28,24 +29,7 @@ export const expandArrayInObject = (obj: any, key: string | number): any[] => {
     });
 };
 
-export const getObj = (obj: any, s: string) => {
-    const paths = s.split(".");
-    let result = obj;
-    for (const path of paths) {
-        if (result === undefined) {
-            break;
-        }
-
-        const pathInt = parseInt(path);
-        if (isNaN(pathInt)) {
-            result = result[path];
-        } else {
-            result = result[pathInt];
-        }
-    }
-
-    return result;
-};
+export const getObj = (obj: any, path: string) => get(obj, path);
 
 export const createDirIfNotExists = async (dir: fs.PathLike) => {
     if (!fs.existsSync(dir)) {
@@ -100,10 +84,6 @@ export const htmlDecode = (input: string): string | null => {
     if (rssMatch) return rssMatch[0];
     const feedMatch = text.match(/<feed[\s\S]+?<\/feed>/);
     return feedMatch ? feedMatch[0] : null;
-};
-
-export const trimWhiteSpace = (input: string): string => {
-    return input.trim();
 };
 
 export const mapError = (error: unknown): string => {

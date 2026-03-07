@@ -34,7 +34,6 @@ export const addHistory = async (
     telegramName: string,
     telegramMessageId: bigint,
     telegramChatId: bigint,
-    telegraphUrl: string | null,
 ) => {
     return prisma.history.create({
         data: {
@@ -44,7 +43,6 @@ export const addHistory = async (
             telegram_name: telegramName,
             telegram_message_id: telegramMessageId,
             telegram_chat_id: telegramChatId,
-            telegraph_url: telegraphUrl,
         },
     });
 };

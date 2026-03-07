@@ -2,7 +2,7 @@ import { config, rss } from "@config";
 import { checkHistoryInitialized, clean } from "@database";
 import processRSS, { messageQueue } from "@services";
 import { createDirIfNotExists, getClient, logger, mapError } from "@utils";
-import { scheduleJob } from "node-schedule";
+import { gracefulShutdown, scheduleJob } from "node-schedule";
 
 // workaround for BigInt serialization
 declare global {
@@ -15,33 +15,18 @@ BigInt.prototype.toJSON = function () {
     return this.toString();
 };
 
-const getHostIPInfoThroughAPI = async () => {
+const getHostIPInfo = async (): Promise<string | null> => {
+    const client = await getClient(true);
     try {
-        const client = await getClient(true);
-        const ipInfo = await client.get("https://api.dov.moe/ip");
-        if (!ipInfo.data.success) return null;
-        return JSON.stringify(ipInfo.data.data);
+        const resp = await client.get("https://api.dov.moe/ip");
+        if (resp.data.success) return JSON.stringify(resp.data.data);
+    } catch {
+        // fall through to fallback
+    }
+    try {
+        return (await client.get("https://1.1.1.1/cdn-cgi/trace")).data;
     } catch {
         return null;
-    }
-};
-
-const getHostIPInfoThroughCloudflare = async () => {
-    try {
-        const client = await getClient(true);
-        const ipInfo = await client.get("https://1.1.1.1/cdn-cgi/trace");
-        return ipInfo.data;
-    } catch {
-        return null;
-    }
-};
-
-const getHostIPInfo = async () => {
-    const ipInfo = await getHostIPInfoThroughAPI();
-    if (ipInfo) {
-        return ipInfo;
-    } else {
-        return await getHostIPInfoThroughCloudflare();
     }
 };
 
@@ -73,6 +58,18 @@ const main = async () => {
     }
 };
 
+// Graceful shutdown handler
+const shutdown = async (signal: string) => {
+    logger.info(`Received ${signal}, shutting down gracefully...`);
+    await gracefulShutdown();
+    await messageQueue.drain();
+    logger.info("Shutdown complete");
+    process.exit(0);
+};
+
+process.on("SIGINT", () => void shutdown("SIGINT"));
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+
 // Recover pending tasks from database on startup
 messageQueue
     .recoverPendingTasks()
@@ -92,10 +89,9 @@ messageQueue
             await clean(config.expireTime);
             logger.info("Finished cleaning database");
         });
-        // Clean up completed queue tasks daily at 3 AM
         scheduleJob("0 3 * * *", async function () {
             logger.info("Start cleaning completed queue tasks");
-            await messageQueue.cleanupCompletedTasks(24);
+            await messageQueue.cleanupCompletedTasks();
             logger.info("Finished cleaning completed queue tasks");
         });
     })

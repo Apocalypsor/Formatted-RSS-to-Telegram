@@ -18,7 +18,6 @@ model History {
     telegram_name       String
     telegram_message_id BigInt
     telegram_chat_id    BigInt
-    telegraph_url       String?
     created_at          DateTime  @default(now())
     updated_at          DateTime  @updatedAt
 }

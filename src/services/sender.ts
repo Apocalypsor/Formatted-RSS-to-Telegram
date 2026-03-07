@@ -9,7 +9,10 @@ import {
 import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
 
-import { MEDIA_TYPE } from "@consts";
+import { MEDIA_TYPE, TELEGRAM_API_BASE, TELEGRAM_MEDIA_GROUP_LIMIT } from "@consts";
+
+const tgEndpoint = (token: string, method: string) =>
+    `${TELEGRAM_API_BASE}${token}/${method}`;
 
 export const getSender = (sender: string): Telegram | undefined => {
     return config.telegram.find((s) => s.name === sender);
@@ -37,7 +40,7 @@ export const send = async (
         let endpoint: string = "";
 
         if (mediaUrls) {
-            if (mediaUrls.length > 1 && mediaUrls.length <= 10) {
+            if (mediaUrls.length > 1 && mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT) {
                 sendByText = false;
                 payload = {
                     chat_id: sender.chatId,
@@ -49,7 +52,7 @@ export const send = async (
                     })),
                     disable_notification: sender.disableNotification,
                 };
-                endpoint = `https://api.telegram.org/bot${sender.token}/sendMediaGroup`;
+                endpoint = tgEndpoint(sender.token, "sendMediaGroup");
             } else if (mediaUrls.length === 1 && mediaUrls[0]) {
                 sendByText = false;
                 payload = {
@@ -59,10 +62,10 @@ export const send = async (
                     disable_notification: sender.disableNotification,
                 };
                 payload[mediaUrls[0].type] = mediaUrls[0].url;
-                endpoint = `https://api.telegram.org/bot${sender.token}/send${
-                    mediaUrls[0].type.charAt(0).toUpperCase() +
-                    mediaUrls[0].type.slice(1)
-                }`;
+                endpoint = tgEndpoint(
+                    sender.token,
+                    `send${mediaUrls[0].type.charAt(0).toUpperCase() + mediaUrls[0].type.slice(1)}`,
+                );
             }
         }
 
@@ -74,7 +77,7 @@ export const send = async (
                 disable_web_page_preview: sender.disableWebPagePreview,
                 disable_notification: sender.disableNotification,
             };
-            endpoint = `https://api.telegram.org/bot${sender.token}/sendMessage`;
+            endpoint = tgEndpoint(sender.token, "sendMessage");
         }
 
         logger.debug(
@@ -103,7 +106,7 @@ export const send = async (
 };
 
 const editText = async (sender: Telegram, messageId: bigint, text: string) => {
-    const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageText`;
+    const endpoint = tgEndpoint(sender.token, "editMessageText");
     const payload = {
         chat_id: sender.chatId,
         message_id: messageId,
@@ -122,7 +125,7 @@ const editCaption = async (
     messageId: bigint,
     caption: string,
 ) => {
-    const endpoint = `https://api.telegram.org/bot${sender.token}/editMessageCaption`;
+    const endpoint = tgEndpoint(sender.token, "editMessageCaption");
     const payload = {
         chat_id: sender.chatId,
         message_id: messageId,
@@ -134,6 +137,13 @@ const editCaption = async (
     return resp.data.ok;
 };
 
+const getTelegramErrorDescription = (e: unknown): string | null => {
+    if (e instanceof AxiosError && e.response) {
+        return e.response.data?.description ?? null;
+    }
+    return null;
+};
+
 export const edit = async (
     sender: Telegram,
     messageId: bigint,
@@ -141,46 +151,34 @@ export const edit = async (
 ) => {
     if (!sender) {
         throw new SenderNotFoundError();
-    } else {
-        try {
-            try {
-                if (await editText(sender, messageId, text)) {
-                    logger.info(
-                        `Message ${messageId} edited for ${sender.name}.`,
-                    );
-                    return;
-                }
-            } catch (e) {
-                if (
-                    e instanceof AxiosError &&
-                    e.response &&
-                    e.response.data.description.includes(
-                        "there is no text in the message to edit",
-                    )
-                ) {
-                    if (await editCaption(sender, messageId, text)) {
-                        logger.info(
-                            `Message ${messageId} edited for ${sender.name}.`,
-                        );
-                        return;
-                    }
+    }
+
+    try {
+        // Try editing as text first, fall back to caption for media messages
+        const edited = await editText(sender, messageId, text).catch(
+            async (e) => {
+                const desc = getTelegramErrorDescription(e);
+                if (desc?.includes("there is no text in the message to edit")) {
+                    return editCaption(sender, messageId, text);
                 }
                 throw e;
-            }
-        } catch (e) {
-            if (!(e instanceof AxiosError) || !e.response) {
-                throw e;
-            } else if (
-                e.response.data.description.includes(
-                    "message to edit not found",
-                ) ||
-                e.response.data.description.includes("MESSAGE_ID_INVALID")
-            ) {
-                throw new MessageNotFoundError(messageId, sender.name);
-            } else {
-                throw new FailedToEditMessageError(messageId, sender.name);
-            }
+            },
+        );
+
+        if (edited) {
+            logger.info(`Message ${messageId} edited for ${sender.name}.`);
         }
+    } catch (e) {
+        const desc = getTelegramErrorDescription(e);
+        if (!desc) throw e;
+
+        if (
+            desc.includes("message to edit not found") ||
+            desc.includes("MESSAGE_ID_INVALID")
+        ) {
+            throw new MessageNotFoundError(messageId, sender.name);
+        }
+        throw new FailedToEditMessageError(messageId, sender.name);
     }
 };
 
@@ -191,7 +189,7 @@ export const notify = async (url: string) => {
         );
     } else {
         const sender = config.telegram[0];
-        const endpoint = `https://api.telegram.org/bot${sender?.token}/sendMessage`;
+        const endpoint = tgEndpoint(sender!.token, "sendMessage");
         const payload = {
             chat_id: config.notifyTelegramChatId,
             text: "*FR2T detected a link expired*\n\n" + url,

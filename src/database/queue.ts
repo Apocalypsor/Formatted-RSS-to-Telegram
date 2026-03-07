@@ -1,5 +1,5 @@
 import { prisma } from "./client";
-import { QUEUE_STATUS } from "@consts";
+import { QUEUE_CLEANUP_HOURS, QUEUE_STATUS } from "@consts";
 
 export const enqueueMessage = async (
     taskType: string,
@@ -49,7 +49,7 @@ export const incrementRetryCount = async (id: number) => {
     });
 };
 
-export const deleteCompletedMessages = async (olderThanHours = 24) => {
+export const deleteCompletedMessages = async (olderThanHours = QUEUE_CLEANUP_HOURS) => {
     const cutoffDate = new Date();
     cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);
 

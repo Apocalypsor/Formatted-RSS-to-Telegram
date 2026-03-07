@@ -10,7 +10,16 @@ import {
 } from "@database";
 import { logger } from "@utils";
 import { edit, send } from "./sender";
-import { MEDIA_TYPE, QUEUE_STATUS, TASK_TYPE } from "@consts";
+import {
+    MEDIA_TYPE,
+    QUEUE_DELAY_BETWEEN_MESSAGES,
+    QUEUE_DRAIN_TIMEOUT,
+    QUEUE_LRU_CAPACITY,
+    QUEUE_CLEANUP_HOURS,
+    QUEUE_MAX_RETRIES,
+    QUEUE_STATUS,
+    TASK_TYPE,
+} from "@consts";
 import { AxiosError } from "axios";
 
 // History metadata for saving after task execution
@@ -100,9 +109,9 @@ class LRUSet {
 class MessageQueue {
     private queue: MessageTask[] = [];
     private processing = false;
-    private readonly delayBetweenMessages = 1000; // 1 second between messages
-    private readonly maxRetries = 3;
-    private readonly processedKeys = new LRUSet(10000);
+    private readonly delayBetweenMessages = QUEUE_DELAY_BETWEEN_MESSAGES;
+    private readonly maxRetries = QUEUE_MAX_RETRIES;
+    private readonly processedKeys = new LRUSet(QUEUE_LRU_CAPACITY);
 
     /**
      * Add a message task to the queue (persists to database)
@@ -215,6 +224,27 @@ class MessageQueue {
     }
 
     /**
+     * Wait for the queue to finish processing all current tasks
+     */
+    async drain(timeoutMs = QUEUE_DRAIN_TIMEOUT): Promise<void> {
+        if (!this.processing && this.queue.length === 0) return;
+        logger.info(
+            `Waiting for ${this.queue.length} queued tasks to finish (timeout: ${timeoutMs}ms)...`,
+        );
+        const start = Date.now();
+        while (this.processing || this.queue.length > 0) {
+            if (Date.now() - start > timeoutMs) {
+                logger.warn(
+                    `Drain timeout reached, ${this.queue.length} tasks still pending`,
+                );
+                return;
+            }
+            await this.delay(200);
+        }
+        logger.info("Queue drained successfully");
+    }
+
+    /**
      * Recover pending tasks from database on startup
      */
     async recoverPendingTasks(): Promise<void> {
@@ -277,7 +307,7 @@ class MessageQueue {
     /**
      * Clean up old completed tasks from database
      */
-    async cleanupCompletedTasks(olderThanHours = 24): Promise<void> {
+    async cleanupCompletedTasks(olderThanHours = QUEUE_CLEANUP_HOURS): Promise<void> {
         logger.info(
             `Cleaning up completed tasks older than ${olderThanHours} hours`,
         );
@@ -361,7 +391,6 @@ class MessageQueue {
                             task.historyMetadata.senderName,
                             messageId,
                             task.historyMetadata.chatId,
-                            "",
                         );
                         logger.debug(`Saved history for message ${messageId}`);
                     } catch (e) {
@@ -464,7 +493,6 @@ class MessageQueue {
                             task.historyMetadata.senderName,
                             BigInt(0), // Use 0 to indicate failed message
                             task.historyMetadata.chatId,
-                            "",
                         );
                         logger.debug(
                             `Marked failed send task in history with message_id=0`,

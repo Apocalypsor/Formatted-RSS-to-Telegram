@@ -10,6 +10,17 @@ let cachedClientWithProxy: AxiosInstance | null = null;
 let cachedClientWithoutProxy: AxiosInstance | null = null;
 let configLoaded = false;
 
+const errorInterceptor = (error: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    let errMsg = `Error: ${error.message}`;
+    if (error.response) {
+        errMsg += ` - ${error.response.status} ${
+            error.response.statusText
+        } - ${JSON.stringify(error.response.data)}`;
+    }
+    logger.error(errMsg);
+    return Promise.reject(error);
+};
+
 const client = axios.create({
     timeout: AXIOS_TIMEOUT,
     headers: {
@@ -20,19 +31,22 @@ const client = axios.create({
     },
 });
 
-client.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        let errMsg = `Error: ${error.message}`;
-        if (error.response) {
-            errMsg += ` - ${error.response.status} ${
-                error.response.statusText
-            } - ${JSON.stringify(error.response.data)}`;
-        }
-        logger.error(errMsg);
-        return Promise.reject(error);
-    },
-);
+client.interceptors.response.use((response) => response, errorInterceptor);
+
+const buildProxyUrl = (proxy: {
+    protocol: string;
+    host: string;
+    port: number;
+    auth: { username: string; password: string };
+}): string => {
+    let auth = "";
+    if (proxy.auth.username && proxy.auth.password) {
+        const user = encodeURIComponent(proxy.auth.username);
+        const pass = encodeURIComponent(proxy.auth.password);
+        auth = `${user}:${pass}@`;
+    }
+    return `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
+};
 
 export const getClient = async (proxy = false): Promise<AxiosInstance> => {
     // Return cached client if already configured
@@ -55,58 +69,28 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
             },
         });
 
-        // Copy interceptors
         clientWithProxy.interceptors.response.use(
             (response) => response,
-            (error) => {
-                let errMsg = `Error: ${error.message}`;
-                if (error.response) {
-                    errMsg += ` - ${error.response.status} ${
-                        error.response.statusText
-                    } - ${JSON.stringify(error.response.data)}`;
-                }
-                logger.error(errMsg);
-                return Promise.reject(error);
-            },
+            errorInterceptor,
         );
 
-        if (
-            config.proxy.protocol === "http" ||
-            config.proxy.protocol === "https"
-        ) {
-            const auth =
-                config.proxy.auth.username && config.proxy.auth.password
-                    ? `${config.proxy.auth.username}:${config.proxy.auth.password}@`
-                    : "";
-            const proxyAgent = new HttpsProxyAgent(
-                `${config.proxy.protocol}://${auth}${config.proxy.host}:${config.proxy.port}`,
-            );
-            clientWithProxy.defaults.httpsAgent = proxyAgent;
-            clientWithProxy.defaults.httpAgent = proxyAgent;
-        } else if (
+        const proxyUrl = buildProxyUrl(config.proxy);
+
+        const proxyAgent =
             config.proxy.protocol === "socks4" ||
             config.proxy.protocol === "socks5"
-        ) {
-            const auth =
-                config.proxy.auth.username && config.proxy.auth.password
-                    ? `${config.proxy.auth.username}:${config.proxy.auth.password}@`
-                    : "";
-            const proxyAgent = new SocksProxyAgent(
-                `${config.proxy.protocol}://${auth}${config.proxy.host}:${config.proxy.port}`,
-            );
-            clientWithProxy.defaults.httpsAgent = proxyAgent;
-            clientWithProxy.defaults.httpAgent = proxyAgent;
-        }
+                ? new SocksProxyAgent(proxyUrl)
+                : new HttpsProxyAgent(proxyUrl);
+
+        clientWithProxy.defaults.httpsAgent = proxyAgent;
+        clientWithProxy.defaults.httpAgent = proxyAgent;
 
         cachedClientWithProxy = clientWithProxy;
     } else {
-        // If proxy not enabled, both cached clients point to the same instance
         cachedClientWithProxy = client;
     }
 
-    // Client without proxy is always the base client
     cachedClientWithoutProxy = client;
-
     configLoaded = true;
 
     return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
@@ -126,12 +110,12 @@ export const fetchWithFlareSolver = async (
 
     try {
         logger.debug(`Fetching with FlareSolver for ${url}`);
-        const client = await getClient();
+        const c = await getClient();
         return (
-            await client.post(`${config.flaresolverr}/v1`, {
+            await c.post(`${config.flaresolverr}/v1`, {
                 cmd: "request.get",
                 url: url,
-                maxTimeout: 60000,
+                maxTimeout: AXIOS_TIMEOUT,
             })
         ).data?.solution?.response;
     } catch (e) {

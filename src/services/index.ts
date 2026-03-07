@@ -3,9 +3,11 @@ import { parseRSSFeed } from "./parser";
 import { render } from "./render";
 import { getSender, notify } from "./sender";
 import { messageQueue } from "./queue";
-import { extractMediaUrls, getObj, hash, logger, trimWhiteSpace } from "@utils";
+import { extractMediaUrls, getObj, hash, logger } from "@utils";
+import { isString, mapValues, truncate } from "lodash-es";
 import type { RSS, RSSFilter, RSSRule, Telegram } from "@config";
 import {
+    EXPIRE_NOTIFY_THRESHOLD,
     RSS_FILTER_TYPE,
     RSS_RULE_TYPE,
     TELEGRAM_MESSAGE_LIMIT,
@@ -30,7 +32,7 @@ const processRSS = async (rssItem: RSS) => {
         logger.warn(
             `RSS item ${rssItem.name} (${rssItem.url}) is expired, expire count: ${expireCount}`,
         );
-        if (expireCount >= 16 && Math.log2(expireCount) % 1 === 0) {
+        if (expireCount >= EXPIRE_NOTIFY_THRESHOLD && Math.log2(expireCount) % 1 === 0) {
             await notify(rssItem.url);
         }
     } else {
@@ -45,13 +47,10 @@ const processRSS = async (rssItem: RSS) => {
 };
 
 const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
-    const itemObj = item as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-    for (const key in itemObj) {
-        if (typeof itemObj[key] === "string") {
-            itemObj[key] = trimWhiteSpace(itemObj[key]);
-        }
-    }
+    const itemObj = mapValues(
+        item as Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+        (v) => (isString(v) ? v.trim() : v),
+    );
 
     // process filters and rules
     if (processFilters(rssItem.filters, itemObj)) return;
@@ -68,13 +67,10 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     }
 
     // truncate contentSnippet if it's too long
-    if (
-        itemObj.contentSnippet &&
-        itemObj.contentSnippet.length > TELEGRAM_MESSAGE_LIMIT - 100
-    ) {
-        itemObj.contentSnippet =
-            itemObj.contentSnippet.slice(0, TELEGRAM_MESSAGE_LIMIT - 100) +
-            "...";
+    if (itemObj.contentSnippet) {
+        itemObj.contentSnippet = truncate(itemObj.contentSnippet, {
+            length: TELEGRAM_MESSAGE_LIMIT - 100,
+        });
     }
 
     itemObj.rss_name = rssItem.name;

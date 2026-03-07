@@ -1,6 +1,3 @@
-/**
- * config.ts errors
- */
 import { mapError } from "@utils";
 
 export class ConfigFileNotFoundError extends Error {
@@ -17,10 +14,6 @@ export class LoadConfigError extends Error {
     }
 }
 
-/**
- * rss.ts errors
- */
-
 export class RSSFileNotFoundError extends Error {
     constructor(rssPath: string) {
         super(`RSS file not found at ${rssPath}`);
@@ -32,5 +25,33 @@ export class LoadRSSFileError extends Error {
     constructor(rssPath: string, error: unknown) {
         super(`Failed to load RSS file at ${rssPath}: ${mapError(error)}`);
         this.name = "LoadRSSFileError";
+    }
+}
+
+export class SenderNotFoundError extends Error {
+    constructor() {
+        super(`Sender not found`);
+        this.name = "SenderNotFoundError";
+    }
+}
+
+export class SendMessageFailedError extends Error {
+    constructor(sender: string) {
+        super(`Failed to send message to ${sender}`);
+        this.name = "SendMessageFailedError";
+    }
+}
+
+export class MessageNotFoundError extends Error {
+    constructor(messageId: bigint, sender: string) {
+        super(`Message ${messageId} not found on ${sender}`);
+        this.name = "MessageNotFoundError";
+    }
+}
+
+export class FailedToEditMessageError extends Error {
+    constructor(messageId: bigint, sender: string) {
+        super(`Failed to edit message ${messageId} on ${sender}`);
+        this.name = "FailedToEditMessageError";
     }
 }

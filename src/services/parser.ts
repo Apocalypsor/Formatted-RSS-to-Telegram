@@ -8,6 +8,7 @@ import {
     mapError,
     parseIPFromURL,
 } from "@utils";
+import { CONTENT_SNIPPET_LENGTH, RSS_PARSER_TIMEOUT } from "@consts";
 import Parser from "rss-parser";
 
 /**
@@ -67,7 +68,7 @@ const processItems = async (
                 const fullContent = await fetchFullContent(item.link);
                 if (fullContent) {
                     item.content = fullContent;
-                    item.contentSnippet = fullContent.substring(0, 200);
+                    item.contentSnippet = fullContent.substring(0, CONTENT_SNIPPET_LENGTH);
                 }
             }
         }),
@@ -80,7 +81,7 @@ export const parseRSSFeed = async (url: string, full = false) => {
         customFields: {
             item: ["author", "ns0:encoded", "content_full"],
         },
-        timeout: 10000,
+        timeout: RSS_PARSER_TIMEOUT,
         headers: {
             "User-Agent": config.userAgent,
         },

@@ -25,7 +25,7 @@
             "@utils": ["./utils/index.ts"],
             "@consts": ["./consts.ts"],
             "@database": ["./database/index.ts"],
-            "@errors": ["./errors/index.ts"],
+            "@errors": ["./errors.ts"],
             "@config": ["./config/index.ts"],
             "@services": ["./services/index.ts"]
         }

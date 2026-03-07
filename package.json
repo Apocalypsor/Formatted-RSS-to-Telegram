@@ -27,6 +27,7 @@
         "axios": "^1.13.2",
         "cheerio": "^1.2.0",
         "https-proxy-agent": "^7.0.6",
+        "lodash-es": "^4.17.23",
         "node-schedule": "^2.1.1",
         "nunjucks": "^3.2.4",
         "rss-parser": "^3.13.0",
@@ -39,6 +40,7 @@
     "devDependencies": {
         "@eslint/js": "^9.39.2",
         "@types/bun": "latest",
+        "@types/lodash-es": "^4.17.12",
         "@types/node": "^22.19.3",
         "@types/node-schedule": "^2.1.8",
         "@types/nunjucks": "^3.2.6",
