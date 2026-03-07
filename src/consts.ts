@@ -33,7 +33,6 @@ export enum MEDIA_TYPE {
 
 export enum QUEUE_STATUS {
     PENDING = "pending",
-    PROCESSING = "processing",
     COMPLETED = "completed",
     FAILED = "failed",
 }

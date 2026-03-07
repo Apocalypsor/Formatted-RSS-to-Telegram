@@ -73,8 +73,6 @@ export const RSSItemSchema = z.object({
     text: z.string(),
 });
 
-export const RSSArraySchema = z.array(RSSItemSchema).min(1);
-
 // Export inferred types
 export type Config = z.infer<typeof ConfigSchema>;
 export type Telegram = z.infer<typeof TelegramSchema>;

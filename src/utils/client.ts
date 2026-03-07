@@ -51,7 +51,7 @@ const buildProxyUrl = (proxy: {
 export const getClient = async (proxy = false): Promise<AxiosInstance> => {
     // Return cached client if already configured
     if (configLoaded) {
-        return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
+        return proxy ? cachedClientWithProxy ?? client : cachedClientWithoutProxy ?? client;
     }
 
     // Lazy import to avoid circular dependency (only once)
@@ -93,7 +93,7 @@ export const getClient = async (proxy = false): Promise<AxiosInstance> => {
     cachedClientWithoutProxy = client;
     configLoaded = true;
 
-    return proxy ? cachedClientWithProxy! : cachedClientWithoutProxy!;
+    return proxy ? cachedClientWithProxy ?? client : cachedClientWithoutProxy ?? client;
 };
 
 /**

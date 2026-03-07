@@ -129,24 +129,27 @@ class MessageQueue {
         }
 
         // Serialize task data (includes history metadata for persistence)
-        const taskData: MessageTaskData = {
-            type: task.type,
-            sender: task.sender,
-            text: task.text,
-            uniqueKey: task.uniqueKey,
-            initialized:
-                task.type === TASK_TYPE.SEND ? task.initialized : undefined,
-            mediaUrls:
-                task.type === TASK_TYPE.SEND ? task.mediaUrls : undefined,
-            historyMetadata:
-                task.type === TASK_TYPE.SEND ? task.historyMetadata : undefined,
-            messageId:
-                task.type === TASK_TYPE.EDIT ? task.messageId : undefined,
-            editHistoryMetadata:
-                task.type === TASK_TYPE.EDIT
-                    ? task.editHistoryMetadata
-                    : undefined,
-        } as MessageTaskData;
+        let taskData: MessageTaskData;
+        if (task.type === TASK_TYPE.SEND) {
+            taskData = {
+                type: task.type,
+                sender: task.sender,
+                text: task.text,
+                uniqueKey: task.uniqueKey,
+                initialized: task.initialized,
+                mediaUrls: task.mediaUrls,
+                historyMetadata: task.historyMetadata,
+            };
+        } else {
+            taskData = {
+                type: task.type,
+                sender: task.sender,
+                text: task.text,
+                uniqueKey: task.uniqueKey,
+                messageId: task.messageId,
+                editHistoryMetadata: task.editHistoryMetadata,
+            };
+        }
 
         // Persist to database
         const dbId = await enqueueMessage(task.type, JSON.stringify(taskData));

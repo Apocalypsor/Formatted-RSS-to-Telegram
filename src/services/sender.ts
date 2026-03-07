@@ -150,10 +150,6 @@ export const edit = async (
     messageId: bigint,
     text: string,
 ) => {
-    if (!sender) {
-        throw new SenderNotFoundError();
-    }
-
     try {
         // Try editing as text first, fall back to caption for media messages
         const edited = await editText(sender, messageId, text).catch(
