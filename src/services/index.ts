@@ -3,8 +3,8 @@ import { parseRSSFeed } from "./parser";
 import { render } from "./render";
 import { getSender, notify } from "./sender";
 import { messageQueue } from "./queue";
-import { extractMediaUrls, getObj, hash, logger } from "@utils";
-import { isString, mapValues, truncate } from "lodash-es";
+import { extractMediaUrls, getCachedRegex, getObj, hash, logger } from "@utils";
+import * as _ from "lodash-es";
 import type { RSS, RSSFilter, RSSRule, Telegram } from "@config";
 import {
     EXPIRE_NOTIFY_THRESHOLD,
@@ -47,9 +47,9 @@ const processRSS = async (rssItem: RSS) => {
 };
 
 const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
-    const itemObj = mapValues(
+    const itemObj = _.mapValues(
         item as Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
-        (v) => (isString(v) ? v.trim() : v),
+        (v) => (_.isString(v) ? v.trim() : v),
     );
 
     // process filters and rules
@@ -68,7 +68,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
 
     // truncate contentSnippet if it's too long
     if (itemObj.contentSnippet) {
-        itemObj.contentSnippet = truncate(itemObj.contentSnippet, {
+        itemObj.contentSnippet = _.truncate(itemObj.contentSnippet, {
             length: TELEGRAM_MESSAGE_LIMIT - 100,
         });
     }
@@ -135,16 +135,6 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
             );
         }
     }
-};
-
-const regexCache = new Map<string, RegExp>();
-const getCachedRegex = (pattern: string): RegExp => {
-    let regex = regexCache.get(pattern);
-    if (!regex) {
-        regex = new RegExp(pattern);
-        regexCache.set(pattern, regex);
-    }
-    return regex;
 };
 
 const processRules = (rules: RSSRule[], content: unknown) => {

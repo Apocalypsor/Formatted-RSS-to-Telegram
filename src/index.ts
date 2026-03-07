@@ -1,7 +1,7 @@
 import { config, rss } from "@config";
 import { checkHistoryInitialized, clean } from "@database";
 import processRSS, { messageQueue } from "@services";
-import { createDirIfNotExists, getClient, logger, mapError } from "@utils";
+import { createDirIfNotExists, getHostIPInfo, logger, mapError } from "@utils";
 import { gracefulShutdown, scheduleJob } from "node-schedule";
 
 // workaround for BigInt serialization
@@ -13,21 +13,6 @@ declare global {
 
 BigInt.prototype.toJSON = function () {
     return this.toString();
-};
-
-const getHostIPInfo = async (): Promise<string | null> => {
-    const client = await getClient(true);
-    try {
-        const resp = await client.get("https://api.dov.moe/ip");
-        if (resp.data.success) return JSON.stringify(resp.data.data);
-    } catch {
-        // fall through to fallback
-    }
-    try {
-        return (await client.get("https://1.1.1.1/cdn-cgi/trace")).data;
-    } catch {
-        return null;
-    }
 };
 
 const main = async () => {

@@ -8,6 +8,7 @@ import {
 } from "@errors";
 import { getClient, logger } from "@utils";
 import { AxiosError } from "axios";
+import * as _ from "lodash-es";
 
 import { MEDIA_TYPE, TELEGRAM_API_BASE, TELEGRAM_MEDIA_GROUP_LIMIT } from "@consts";
 
@@ -64,7 +65,7 @@ export const send = async (
                 payload[mediaUrls[0].type] = mediaUrls[0].url;
                 endpoint = tgEndpoint(
                     sender.token,
-                    `send${mediaUrls[0].type.charAt(0).toUpperCase() + mediaUrls[0].type.slice(1)}`,
+                    `send${_.capitalize(mediaUrls[0].type)}`,
                 );
             }
         }

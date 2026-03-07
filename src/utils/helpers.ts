@@ -3,33 +3,24 @@ import { createHash } from "crypto";
 import dns from "dns";
 import fs from "fs";
 import * as cheerio from "cheerio";
-import { get } from "lodash-es";
+import * as _ from "lodash-es";
 import { logger } from "./logger";
 
 import { MEDIA_TYPE } from "@consts";
+import { getClient } from "./client";
 
 export const hash = (string: string): string => {
     return createHash("sha256").update(string).digest("hex");
 };
 
 export const expandArrayInObject = (obj: any, key: string | number): any[] => {
-    if (!obj) {
-        return [];
-    }
-
-    const newObj = { ...obj };
-    if (!Array.isArray(obj[key])) {
-        return [newObj];
-    }
-
-    const arr = newObj[key];
-    delete newObj[key];
-    return arr.map((item: any) => {
-        return { ...newObj, [key]: item };
-    });
+    if (!obj) return [];
+    if (!Array.isArray(obj[key])) return [{ ...obj }];
+    const rest = _.omit(obj, [key]);
+    return obj[key].map((item: any) => ({ ...rest, [key]: item }));
 };
 
-export const getObj = (obj: any, path: string) => get(obj, path);
+export const getObj = (obj: any, path: string) => _.get(obj, path);
 
 export const createDirIfNotExists = async (dir: fs.PathLike) => {
     if (!fs.existsSync(dir)) {
@@ -91,6 +82,23 @@ export const mapError = (error: unknown): string => {
         return error.message;
     } else {
         return JSON.stringify(error);
+    }
+};
+
+export const getCachedRegex = _.memoize((pattern: string) => new RegExp(pattern));
+
+export const getHostIPInfo = async (): Promise<string | null> => {
+    const client = await getClient(true);
+    try {
+        const resp = await client.get("https://api.dov.moe/ip");
+        if (resp.data.success) return JSON.stringify(resp.data.data);
+    } catch {
+        // fall through to fallback
+    }
+    try {
+        return (await client.get("https://1.1.1.1/cdn-cgi/trace")).data;
+    } catch {
+        return null;
     }
 };
 

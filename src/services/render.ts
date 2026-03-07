@@ -1,4 +1,4 @@
-import { cloneDeepWith } from "lodash-es";
+import * as _ from "lodash-es";
 import nunjucks from "nunjucks";
 
 nunjucks.configure({ autoescape: false });
@@ -80,7 +80,7 @@ export const escapeText = (text: string, parseMode = "markdown"): string => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const escapeAll = (obj: any, parseMode = "markdown"): any => {
-    return cloneDeepWith(obj, (value) => {
+    return _.cloneDeepWith(obj, (value) => {
         if (typeof value === "string") {
             return escapeText(value, parseMode);
         }
