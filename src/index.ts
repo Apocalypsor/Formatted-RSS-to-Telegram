@@ -36,6 +36,12 @@ const main = async () => {
         }),
     );
 
+    // Clear FIRST_RUN after initialization completes
+    if (firstRun) {
+        delete process.env.FIRST_RUN;
+        logger.info("First run completed, FIRST_RUN flag cleared");
+    }
+
     // Log queue status
     const queueSize = messageQueue.getQueueSize();
     if (queueSize > 0) {

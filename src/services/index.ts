@@ -120,7 +120,6 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
             messageQueue.enqueueSend(
                 tmpSender,
                 text,
-                initialized,
                 mediaUrls,
                 uniqueHash, // Use uniqueHash for deduplication in queue
                 // History metadata for saving after message is sent

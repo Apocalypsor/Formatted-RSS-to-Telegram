@@ -3,7 +3,6 @@ import { config } from "@config";
 import {
     FailedToEditMessageError,
     MessageNotFoundError,
-    SenderNotFoundError,
     SendMessageFailedError,
 } from "@errors";
 import { getClient, logger } from "@utils";
@@ -20,89 +19,78 @@ export const getSender = (sender: string): Telegram | undefined => {
 };
 
 export const send = async (
-    sender: Telegram | undefined,
+    sender: Telegram,
     text: string,
-    initialized: boolean = true,
     mediaUrls?: {
         type: MEDIA_TYPE;
         url: string;
     }[],
-): Promise<bigint | undefined> => {
-    if (!sender) {
-        throw new SenderNotFoundError();
-    } else if (!initialized || process.env.FIRST_RUN === "true") {
-        logger.info(
-            `Skipping message to ${sender.name} because of initialization.`,
-        );
-        return BigInt(-1);
-    } else {
-        let sendByText = true;
-        let payload: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        let endpoint: string = "";
+): Promise<bigint> => {
+    let sendByText = true;
+    let payload: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let endpoint: string = "";
 
-        if (mediaUrls) {
-            if (mediaUrls.length > 1 && mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT) {
-                sendByText = false;
-                payload = {
-                    chat_id: sender.chatId,
-                    media: mediaUrls.map((item, index) => ({
-                        type: item.type,
-                        media: item.url,
-                        caption: index === 0 ? text : undefined,
-                        parse_mode: sender.parseMode,
-                    })),
-                    disable_notification: sender.disableNotification,
-                };
-                endpoint = tgEndpoint(sender.token, "sendMediaGroup");
-            } else if (mediaUrls.length === 1 && mediaUrls[0]) {
-                sendByText = false;
-                payload = {
-                    chat_id: sender.chatId,
-                    caption: text,
-                    parse_mode: sender.parseMode,
-                    disable_notification: sender.disableNotification,
-                };
-                payload[mediaUrls[0].type] = mediaUrls[0].url;
-                endpoint = tgEndpoint(
-                    sender.token,
-                    `send${_.capitalize(mediaUrls[0].type)}`,
-                );
-            }
-        }
-
-        if (sendByText) {
+    if (mediaUrls) {
+        if (mediaUrls.length > 1 && mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT) {
+            sendByText = false;
             payload = {
                 chat_id: sender.chatId,
-                text: text,
-                parse_mode: sender.parseMode,
-                disable_web_page_preview: sender.disableWebPagePreview,
+                media: mediaUrls.map((item, index) => ({
+                    type: item.type,
+                    media: item.url,
+                    caption: index === 0 ? text : undefined,
+                    parse_mode: sender.parseMode,
+                })),
                 disable_notification: sender.disableNotification,
             };
-            endpoint = tgEndpoint(sender.token, "sendMessage");
-        }
-
-        logger.debug(
-            `Sending ${
-                mediaUrls && mediaUrls.length > 0 ? "media group" : "message"
-            } to ${sender.name}:\n${JSON.stringify(payload)}`,
-        );
-
-        const client = await getClient();
-        const resp = await client.post(endpoint, payload);
-
-        if (resp && resp?.data.ok) {
-            const result = resp.data.result;
-            const messageId = BigInt(
-                // there might be a group of messages returned
-                Array.isArray(result)
-                    ? result[0].message_id
-                    : result.message_id,
+            endpoint = tgEndpoint(sender.token, "sendMediaGroup");
+        } else if (mediaUrls.length === 1 && mediaUrls[0]) {
+            sendByText = false;
+            payload = {
+                chat_id: sender.chatId,
+                caption: text,
+                parse_mode: sender.parseMode,
+                disable_notification: sender.disableNotification,
+            };
+            payload[mediaUrls[0].type] = mediaUrls[0].url;
+            endpoint = tgEndpoint(
+                sender.token,
+                `send${_.capitalize(mediaUrls[0].type)}`,
             );
-            logger.info(`Message ${messageId} sent to ${sender.name}.`);
-            return messageId;
-        } else {
-            throw new SendMessageFailedError(sender.name);
         }
+    }
+
+    if (sendByText) {
+        payload = {
+            chat_id: sender.chatId,
+            text: text,
+            parse_mode: sender.parseMode,
+            disable_web_page_preview: sender.disableWebPagePreview,
+            disable_notification: sender.disableNotification,
+        };
+        endpoint = tgEndpoint(sender.token, "sendMessage");
+    }
+
+    logger.debug(
+        `Sending ${
+            mediaUrls && mediaUrls.length > 0 ? "media group" : "message"
+        } to ${sender.name}:\n${JSON.stringify(payload)}`,
+    );
+
+    const client = await getClient();
+    const resp = await client.post(endpoint, payload);
+
+    if (resp && resp?.data.ok) {
+        const result = resp.data.result;
+        const messageId = BigInt(
+            Array.isArray(result)
+                ? result[0].message_id
+                : result.message_id,
+        );
+        logger.info(`Message ${messageId} sent to ${sender.name}.`);
+        return messageId;
+    } else {
+        throw new SendMessageFailedError(sender.name);
     }
 };
 

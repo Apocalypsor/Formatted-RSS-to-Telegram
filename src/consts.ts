@@ -13,7 +13,6 @@ export const TELEGRAM_MEDIA_GROUP_LIMIT = 10;
 export const QUEUE_MAX_RETRIES = 3;
 export const QUEUE_DELAY_BETWEEN_MESSAGES = 1000;
 export const QUEUE_LRU_CAPACITY = 10000;
-export const QUEUE_DRAIN_TIMEOUT = 30000;
 export const QUEUE_CLEANUP_HOURS = 24;
 
 // RSS
