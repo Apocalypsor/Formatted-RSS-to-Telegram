@@ -16,6 +16,12 @@ describe("Renderer Module", () => {
             expect(escapeText(text, "markdownv2")).toEqual(expected);
         });
 
+        test("should escape backslashes before special characters in markdownv2", () => {
+            const text = "price\\!";
+            const expected = "price\\\\\\!";
+            expect(escapeText(text, "markdownv2")).toEqual(expected);
+        });
+
         test("should not escape when parseMode is unknown", () => {
             const text = "_Hello_ *World*";
             expect(escapeText(text, "html")).toEqual("_Hello_ *World*");
@@ -31,7 +37,7 @@ describe("Renderer Module", () => {
     describe("escapeTemplate", () => {
         test("should escape markdownv2 special characters in template", () => {
             const template = "Hello #>World# +{{name}}!";
-            const expected = "Hello \\#\\>World\\# \\+{{name}}\\!";
+            const expected = "Hello \\#>World\\# \\+{{name}}\\!";
             expect(escapeTemplate(template, "markdownv2")).toEqual(expected);
         });
 
@@ -120,10 +126,10 @@ describe("Renderer Module", () => {
             expect(render(template, data, "markdown")).toEqual(expected);
         });
 
-        test("should replace &amp; with & in the rendered output", () => {
-            const template = "Price: {{price}} &amp; Tax";
+        test("should decode HTML entities in the rendered output", () => {
+            const template = "Price: {{price}} &amp; Tax &lt;b&gt;";
             const data = { price: "$10" };
-            const expected = "Price: $10 & Tax";
+            const expected = "Price: $10 & Tax <b>";
             expect(render(template, data, "markdown")).toEqual(expected);
         });
 

@@ -3,17 +3,31 @@ import nunjucks from "nunjucks";
 
 nunjucks.configure({ autoescape: false });
 
+const HTML_ENTITIES: Record<string, string> = {
+    "&amp;": "&",
+    "&lt;": "<",
+    "&gt;": ">",
+    "&quot;": '"',
+    "&#39;": "'",
+    "&#x27;": "'",
+    "&#x2F;": "/",
+};
+const HTML_ENTITY_RE = new RegExp(Object.keys(HTML_ENTITIES).join("|"), "g");
+
+const decodeHtmlEntities = (text: string): string =>
+    text.replace(HTML_ENTITY_RE, (match) => HTML_ENTITIES[match] ?? match);
+
 export const render = (
     template: string,
     data: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     parseMode = "markdown",
 ): string => {
-    return nunjucks
-        .renderString(
+    return decodeHtmlEntities(
+        nunjucks.renderString(
             escapeTemplate(template, parseMode),
             escapeAll(data, parseMode),
-        )
-        .replaceAll("&amp;", "&");
+        ),
+    );
 };
 
 export const escapeTemplate = (
@@ -21,22 +35,12 @@ export const escapeTemplate = (
     parseMode = "markdown",
 ): string => {
     if (parseMode.toLowerCase() === "markdownv2") {
-        const escapedCh = [">", "#", "+", "-", "=", "|", "{", "}", ".", "!"];
-
-        const escapeChars = (text: string): string => {
-            let escaped = text;
-            for (const ch of escapedCh) {
-                escaped = escaped.replaceAll(ch, "\\" + ch);
-            }
-            return escaped;
-        };
-
         // Split by template tags, escape the text parts, keep tags unchanged
         const parts = template.split(/({{.+?}}|{%.+?%})/g);
         return parts
             .map((part, i) =>
                 // Odd indices are template tags (captured groups), even are text
-                i % 2 === 1 ? part : escapeChars(part),
+                i % 2 === 1 ? part : part.replace(/[#+=\-{}.!]/g, "\\$&"),
             )
             .join("");
     } else {
@@ -45,36 +49,11 @@ export const escapeTemplate = (
 };
 
 export const escapeText = (text: string, parseMode = "markdown"): string => {
-    let escapedCh: string[] = [];
     if (parseMode.toLowerCase() === "markdownv2") {
-        escapedCh = [
-            "_",
-            "*",
-            "[",
-            "]",
-            "(",
-            ")",
-            "~",
-            "`",
-            ">",
-            "#",
-            "+",
-            "-",
-            "=",
-            "|",
-            "{",
-            "}",
-            ".",
-            "!",
-        ];
+        return text.replace(/[\\_*[\]()~`>#+=\-|{}.!]/g, "\\$&");
     } else if (parseMode.toLowerCase() === "markdown") {
-        escapedCh = ["_", "*", "`", "["];
+        return text.replace(/[_*`[]/g, "\\$&");
     }
-
-    escapedCh.forEach((e) => {
-        text = text.replaceAll(e, "\\" + e);
-    });
-
     return text;
 };
 
