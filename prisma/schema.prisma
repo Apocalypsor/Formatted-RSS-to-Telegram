@@ -20,6 +20,8 @@ model History {
     telegram_chat_id    BigInt
     created_at          DateTime  @default(now())
     updated_at          DateTime  @updatedAt
+
+    @@index([url])
 }
 
 model Expire {

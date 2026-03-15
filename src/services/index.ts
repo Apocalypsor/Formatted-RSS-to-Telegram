@@ -1,4 +1,4 @@
-import { getFirstHistoryByURL, getHistory, updateExpire } from "@database";
+import { addHistory, getFirstHistoryByURL, getHistory, updateExpire } from "@database";
 import { parseRSSFeed } from "./parser";
 import { render } from "./render";
 import { getSender, notify } from "./sender";
@@ -61,7 +61,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     if (rssItem.embedMedia) {
         mediaUrls = extractMediaUrls(itemObj.content).filter((item) =>
             rssItem.embedMediaExclude.every(
-                (exclude) => !new RegExp(exclude).test(item.url),
+                (exclude) => !getCachedRegex(exclude).test(item.url),
             ),
         );
     }
@@ -90,7 +90,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
         }
     }
 
-    const existed = await getHistory(uniqueHash, rssItem.url, sender.chatId);
+    const existed = await getHistory(uniqueHash);
 
     logger.debug(`Processing item: ${JSON.stringify(rssItem)})`);
     const tmpSender = {
@@ -102,22 +102,37 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     };
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
-        // Enqueue send task (fire-and-forget) with deduplication
-        messageQueue.enqueueSend(
-            tmpSender,
-            text,
-            initialized,
-            mediaUrls,
-            uniqueHash, // Use uniqueHash for deduplication in queue
-            // History metadata for saving after message is sent
-            {
+        // If not initialized or first run, directly save history without going through queue
+        if (!initialized || process.env.FIRST_RUN === "true") {
+            logger.info(
+                `Skipping queue for ${rssItem.name} (initialization), saving history directly.`,
+            );
+            await addHistory(
                 uniqueHash,
-                url: rssItem.url,
-                textHash: text_hash,
-                senderName: sender.name,
-                chatId: sender.chatId,
-            },
-        );
+                rssItem.url,
+                text_hash,
+                sender.name,
+                BigInt(-1),
+                sender.chatId,
+            );
+        } else {
+            // Enqueue send task (fire-and-forget) with deduplication
+            messageQueue.enqueueSend(
+                tmpSender,
+                text,
+                initialized,
+                mediaUrls,
+                uniqueHash, // Use uniqueHash for deduplication in queue
+                // History metadata for saving after message is sent
+                {
+                    uniqueHash,
+                    url: rssItem.url,
+                    textHash: text_hash,
+                    senderName: sender.name,
+                    chatId: sender.chatId,
+                },
+            );
+        }
     } else {
         const messageId = existed.telegram_message_id;
         if (messageId > 0 && text_hash !== existed.text_hash) {

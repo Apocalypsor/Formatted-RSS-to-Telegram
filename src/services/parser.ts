@@ -11,6 +11,16 @@ import {
 import { CONTENT_SNIPPET_LENGTH, RSS_PARSER_TIMEOUT } from "@consts";
 import Parser from "rss-parser";
 
+const parser = new Parser({
+    customFields: {
+        item: ["author", "ns0:encoded", "content_full"],
+    },
+    timeout: RSS_PARSER_TIMEOUT,
+    headers: {
+        "User-Agent": config.userAgent,
+    },
+});
+
 /**
  * Fetch full content for an article URL
  * First tries direct fetch, falls back to FlareSolver if that fails
@@ -77,16 +87,6 @@ const processItems = async (
 };
 
 export const parseRSSFeed = async (url: string, full = false) => {
-    const parser = new Parser({
-        customFields: {
-            item: ["author", "ns0:encoded", "content_full"],
-        },
-        timeout: RSS_PARSER_TIMEOUT,
-        headers: {
-            "User-Agent": config.userAgent,
-        },
-    });
-
     try {
         logger.debug(`Parsing RSS ${full ? "Full" : ""} feed ${url}`);
 

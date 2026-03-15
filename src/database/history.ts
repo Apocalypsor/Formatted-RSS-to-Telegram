@@ -13,16 +13,10 @@ export const getFirstHistoryByURL = async (url: string) => {
     });
 };
 
-export const getHistory = async (
-    uniqueHash: string,
-    url: string,
-    telegramChatId: bigint,
-) => {
+export const getHistory = async (uniqueHash: string) => {
     return prisma.history.findFirst({
         where: {
             unique_hash: uniqueHash,
-            url: url,
-            telegram_chat_id: telegramChatId,
         },
     });
 };

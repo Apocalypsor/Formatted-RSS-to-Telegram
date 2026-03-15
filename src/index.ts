@@ -1,5 +1,5 @@
 import { config, rss } from "@config";
-import { checkHistoryInitialized, clean, initDatabase } from "@database";
+import { checkHistoryInitialized, clean, initDatabase, prisma } from "@database";
 import processRSS, { messageQueue } from "@services";
 import { createDirIfNotExists, getHostIPInfo, logger, mapError } from "@utils";
 import { gracefulShutdown, scheduleJob } from "node-schedule";
@@ -48,6 +48,7 @@ const shutdown = async (signal: string) => {
     logger.info(`Received ${signal}, shutting down gracefully...`);
     await gracefulShutdown();
     await messageQueue.drain();
+    await prisma.$disconnect();
     logger.info("Shutdown complete");
     process.exit(0);
 };
