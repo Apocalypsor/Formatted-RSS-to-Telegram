@@ -312,6 +312,9 @@ class MessageQueue {
                 );
             } catch (error) {
                 logger.error(`Failed to recover task ${dbTask.id}: ${error}`);
+                await updateMessageStatus(dbTask.id, QUEUE_STATUS.FAILED, String(error)).catch((e) =>
+                    logger.error(`Failed to mark corrupted task ${dbTask.id} as failed: ${e}`),
+                );
             }
         }
 

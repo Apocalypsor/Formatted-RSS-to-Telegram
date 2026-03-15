@@ -153,7 +153,7 @@ export const extractMediaUrls = (
         }
 
         imgUrls.push({
-            type: match[1] === "img" ? MEDIA_TYPE.PHOTO : MEDIA_TYPE.VIDEO,
+            type: match[1]!.toLowerCase() === "img" ? MEDIA_TYPE.PHOTO : MEDIA_TYPE.VIDEO,
             url: imgUrl,
         });
     }

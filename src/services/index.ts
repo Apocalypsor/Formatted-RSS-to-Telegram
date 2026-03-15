@@ -43,7 +43,7 @@ const processRSS = async (rssItem: RSS) => {
         }
     }
 
-    uninitialized.clear();
+    uninitialized.delete(rssItem.url);
 };
 
 const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
