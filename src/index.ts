@@ -1,5 +1,5 @@
 import { config, rss } from "@config";
-import { checkHistoryInitialized, clean } from "@database";
+import { checkHistoryInitialized, clean, initDatabase } from "@database";
 import processRSS, { messageQueue } from "@services";
 import { createDirIfNotExists, getHostIPInfo, logger, mapError } from "@utils";
 import { gracefulShutdown, scheduleJob } from "node-schedule";
@@ -55,9 +55,9 @@ const shutdown = async (signal: string) => {
 process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
-// Recover pending tasks from database on startup
-messageQueue
-    .recoverPendingTasks()
+// Initialize database with optimized PRAGMA settings and recover pending tasks
+initDatabase()
+    .then(() => messageQueue.recoverPendingTasks())
     .then(() => main())
     .then(() => {
         logger.info("Initial RSS processing finished");
