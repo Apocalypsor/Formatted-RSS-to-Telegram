@@ -29,14 +29,51 @@ export const addHistory = async (
     telegramMessageId: bigint,
     telegramChatId: bigint,
 ) => {
-    return prisma.history.create({
-        data: {
+    return prisma.history.upsert({
+        where: { unique_hash: uniqueHash },
+        create: {
             unique_hash: uniqueHash,
             url: url,
             text_hash: textHash,
             telegram_name: telegramName,
             telegram_message_id: telegramMessageId,
             telegram_chat_id: telegramChatId,
+        },
+        update: {},
+    });
+};
+
+export const reserveHistory = async (
+    uniqueHash: string,
+    url: string,
+    textHash: string,
+    telegramName: string,
+    telegramChatId: bigint,
+) => {
+    return prisma.history.upsert({
+        where: { unique_hash: uniqueHash },
+        create: {
+            unique_hash: uniqueHash,
+            url: url,
+            text_hash: textHash,
+            telegram_name: telegramName,
+            telegram_message_id: BigInt(0),
+            telegram_chat_id: telegramChatId,
+        },
+        update: {},
+    });
+};
+
+export const finalizeHistory = async (
+    uniqueHash: string,
+    textHash: string,
+    telegramMessageId: bigint,
+) => {
+    return prisma.history.update({
+        where: { unique_hash: uniqueHash },
+        data: {
+            text_hash: textHash,
+            telegram_message_id: telegramMessageId,
         },
     });
 };

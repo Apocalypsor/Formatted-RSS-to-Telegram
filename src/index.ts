@@ -15,37 +15,49 @@ BigInt.prototype.toJSON = function () {
     return this.toString();
 };
 
+let isMainRunning = false;
+
 const main = async () => {
-    const firstRun = !(await checkHistoryInitialized());
-    if (firstRun) {
-        logger.info("First run detected, setting FIRST_RUN to true");
-        process.env.FIRST_RUN = "true";
+    if (isMainRunning) {
+        logger.warn("Previous main() still running, skipping this cycle");
+        return;
     }
-    const ipInfo = await getHostIPInfo();
-    logger.info(`IP:\n${ipInfo}`);
-    await createDirIfNotExists("./config");
-    await createDirIfNotExists("./logs/screenshots");
+    isMainRunning = true;
 
-    await Promise.allSettled(
-        rss.map(async (item) => {
-            try {
-                await processRSS(item);
-            } catch (e) {
-                logger.error(`Failed to process RSS item: ${mapError(e)}`);
-            }
-        }),
-    );
+    try {
+        const firstRun = !(await checkHistoryInitialized());
+        if (firstRun) {
+            logger.info("First run detected, setting FIRST_RUN to true");
+            process.env.FIRST_RUN = "true";
+        }
+        const ipInfo = await getHostIPInfo();
+        logger.info(`IP:\n${ipInfo}`);
+        await createDirIfNotExists("./config");
+        await createDirIfNotExists("./logs/screenshots");
 
-    // Clear FIRST_RUN after initialization completes
-    if (firstRun) {
-        delete process.env.FIRST_RUN;
-        logger.info("First run completed, FIRST_RUN flag cleared");
-    }
+        await Promise.allSettled(
+            rss.map(async (item) => {
+                try {
+                    await processRSS(item);
+                } catch (e) {
+                    logger.error(`Failed to process RSS item: ${mapError(e)}`);
+                }
+            }),
+        );
 
-    // Log queue status
-    const queueSize = messageQueue.getQueueSize();
-    if (queueSize > 0) {
-        logger.info(`Message queue has ${queueSize} tasks pending`);
+        // Clear FIRST_RUN after initialization completes
+        if (firstRun) {
+            delete process.env.FIRST_RUN;
+            logger.info("First run completed, FIRST_RUN flag cleared");
+        }
+
+        // Log queue status
+        const queueSize = messageQueue.getQueueSize();
+        if (queueSize > 0) {
+            logger.info(`Message queue has ${queueSize} tasks pending`);
+        }
+    } finally {
+        isMainRunning = false;
     }
 };
 

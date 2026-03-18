@@ -3,8 +3,11 @@ import {
     addHistory,
     deleteCompletedMessages,
     enqueueMessage,
+    finalizeHistory,
+    getHistory,
     getPendingMessages,
     incrementRetryCount,
+    reserveHistory,
     updateHistory,
     updateMessageStatus,
 } from "@database";
@@ -173,22 +176,27 @@ class MessageQueue {
                 logger.debug(
                     `Processing send task (DB ID: ${task.dbId}) for ${data.sender.name} (attempt ${attempt + 1})`,
                 );
+
+                // Reserve history before sending to prevent duplicates on crash
+                if (data.historyMetadata && attempt === 0) {
+                    await reserveHistory(
+                        data.historyMetadata.uniqueHash,
+                        data.historyMetadata.url,
+                        data.historyMetadata.textHash,
+                        data.historyMetadata.senderName,
+                        data.historyMetadata.chatId,
+                    );
+                }
+
                 const messageId = await send(data.sender, data.text, data.mediaUrls);
 
                 if (data.historyMetadata) {
-                    try {
-                        await addHistory(
-                            data.historyMetadata.uniqueHash,
-                            data.historyMetadata.url,
-                            data.historyMetadata.textHash,
-                            data.historyMetadata.senderName,
-                            messageId,
-                            data.historyMetadata.chatId,
-                        );
-                        logger.debug(`Saved history for message ${messageId}`);
-                    } catch (e) {
-                        logger.error(`Failed to save history for message ${messageId}: ${e}`);
-                    }
+                    await finalizeHistory(
+                        data.historyMetadata.uniqueHash,
+                        data.historyMetadata.textHash,
+                        messageId,
+                    );
+                    logger.debug(`Saved history for message ${messageId}`);
                 }
             } else {
                 const data = task.data;
@@ -231,19 +239,22 @@ class MessageQueue {
 
             if (task.dbId) await incrementRetryCount(task.dbId);
 
+            const errorDetail = error instanceof AxiosError
+                ? `${error.response?.status} ${error.response?.statusText}: ${JSON.stringify(error.response?.data)}`
+                : error instanceof Error ? error.message : String(error);
+
             if (attempt < QUEUE_MAX_RETRIES) {
                 logger.warn(
-                    `Task (DB ID: ${task.dbId}) failed (attempt ${attempt + 1}/${QUEUE_MAX_RETRIES}), retrying...`,
+                    `Task (DB ID: ${task.dbId}) failed (attempt ${attempt + 1}/${QUEUE_MAX_RETRIES}), retrying... Error: ${errorDetail}`,
                 );
                 return this.executeWithRetry(task, attempt + 1);
             }
 
             // Final failure
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            logger.error(`Task (DB ID: ${task.dbId}) failed after ${QUEUE_MAX_RETRIES} retries: ${errorMsg}`);
+            logger.error(`Task (DB ID: ${task.dbId}) failed after ${QUEUE_MAX_RETRIES} retries: ${errorDetail}`);
 
             if (task.dbId) {
-                await updateMessageStatus(task.dbId, QUEUE_STATUS.FAILED, errorMsg);
+                await updateMessageStatus(task.dbId, QUEUE_STATUS.FAILED, errorDetail);
             }
 
             // Save failure to history
@@ -299,6 +310,19 @@ class MessageQueue {
         for (const dbTask of pendingTasks) {
             try {
                 const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
+
+                // Skip send tasks whose history already has a real messageId (already sent)
+                if (taskData.type === TASK_TYPE.SEND && taskData.historyMetadata?.uniqueHash) {
+                    const existing = await getHistory(taskData.historyMetadata.uniqueHash);
+                    if (existing && existing.telegram_message_id > 0) {
+                        logger.info(`Task ${dbTask.id} already sent (messageId: ${existing.telegram_message_id}), marking completed`);
+                        await updateMessageStatus(dbTask.id, QUEUE_STATUS.COMPLETED).catch((e) =>
+                            logger.error(`Failed to mark already-sent task ${dbTask.id} as completed: ${e}`),
+                        );
+                        if (taskData.uniqueKey) this.processedKeys.add(taskData.uniqueKey);
+                        continue;
+                    }
+                }
 
                 if (taskData.uniqueKey) {
                     this.processedKeys.add(taskData.uniqueKey);
