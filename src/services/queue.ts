@@ -191,12 +191,16 @@ class MessageQueue {
                 const messageId = await send(data.sender, data.text, data.mediaUrls);
 
                 if (data.historyMetadata) {
-                    await finalizeHistory(
-                        data.historyMetadata.uniqueHash,
-                        data.historyMetadata.textHash,
-                        messageId,
-                    );
-                    logger.debug(`Saved history for message ${messageId}`);
+                    try {
+                        await finalizeHistory(
+                            data.historyMetadata.uniqueHash,
+                            data.historyMetadata.textHash,
+                            messageId,
+                        );
+                        logger.debug(`Saved history for message ${messageId}`);
+                    } catch (e) {
+                        logger.error(`Failed to finalize history for message ${messageId}: ${e}`);
+                    }
                 }
             } else {
                 const data = task.data;

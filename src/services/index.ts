@@ -14,6 +14,11 @@ import {
 } from "@consts";
 
 const uninitialized = new Set();
+let firstRun = false;
+
+export const setFirstRun = (value: boolean) => {
+    firstRun = value;
+};
 
 const processRSS = async (rssItem: RSS) => {
     const sender = getSender(rssItem.sendTo);
@@ -103,7 +108,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
     logger.debug(`Sender: ${JSON.stringify(tmpSender)})`);
     if (!existed) {
         // If not initialized or first run, directly save history without going through queue
-        if (!initialized || process.env.FIRST_RUN === "true") {
+        if (!initialized || firstRun) {
             logger.info(
                 `Skipping queue for ${rssItem.name} (initialization), saving history directly.`,
             );
@@ -169,10 +174,14 @@ const processRules = (rules: RSSRule[], content: unknown) => {
                     }
                 }
             } else if (rule.type === RSS_RULE_TYPE.FUNC) {
-                const func = new Function("obj", rule.matcher);
-                const result = func(content);
-                if (result) {
-                    contentObj[rule.dest] = result;
+                try {
+                    const func = new Function("obj", rule.matcher);
+                    const result = func(content);
+                    if (result) {
+                        contentObj[rule.dest] = result;
+                    }
+                } catch (e) {
+                    logger.warn(`Failed to execute FUNC rule (dest: ${rule.dest}): ${e instanceof Error ? e.message : e}`);
                 }
             }
         }

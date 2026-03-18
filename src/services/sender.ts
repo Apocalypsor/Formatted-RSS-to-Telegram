@@ -82,11 +82,15 @@ export const send = async (
 
     if (resp && resp?.data.ok) {
         const result = resp.data.result;
-        const messageId = BigInt(
-            Array.isArray(result)
-                ? result[0].message_id
-                : result.message_id,
-        );
+        const rawId = Array.isArray(result)
+            ? result[0]?.message_id
+            : result?.message_id;
+        if (rawId == null) {
+            throw new SendMessageFailedError(
+                `${sender.name}: unexpected response structure, missing message_id`,
+            );
+        }
+        const messageId = BigInt(rawId);
         logger.info(`Message ${messageId} sent to ${sender.name}.`);
         return messageId;
     } else {
@@ -172,18 +176,23 @@ export const notify = async (url: string) => {
         logger.warn(
             "No Telegram sender for notification configured, skipping.",
         );
-    } else {
-        const sender = config.telegram[0];
-        const endpoint = tgEndpoint(sender!.token, "sendMessage");
-        const payload = {
-            chat_id: config.notifyTelegramChatId,
-            text: "*FR2T detected a link expired*\n\n" + url,
-            parse_mode: "Markdown",
-            disable_web_page_preview: true,
-        };
+        return;
+    }
 
-        logger.info(`Sending notification to ${sender?.name}:\n${url}`);
+    const sender = config.telegram[0]!;
+    const endpoint = tgEndpoint(sender.token, "sendMessage");
+    const payload = {
+        chat_id: config.notifyTelegramChatId,
+        text: "*FR2T detected a link expired*\n\n" + url,
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
+    };
+
+    try {
+        logger.info(`Sending notification to ${sender.name}:\n${url}`);
         const client = await getClient(true);
         await client.post(endpoint, payload);
+    } catch (e) {
+        logger.warn(`Failed to send notification for ${url}: ${e instanceof Error ? e.message : e}`);
     }
 };

@@ -1,6 +1,6 @@
 import { config, rss } from "@config";
 import { checkHistoryInitialized, clean, initDatabase, prisma } from "@database";
-import processRSS, { messageQueue } from "@services";
+import processRSS, { messageQueue, setFirstRun } from "@services";
 import { createDirIfNotExists, getHostIPInfo, logger, mapError } from "@utils";
 import { gracefulShutdown, scheduleJob } from "node-schedule";
 
@@ -25,10 +25,10 @@ const main = async () => {
     isMainRunning = true;
 
     try {
-        const firstRun = !(await checkHistoryInitialized());
-        if (firstRun) {
-            logger.info("First run detected, setting FIRST_RUN to true");
-            process.env.FIRST_RUN = "true";
+        const isFirstRun = !(await checkHistoryInitialized());
+        if (isFirstRun) {
+            logger.info("First run detected");
+            setFirstRun(true);
         }
         const ipInfo = await getHostIPInfo();
         logger.info(`IP:\n${ipInfo}`);
@@ -46,9 +46,9 @@ const main = async () => {
         );
 
         // Clear FIRST_RUN after initialization completes
-        if (firstRun) {
-            delete process.env.FIRST_RUN;
-            logger.info("First run completed, FIRST_RUN flag cleared");
+        if (isFirstRun) {
+            setFirstRun(false);
+            logger.info("First run completed");
         }
 
         // Log queue status

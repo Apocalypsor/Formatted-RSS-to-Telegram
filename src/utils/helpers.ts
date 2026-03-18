@@ -85,9 +85,24 @@ export const mapError = (error: unknown): string => {
     }
 };
 
-export const getCachedRegex = _.memoize(
-    (pattern: string) => new RegExp(pattern),
-);
+const regexCache = new Map<string, RegExp>();
+const REGEX_CACHE_CAPACITY = 1000;
+
+export const getCachedRegex = (pattern: string): RegExp => {
+    const cached = regexCache.get(pattern);
+    if (cached) {
+        regexCache.delete(pattern);
+        regexCache.set(pattern, cached);
+        return cached;
+    }
+    if (regexCache.size >= REGEX_CACHE_CAPACITY) {
+        const oldest = regexCache.keys().next().value!;
+        regexCache.delete(oldest);
+    }
+    const regex = new RegExp(pattern);
+    regexCache.set(pattern, regex);
+    return regex;
+};
 
 export const getHostIPInfo = async (): Promise<string | null> => {
     const client = await getClient(true);
