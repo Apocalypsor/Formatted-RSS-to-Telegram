@@ -15,49 +15,37 @@ BigInt.prototype.toJSON = function () {
     return this.toString();
 };
 
-let isMainRunning = false;
-
 const main = async () => {
-    if (isMainRunning) {
-        logger.warn("Previous main() still running, skipping this cycle");
-        return;
+    const isFirstRun = !(await checkHistoryInitialized());
+    if (isFirstRun) {
+        logger.info("First run detected");
+        setFirstRun(true);
     }
-    isMainRunning = true;
+    const ipInfo = await getHostIPInfo();
+    logger.info(`IP:\n${ipInfo}`);
+    await createDirIfNotExists("./config");
+    await createDirIfNotExists("./logs/screenshots");
 
-    try {
-        const isFirstRun = !(await checkHistoryInitialized());
-        if (isFirstRun) {
-            logger.info("First run detected");
-            setFirstRun(true);
-        }
-        const ipInfo = await getHostIPInfo();
-        logger.info(`IP:\n${ipInfo}`);
-        await createDirIfNotExists("./config");
-        await createDirIfNotExists("./logs/screenshots");
+    await Promise.allSettled(
+        rss.map(async (item) => {
+            try {
+                await processRSS(item);
+            } catch (e) {
+                logger.error(`Failed to process RSS item: ${mapError(e)}`);
+            }
+        }),
+    );
 
-        await Promise.allSettled(
-            rss.map(async (item) => {
-                try {
-                    await processRSS(item);
-                } catch (e) {
-                    logger.error(`Failed to process RSS item: ${mapError(e)}`);
-                }
-            }),
-        );
+    // Clear FIRST_RUN after initialization completes
+    if (isFirstRun) {
+        setFirstRun(false);
+        logger.info("First run completed");
+    }
 
-        // Clear FIRST_RUN after initialization completes
-        if (isFirstRun) {
-            setFirstRun(false);
-            logger.info("First run completed");
-        }
-
-        // Log queue status
-        const queueSize = messageQueue.getQueueSize();
-        if (queueSize > 0) {
-            logger.info(`Message queue has ${queueSize} tasks pending`);
-        }
-    } finally {
-        isMainRunning = false;
+    // Log queue status
+    const queueSize = messageQueue.getQueueSize();
+    if (queueSize > 0) {
+        logger.info(`Message queue has ${queueSize} tasks pending`);
     }
 };
 
