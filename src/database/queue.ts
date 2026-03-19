@@ -40,15 +40,6 @@ export const updateMessageStatus = async (
     });
 };
 
-export const incrementRetryCount = async (id: number) => {
-    return prisma.messageQueue.update({
-        where: { id },
-        data: {
-            retry_count: { increment: 1 },
-        },
-    });
-};
-
 export const deleteCompletedMessages = async (olderThanHours = QUEUE_CLEANUP_HOURS) => {
     const cutoffDate = new Date();
     cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);

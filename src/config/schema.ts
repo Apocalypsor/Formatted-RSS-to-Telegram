@@ -4,7 +4,7 @@ import { RSS_FILTER_TYPE, RSS_RULE_TYPE, UA } from "@consts";
 // Proxy schemas
 export const EnabledProxySchema = z.object({
     enabled: z.literal(true),
-    protocol: z.string().default("http"),
+    protocol: z.enum(["http", "https"]).default("http"),
     host: z.string().default("127.0.0.1"),
     port: z.number().default(1080),
     auth: z

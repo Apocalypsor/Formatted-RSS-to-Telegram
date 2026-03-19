@@ -6,7 +6,7 @@ import {
     SendMessageFailedError,
 } from "@errors";
 import { getClient, logger } from "@utils";
-import { AxiosError } from "axios";
+import { HTTPError } from "ky";
 import * as _ from "lodash-es";
 
 import { MEDIA_TYPE, TELEGRAM_API_BASE, TELEGRAM_MEDIA_GROUP_LIMIT } from "@consts";
@@ -78,10 +78,10 @@ export const send = async (
     );
 
     const client = await getClient();
-    const resp = await client.post(endpoint, payload);
+    const resp = await client.post(endpoint, { json: payload }).json<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    if (resp && resp?.data.ok) {
-        const result = resp.data.result;
+    if (resp?.ok) {
+        const result = resp.result;
         const rawId = Array.isArray(result)
             ? result[0]?.message_id
             : result?.message_id;
@@ -109,8 +109,8 @@ const editText = async (sender: Telegram, messageId: bigint, text: string) => {
         disable_notification: sender.disableNotification,
     };
     const client = await getClient();
-    const resp = await client.post(endpoint, payload);
-    return resp.data.ok;
+    const resp = await client.post(endpoint, { json: payload }).json<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    return resp.ok;
 };
 
 const editCaption = async (
@@ -126,13 +126,18 @@ const editCaption = async (
         parse_mode: sender.parseMode,
     };
     const client = await getClient();
-    const resp = await client.post(endpoint, payload);
-    return resp.data.ok;
+    const resp = await client.post(endpoint, { json: payload }).json<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+    return resp.ok;
 };
 
-const getTelegramErrorDescription = (e: unknown): string | null => {
-    if (e instanceof AxiosError && e.response) {
-        return e.response.data?.description ?? null;
+const getTelegramErrorDescription = async (e: unknown): Promise<string | null> => {
+    if (e instanceof HTTPError && e.response) {
+        try {
+            const body = await e.response.json() as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+            return body?.description ?? null;
+        } catch {
+            return null;
+        }
     }
     return null;
 };
@@ -146,7 +151,7 @@ export const edit = async (
         // Try editing as text first, fall back to caption for media messages
         const edited = await editText(sender, messageId, text).catch(
             async (e) => {
-                const desc = getTelegramErrorDescription(e);
+                const desc = await getTelegramErrorDescription(e);
                 if (desc?.includes("there is no text in the message to edit")) {
                     return editCaption(sender, messageId, text);
                 }
@@ -158,7 +163,7 @@ export const edit = async (
             logger.info(`Message ${messageId} edited for ${sender.name}.`);
         }
     } catch (e) {
-        const desc = getTelegramErrorDescription(e);
+        const desc = await getTelegramErrorDescription(e);
         if (!desc) throw e;
 
         if (
@@ -191,7 +196,7 @@ export const notify = async (url: string) => {
     try {
         logger.info(`Sending notification to ${sender.name}:\n${url}`);
         const client = await getClient(true);
-        await client.post(endpoint, payload);
+        await client.post(endpoint, { json: payload });
     } catch (e) {
         logger.warn(`Failed to send notification for ${url}: ${e instanceof Error ? e.message : e}`);
     }

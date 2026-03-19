@@ -1,37 +1,7 @@
-import { logger } from "./logger";
-import axios, { type AxiosInstance } from "axios";
-import { SocksProxyAgent } from "socks-proxy-agent";
-import { HttpsProxyAgent } from "https-proxy-agent";
-import { AXIOS_TIMEOUT } from "@consts";
+import { HTTP_TIMEOUT } from "@consts";
+import ky, { type KyInstance } from "ky";
 import { mapError } from "./helpers";
-
-// Cache for configured clients
-let cachedClientWithProxy: AxiosInstance | null = null;
-let cachedClientWithoutProxy: AxiosInstance | null = null;
-let configLoaded = false;
-
-const errorInterceptor = (error: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    let errMsg = `Error: ${error.message}`;
-    if (error.response) {
-        errMsg += ` - ${error.response.status} ${
-            error.response.statusText
-        } - ${JSON.stringify(error.response.data)}`;
-    }
-    logger.error(errMsg);
-    return Promise.reject(error);
-};
-
-const client = axios.create({
-    timeout: AXIOS_TIMEOUT,
-    headers: {
-        "Accept-Encoding": "gzip, deflate, compress",
-        "Accept": "application/rss+xml, application/json",
-        "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
-        "Cache-Control": "max-age=0",
-    },
-});
-
-client.interceptors.response.use((response) => response, errorInterceptor);
+import { logger } from "./logger";
 
 const buildProxyUrl = (proxy: {
     protocol: string;
@@ -48,52 +18,55 @@ const buildProxyUrl = (proxy: {
     return `${proxy.protocol}://${auth}${proxy.host}:${proxy.port}`;
 };
 
-export const getClient = async (proxy = false): Promise<AxiosInstance> => {
-    // Return cached client if already configured
-    if (configLoaded) {
-        return proxy ? cachedClientWithProxy ?? client : cachedClientWithoutProxy ?? client;
-    }
-
-    // Lazy import to avoid circular dependency (only once)
+const initClients = async (): Promise<{
+    base: KyInstance;
+    proxy: KyInstance;
+}> => {
     const { config } = await import("@config");
 
-    // Set User-Agent header
-    client.defaults.headers.common["User-Agent"] = config.userAgent;
+    const base = ky.create({
+        timeout: HTTP_TIMEOUT,
+        headers: {
+            "Accept-Encoding": "gzip, deflate, compress",
+            "Accept": "application/rss+xml, application/json",
+            "Accept-Language": "en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7",
+            "Cache-Control": "max-age=0",
+            "User-Agent": config.userAgent,
+        },
+        hooks: {
+            beforeError: [
+                (error) => {
+                    logger.error(`Error: ${error.message}`);
+                    return error;
+                },
+            ],
+        },
+    });
 
-    // Configure client with proxy
-    if (config.proxy.enabled) {
-        const clientWithProxy = axios.create({
-            ...client.defaults,
-            headers: {
-                ...client.defaults.headers,
-            },
-        });
+    const proxyClient = config.proxy.enabled
+        ? base.extend({
+              fetch: (input, init) => {
+                  const proxyUrl = buildProxyUrl(
+                      config.proxy as {
+                          protocol: string;
+                          host: string;
+                          port: number;
+                          auth: { username: string; password: string };
+                      },
+                  );
+                  return fetch(input, { ...init, proxy: proxyUrl });
+              },
+          })
+        : base;
 
-        clientWithProxy.interceptors.response.use(
-            (response) => response,
-            errorInterceptor,
-        );
+    return { base, proxy: proxyClient };
+};
 
-        const proxyUrl = buildProxyUrl(config.proxy);
+const clients = initClients();
 
-        const proxyAgent =
-            config.proxy.protocol === "socks4" ||
-            config.proxy.protocol === "socks5"
-                ? new SocksProxyAgent(proxyUrl)
-                : new HttpsProxyAgent(proxyUrl);
-
-        clientWithProxy.defaults.httpsAgent = proxyAgent;
-        clientWithProxy.defaults.httpAgent = proxyAgent;
-
-        cachedClientWithProxy = clientWithProxy;
-    } else {
-        cachedClientWithProxy = client;
-    }
-
-    cachedClientWithoutProxy = client;
-    configLoaded = true;
-
-    return proxy ? cachedClientWithProxy ?? client : cachedClientWithoutProxy ?? client;
+export const getClient = async (proxy = false): Promise<KyInstance> => {
+    const c = await clients;
+    return proxy ? c.proxy : c.base;
 };
 
 /**
@@ -110,14 +83,17 @@ export const fetchWithFlareSolver = async (
 
     try {
         logger.debug(`Fetching with FlareSolver for ${url}`);
-        const c = await getClient();
-        return (
-            await c.post(`${config.flaresolverr}/v1`, {
-                cmd: "request.get",
-                url: url,
-                maxTimeout: AXIOS_TIMEOUT,
+        const client = await getClient();
+        const resp = await client
+            .post(`${config.flaresolverr}/v1`, {
+                json: {
+                    cmd: "request.get",
+                    url: url,
+                    maxTimeout: HTTP_TIMEOUT,
+                },
             })
-        ).data?.solution?.response;
+            .json<any>(); // eslint-disable-line @typescript-eslint/no-explicit-any
+        return resp?.solution?.response ?? null;
     } catch (e) {
         logger.warn(`FlareSolver failed for ${url}: ${mapError(e)}`);
         return null;

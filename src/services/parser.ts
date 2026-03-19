@@ -30,18 +30,11 @@ const fetchFullContent = async (url: string): Promise<string | null> => {
         logger.debug(`Fetching full content directly for ${url}`);
         const ip = await parseIPFromURL(url);
         const client = await getClient(!isIntranet(ip));
-        const response = await client.get(url);
-        if (
-            response.status === 200 &&
-            response.data &&
-            typeof response.data === "string" &&
-            response.data.includes("<html")
-        ) {
-            return response.data;
+        const text = await client.get(url).text();
+        if (text.includes("<html")) {
+            return text;
         } else {
-            throw new Error(
-                `Unexpected format or status code ${response.status}`,
-            );
+            throw new Error("Unexpected format");
         }
     } catch (e) {
         // If direct fetch fails, try FlareSolver
@@ -93,7 +86,7 @@ export const parseRSSFeed = async (url: string, full = false) => {
         const ip = await parseIPFromURL(url);
         logger.debug(`Parsed IP for ${url}: ${ip}`);
         const client = await getClient(!isIntranet(ip));
-        const htmlResp = (await client.get(url)).data;
+        const htmlResp = await client.get(url).text();
 
         const feed = await parser.parseString(htmlResp);
         const items = feed.items.reverse();

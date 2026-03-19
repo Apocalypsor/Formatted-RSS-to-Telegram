@@ -126,12 +126,10 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
                 tmpSender,
                 text,
                 mediaUrls,
-                uniqueHash, // Use uniqueHash for deduplication in queue
-                // History metadata for saving after message is sent
                 {
                     uniqueHash,
-                    url: rssItem.url,
                     textHash: text_hash,
+                    url: rssItem.url,
                     senderName: sender.name,
                     chatId: sender.chatId,
                 },
@@ -145,11 +143,10 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
                 tmpSender,
                 messageId,
                 text,
-                uniqueHash, // Use uniqueHash for deduplication in queue
-                // History metadata for updating after message is edited
                 {
-                    historyId: existed.id,
+                    uniqueHash,
                     textHash: text_hash,
+                    historyId: existed.id,
                 },
             );
         }

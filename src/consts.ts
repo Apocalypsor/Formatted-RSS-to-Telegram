@@ -2,7 +2,7 @@ export const UA = "curl/8.16.0";
 export const DEFAULT_DATA_PATH = "./config/";
 export const DEFAULT_CONFIG_FILE = "config.yaml";
 export const DEFAULT_RSS_FILE = "rss.yaml";
-export const AXIOS_TIMEOUT = 60000;
+export const HTTP_TIMEOUT = 60000;
 
 // Telegram
 export const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
@@ -10,9 +10,7 @@ export const TELEGRAM_MESSAGE_LIMIT = 4096;
 export const TELEGRAM_MEDIA_GROUP_LIMIT = 10;
 
 // Queue
-export const QUEUE_MAX_RETRIES = 3;
 export const QUEUE_DELAY_BETWEEN_MESSAGES = 1000;
-export const QUEUE_LRU_CAPACITY = 10000;
 export const QUEUE_CLEANUP_HOURS = 24;
 
 // RSS

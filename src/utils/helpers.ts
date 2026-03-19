@@ -107,13 +107,13 @@ export const getCachedRegex = (pattern: string): RegExp => {
 export const getHostIPInfo = async (): Promise<string | null> => {
     const client = await getClient(true);
     try {
-        const resp = await client.get("https://api.dov.moe/ip");
-        if (resp.data?.data) return JSON.stringify(resp.data.data);
+        const resp = await client.get("https://api.dov.moe/ip").json<any>();
+        if (resp?.data) return JSON.stringify(resp.data);
     } catch {
         // fall through to fallback
     }
     try {
-        return (await client.get("https://1.1.1.1/cdn-cgi/trace")).data;
+        return await client.get("https://1.1.1.1/cdn-cgi/trace").text();
     } catch {
         return null;
     }
