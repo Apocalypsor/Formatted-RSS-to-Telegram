@@ -4,40 +4,44 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 
 ![sample](./docs/assets/screenshot-of-chat.png)
 
-## ✨ Features
+## Features
 
 ### Core Features
-- 🔄 **Persistent Message Queue** - SQLite-backed queue with automatic crash recovery
-- ⚡ **Rate Limiting & 429 Handling** - Smart rate limiting with dynamic retry-after delays
-- 🔁 **Retry Logic** - Automatic retry up to 3 attempts with exponential backoff
-- 🎯 **Deduplication** - Memory-efficient deduplication with 10k item limit
-- 📊 **Queue Monitoring** - Track pending task count in real time
-- 🧹 **Auto Cleanup** - Periodic cleanup of completed tasks (default: 24 hours)
+
+- **Persistent Message Queue** - SQLite-backed queue with automatic crash recovery
+- **Rate Limiting** - Sequential message processing with configurable delay (p-queue)
+- **First Run Detection** - Silently saves history on initial setup to avoid flooding
+- **Queue Monitoring** - Track pending task count in real time
+- **Auto Cleanup** - Periodic cleanup of completed tasks and expired history
 
 ### Content Processing
-- 🖼️ **Media Embedding** - Automatic image/video extraction from RSS content
-- 📝 **Template Engine** - Nunjucks-powered message templates
-- 🔍 **Content Filtering** - Regex-based include/exclude filters
-- ⚙️ **Content Rules** - Transform RSS fields with regex or custom functions
+
+- **Media Embedding** - Automatic image/video extraction from RSS content
+- **Template Engine** - Nunjucks-powered message templates
+- **Content Filtering** - Regex-based include/exclude filters
+- **Content Rules** - Transform RSS fields with regex or custom functions
 
 ### Network & Proxy
-- 🌐 **Proxy Support** - HTTP/SOCKS4/SOCKS5 proxy with authentication
-- 🛡️ **Cloudflare Bypass** - FlareSolverr integration for protected feeds
-- 🔄 **Intranet Detection** - Automatic proxy bypass for local network feeds
+
+- **Proxy Support** - HTTP/HTTPS proxy with authentication (via Bun native fetch)
+- **Cloudflare Bypass** - FlareSolverr integration for protected feeds
+- **Intranet Detection** - Automatic proxy bypass for local network feeds
 
 ### Monitoring & Reliability
-- 📢 **RSS Monitoring** - Telegram notifications for invalid/expired RSS links
-- 📝 **Structured Logging** - Winston-based logging with daily rotation
-- 💾 **Database Persistence** - All tasks and history stored in SQLite
-- 🔐 **Type Safety** - Full TypeScript with Zod schema validation
 
-## 🚀 Quick Start
+- **RSS Monitoring** - Telegram notifications for invalid/expired RSS links
+- **Structured Logging** - Winston-based logging with daily rotation
+- **Database Persistence** - All tasks and history stored in SQLite
+- **Type Safety** - Full TypeScript with Zod schema validation
+
+## Quick Start
 
 ### Docker (Recommended)
 
 1. **Install Docker**
 
 2. **Create `docker-compose.yaml`:**
+
    ```yaml
    services:
      fr2t:
@@ -51,8 +55,8 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 
 3. **Configure RSS and Bot:**
    - Copy sample configs from [docs](./docs) to `./data/`
-   - Create `./data/config.yaml` (see [Configuration](#-configuration))
-   - Create `./data/rss.yaml` (see [RSS Configuration](#rss-configuration))
+   - Create `./data/config.yaml` (see [Configuration](#configuration))
+   - Create `./data/rss.yaml` (see [RSS Configuration](#rss-configuration-rssyaml))
 
 4. **Start the service:**
    ```bash
@@ -81,7 +85,7 @@ bun run build
 bun start
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Bot Configuration (`config.yaml`)
 
@@ -104,7 +108,7 @@ notifyTelegramChatId: 111111111
 # Proxy configuration (optional)
 proxy:
   enabled: true
-  protocol: socks5  # http, socks4, or socks5
+  protocol: http # http or https
   host: 127.0.0.1
   port: 1080
   auth:
@@ -116,7 +120,7 @@ telegram:
   - name: default
     token: YOUR_BOT_TOKEN
     chatId: YOUR_CHAT_ID
-    parseMode: MarkdownV2  # Markdown or MarkdownV2
+    parseMode: MarkdownV2 # Markdown or MarkdownV2
     disableNotification: false
     disableWebPagePreview: false
 ```
@@ -127,8 +131,8 @@ telegram:
 rss:
   - name: GitHub Commits
     url: https://github.com/user/repo/commits.atom
-    sendTo: default  # or list: [bot1, bot2]
-    
+    sendTo: default # or list: [bot1, bot2]
+
     # Optional settings
     disableNotification: false
     disableWebPagePreview: false
@@ -136,60 +140,64 @@ rss:
     embedMedia: true
     embedMediaExclude:
       - https://example.com/.+
-    
+
     # Content transformation rules
     rules:
       - obj: title
-        type: regex  # or func
+        type: regex # or func
         matcher: ^(\[.+?\])?(.+?)$
         dest: tag
-      
+
       - obj: content
         type: func
         matcher: |
           return obj.replace(/pattern/, 'replacement');
         dest: processed_content
-    
+
     # Content filters
     filters:
       - obj: title
-        type: in   # include only matching
+        type: in # include only matching
         matcher: important
-      
+
       - obj: content
-        type: out  # exclude matching
+        type: out # exclude matching
         matcher: spam|ads
-    
+
     # Message template (Nunjucks)
     text: |
       **{{ title }}**
-      
+
       {{ content }}
-      
+
       [Read more]({{ link }})
-      
+
       _Tags: {{ tag }}_
 ```
 
 ### Available Template Variables
 
 From RSS feed (via [rss-parser](https://github.com/rbren/rss-parser)):
+
 - `title`, `link`, `content`, `contentSnippet`
 - `author`, `pubDate`, `guid`
 - Any custom fields from your RSS feed
 
 Custom variables:
+
 - `rss_name` - Name of the RSS feed
 - `rss_url` - URL of the RSS feed
 - Any fields created by `rules` (e.g., `tag`, `processed_content`)
 
-## 📄 License
+## License
 
 Apache-2.0 License - see [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [rss-parser](https://github.com/rbren/rss-parser) - RSS feed parsing
 - [Prisma](https://www.prisma.io/) - Database ORM
 - [Bun](https://bun.sh) - Fast JavaScript runtime
 - [Nunjucks](https://mozilla.github.io/nunjucks/) - Template engine
+- [ky](https://github.com/sindresorhus/ky) - HTTP client
+- [p-queue](https://github.com/sindresorhus/p-queue) - Promise queue with concurrency control

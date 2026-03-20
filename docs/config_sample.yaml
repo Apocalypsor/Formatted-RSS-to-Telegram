@@ -10,7 +10,7 @@ notifyTelegramChatId: 111111111 # Optional, if empty, telegram notification for 
 
 proxy: # Optional, if empty, proxy will be disabled
   enabled: true # Optional, default is false
-  protocol: socks5 # Optional, default is http, can be http or socks5
+  protocol: http # Optional, default is http, can be http or https
   host: 192.168.1.33 # Optional, default is 127.0.0.1
   port: 50004 # Optional, default is 1080
   auth: # Optional, if empty, no auth will be used

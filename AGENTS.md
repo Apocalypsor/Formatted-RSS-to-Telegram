@@ -15,14 +15,15 @@
 src/
 ├── index.ts              # Entry point: startup, scheduling, orchestration
 ├── consts.ts             # Shared constants and enums
+├── errors.ts             # Custom error classes (config, sender, message errors)
 ├── config/
 │   ├── index.ts          # Loads and exports config + rss at module level
 │   ├── config.ts         # Reads config.yaml → Config (Zod validated)
 │   ├── rss.ts            # Reads rss.yaml → RSS[] (Zod validated, expands arrays)
 │   └── schema.ts         # Zod schemas and inferred types for Config, RSS, Telegram, etc.
 ├── database/
-│   ├── client.ts         # Prisma client singleton
-│   ├── history.ts        # CRUD for History table (dedup, edit tracking)
+│   ├── client.ts         # Prisma client singleton + initDatabase (WAL, PRAGMA tuning)
+│   ├── history.ts        # CRUD for History table (dedup, reserve/finalize, edit tracking)
 │   ├── expire.ts         # Upsert for Expire table (feed health tracking)
 │   ├── queue.ts          # CRUD for MessageQueue table (persistent task queue)
 │   └── index.ts          # Re-exports
@@ -30,17 +31,13 @@ src/
 │   ├── index.ts          # processRSS: main pipeline (parse → filter → rule → render → enqueue)
 │   ├── parser.ts         # RSS feed fetching + parsing (rss-parser), FlareSolverr fallback
 │   ├── render.ts         # Nunjucks template rendering with Telegram Markdown escaping
-│   ├── sender.ts         # Telegram Bot API calls (send, edit, notify)
-│   ├── queue.ts          # MessageQueue class: in-memory queue + DB persistence, rate limiting, retry, LRU dedup
-│   └── render.spec.ts    # Unit tests for render module
-├── utils/
-│   ├── client.ts         # Axios HTTP client factory with proxy support (HTTP/SOCKS), FlareSolverr helper
-│   ├── helpers.ts        # hash, getObj, extractMediaUrls, htmlDecode, isIntranet, etc.
-│   ├── logger.ts         # Winston logger (console + file + daily rotate)
-│   └── index.ts          # Re-exports
-└── errors/
-    ├── config.ts         # Config/RSS file loading errors
-    ├── services.ts       # Sender/message errors
+│   ├── render.spec.ts    # Unit tests for render module
+│   ├── sender.ts         # Telegram Bot API calls (send, edit, notify) via ky
+│   └── queue.ts          # MessageQueue class: p-queue based sequential processing + DB persistence
+└── utils/
+    ├── client.ts         # ky HTTP client factory with Bun native proxy support
+    ├── helpers.ts        # hash, getObj, extractMediaUrls, htmlDecode, isIntranet, getCachedRegex, etc.
+    ├── logger.ts         # Winston logger (console + file + daily rotate)
     └── index.ts          # Re-exports
 ```
 
@@ -57,17 +54,18 @@ Cron tick
       → getHistory(hash)            # dedup check against DB
       → messageQueue.enqueueSend()  # or enqueueEdit() if content changed
         → persisted to MessageQueue table
-        → processed sequentially with 1s delay (rate limiting)
-        → on success: save to History table
-        → on failure: retry up to 3 times, then mark failed
+        → processed sequentially via p-queue (1s interval, concurrency 1)
+        → on success: save/finalize History table entry
+        → on failure: mark as failed in DB, record in history with messageId=0
 ```
 
 ### Key Design Decisions
 
 - **Config at module scope**: `config/index.ts` loads YAML synchronously at import time. Everything downstream imports `config` and `rss` as constants.
-- **Lazy client init**: `getClient()` is async on first call (to break circular dep with config), then returns cached Axios instances.
-- **Dual queue**: In-memory array for ordering + DB table for crash recovery. On startup, pending DB tasks are recovered into the in-memory queue.
-- **LRU dedup**: `processedKeys` in MessageQueue uses a Map-based LRU set (capacity 10000) to prevent duplicate enqueues within and across processing cycles.
+- **Lazy client init**: `initClients()` is async (to break circular dep with config), returns cached ky instances via a promise.
+- **p-queue based processing**: `MessageQueue` uses `p-queue` with `concurrency: 1` and `intervalCap: 1` for rate limiting. DB table provides crash recovery — on startup, pending DB tasks are recovered into the p-queue.
+- **Reserve/finalize pattern**: History entries are reserved (with `messageId=0`) before sending, then finalized with the real `messageId` after success. This prevents duplicate sends on crash recovery.
+- **First run handling**: On first run (no history in DB), items are saved directly to history without sending, to avoid flooding on initial setup.
 - **BigInt for Telegram IDs**: `chatId` and `messageId` use BigInt throughout, serialized as strings in JSON.
 
 ## Setup
@@ -92,12 +90,12 @@ bun run start
 
 ### Environment Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | SQLite path, e.g. `file:./config/db.sqlite` |
-| `CONFIG_PATH` | No | Config filename override (default: `config.yaml`) |
-| `RSS_PATH` | No | RSS filename override (default: `rss.yaml`) |
-| `NODE_ENV` | No | Set to `development` for debug logging |
+| Variable       | Required | Description                                       |
+| -------------- | -------- | ------------------------------------------------- |
+| `DATABASE_URL` | Yes      | SQLite path, e.g. `file:./config/db.sqlite`       |
+| `CONFIG_PATH`  | No       | Config filename override (default: `config.yaml`) |
+| `RSS_PATH`     | No       | RSS filename override (default: `rss.yaml`)       |
+| `NODE_ENV`     | No       | Set to `development` for debug logging            |
 
 ### Configuration Files
 
@@ -151,7 +149,7 @@ Tests use Bun's built-in test runner. Currently only `render.spec.ts` exists. Te
 ### Patterns
 
 - **Barrel exports**: Each module directory has an `index.ts` re-exporting public API
-- **Error classes**: Custom error classes in `src/errors/`, extending `Error` with descriptive `name`
+- **Error classes**: Custom error classes in `src/errors.ts`, extending `Error` with descriptive `name`
 - **Zod validation**: Config and RSS schemas use Zod for parse-time validation with defaults and transforms
 - **Enums**: Native TypeScript enums in `consts.ts` for task types, media types, queue status, etc.
 - **Logging**: Use `logger` from `@utils` (Winston). Levels: `error`, `warn`, `info`, `debug`
@@ -167,11 +165,3 @@ Tests use Bun's built-in test runner. Currently only `render.spec.ts` exists. Te
 ### Security
 
 - `new Function("obj", rule.matcher)` in `processRules` (`src/services/index.ts`) is effectively `eval`. RSS rule `type: func` allows arbitrary code execution from config. This is acceptable since config is trusted, but should never accept untrusted input.
-
-### Unused / Legacy
-
-- `PROCESSING` status in `QUEUE_STATUS` enum is defined but never set in the queue lifecycle (tasks go directly from `PENDING` to `COMPLETED` or `FAILED`).
-
-### Areas for Improvement
-
-- **Test coverage**: Only `render.ts` has tests. `parser.ts`, `sender.ts`, `queue.ts`, and `services/index.ts` lack tests.

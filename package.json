@@ -10,7 +10,8 @@
         "start": "bun run dist/index.js",
         "dev": "NODE_ENV=development prisma migrate deploy && bun --watch ./src/index.ts",
         "lint": "eslint \"src/**/*.ts\"",
-        "lint:fix": "eslint \"src/**/*.ts\" --fix"
+        "lint:fix": "eslint \"src/**/*.ts\" --fix",
+        "prepare": "husky"
     },
     "repository": {
         "type": "git",
@@ -44,8 +45,13 @@
         "@types/node-schedule": "^2.1.8",
         "@types/nunjucks": "^3.2.6",
         "eslint": "^9.39.4",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.4.0",
         "prettier": "^3.8.1",
         "prisma": "^5.22.0",
         "typescript-eslint": "^8.57.0"
+    },
+    "lint-staged": {
+        "*.{ts,js,json,yaml,yml,md}": "prettier --write"
     }
 }
