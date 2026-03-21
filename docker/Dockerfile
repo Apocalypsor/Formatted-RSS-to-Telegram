@@ -10,7 +10,8 @@ COPY scripts ./scripts
 
 # Install all dependencies (including dev dependencies for build)
 # HUSKY=0 skips the "prepare" script which requires .git
-RUN HUSKY=0 bun install --frozen-lockfile
+RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
+    && bun install --frozen-lockfile
 
 # Copy source code
 COPY src ./src
@@ -37,7 +38,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 # Install only production dependencies
-RUN HUSKY=0 bun install --production --frozen-lockfile \
+RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
+    && bun install --production --frozen-lockfile \
     && rm -rf /root/.bun/install/cache
 
 # Copy entrypoint script
