@@ -1,7 +1,7 @@
 {
     "name": "formatted-rss-to-telegram",
     "version": "0.0.1",
-    "description": "基于Github Action的高度可定制化Telegram通知推送服务",
+    "description": "A highly customizable, self-hosted RSS to Telegram notification service",
     "scripts": {
         "prisma:generate": "prisma generate",
         "prisma:migrate:dev": "prisma migrate dev",

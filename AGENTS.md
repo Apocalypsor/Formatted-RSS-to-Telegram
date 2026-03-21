@@ -31,7 +31,6 @@ src/
 │   ├── index.ts          # processRSS: main pipeline (parse → filter → rule → render → enqueue)
 │   ├── parser.ts         # RSS feed fetching + parsing (rss-parser), FlareSolverr fallback
 │   ├── render.ts         # Nunjucks template rendering with Telegram Markdown escaping
-│   ├── render.spec.ts    # Unit tests for render module
 │   ├── sender.ts         # Telegram Bot API calls (send, edit, notify) via ky
 │   └── queue.ts          # MessageQueue class: p-queue based sequential processing + DB persistence
 └── utils/
@@ -135,7 +134,7 @@ bun test
 bun test src/services/render.spec.ts
 ```
 
-Tests use Bun's built-in test runner. Currently only `render.spec.ts` exists. Tests are co-located with source files using `.spec.ts` suffix.
+Tests use Bun's built-in test runner. Tests are co-located with source files using `.spec.ts` suffix. No test files currently exist.
 
 ## Code Conventions
 
@@ -143,6 +142,7 @@ Tests use Bun's built-in test runner. Currently only `render.spec.ts` exists. Te
 
 - **Formatter**: Prettier — 4-space indent for TS, 2-space for YAML/MD
 - **Linter**: ESLint with `typescript-eslint` recommended rules
+- **Pre-commit**: Husky + lint-staged — runs Prettier on staged `*.{ts,js,json,yaml,yml,md}` files
 - **Module system**: ESNext modules, `verbatimModuleSyntax: true`
 - **Path aliases**: `@config`, `@database`, `@services`, `@utils`, `@errors`, `@consts` — mapped in `tsconfig.json`, resolved by Bun bundler
 
