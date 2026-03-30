@@ -18,7 +18,8 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 
 - **Media Embedding** - Automatic image/video extraction from RSS content
 - **Template Engine** - Nunjucks-powered message templates
-- **Content Filtering** - Regex-based include/exclude filters
+- **Content Filtering** - Regex-based include/exclude filters with remote URL support
+- **Remote Filter Lists** - Fetch filter patterns from URLs with optional function transforms
 - **Content Rules** - Transform RSS fields with regex or custom functions
 
 ### Network & Proxy
@@ -72,16 +73,10 @@ curl -fsSL https://bun.sh/install | bash
 # Install dependencies
 bun install
 
-# Run database migrations
-bun run prisma:migrate:dev
-
 # Start development server with hot reload
 bun run dev
 
-# Build for production
-bun run build
-
-# Run production build
+# Run production
 bun start
 ```
 
@@ -156,6 +151,7 @@ rss:
 
     # Content filters
     filters:
+      # Static regex filter
       - obj: title
         type: in # include only matching
         matcher: important
@@ -163,6 +159,21 @@ rss:
       - obj: content
         type: out # exclude matching
         matcher: spam|ads
+
+      # Remote filter: fetch URL content as regex
+      - obj: author
+        type: out
+        matcher:
+          url: https://example.com/blocklist.txt
+
+      # Remote filter with function transform
+      - obj: author
+        type: out
+        matcher:
+          url: https://example.com/blocklist.json
+          func: |
+            const list = JSON.parse(data);
+            return list.users.map(u => u.username).join('|');
 
     # Message template (Nunjucks)
     text: |
@@ -196,7 +207,7 @@ Apache-2.0 License - see [LICENSE](LICENSE) for details.
 ## Acknowledgments
 
 - [rss-parser](https://github.com/rbren/rss-parser) - RSS feed parsing
-- [Prisma](https://www.prisma.io/) - Database ORM
+- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM
 - [Bun](https://bun.sh) - Fast JavaScript runtime
 - [Nunjucks](https://mozilla.github.io/nunjucks/) - Template engine
 - [ky](https://github.com/sindresorhus/ky) - HTTP client

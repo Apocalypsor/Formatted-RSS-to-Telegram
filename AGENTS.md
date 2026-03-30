@@ -12,12 +12,12 @@
 
 ## Project Overview
 
-**Formatted-RSS-to-Telegram (FR2T)** is a self-hosted RSS-to-Telegram notification service. It periodically fetches RSS feeds, applies user-defined filters and rules, renders messages via Nunjucks templates, and sends them to Telegram chats through the Bot API. It runs as a long-lived process scheduled with `node-schedule`, backed by SQLite (via Prisma) for history deduplication and a persistent message queue.
+**Formatted-RSS-to-Telegram (FR2T)** is a self-hosted RSS-to-Telegram notification service. It periodically fetches RSS feeds, applies user-defined filters and rules, renders messages via Nunjucks templates, and sends them to Telegram chats through the Bot API. It runs as a long-lived process scheduled with `node-schedule`, backed by SQLite (via Drizzle ORM + bun:sqlite) for history deduplication and a persistent message queue.
 
 - **Runtime**: Bun
 - **Language**: TypeScript (strict mode)
-- **Database**: SQLite via Prisma ORM
-- **Deployment**: Docker (long-running container)
+- **Database**: SQLite via Drizzle ORM + bun:sqlite
+- **Deployment**: Docker (compiled to standalone binary)
 
 ### Key Design Decisions
 
@@ -26,17 +26,17 @@
 - **p-queue based processing**: `MessageQueue` uses `p-queue` with `concurrency: 1` and `intervalCap: 1` for rate limiting. DB table provides crash recovery — on startup, pending DB tasks are recovered into the p-queue.
 - **Reserve/finalize pattern**: History entries are reserved (with `messageId=0`) before sending, then finalized with the real `messageId` after success. This prevents duplicate sends on crash recovery.
 - **First run handling**: On first run (no history in DB), items are saved directly to history without sending, to avoid flooding on initial setup.
-- **BigInt for Telegram IDs**: `chatId` and `messageId` use BigInt throughout, serialized as strings in JSON.
+- **Synchronous database**: All database operations are synchronous (bun:sqlite is a synchronous driver). No `async`/`await` on database functions.
+- **Remote matchers**: RSS filters support remote URL matchers with optional `func` transforms, cached with a configurable TTL.
 
 ## Code Conventions
 
 ### Style
 
-- **Formatter**: Prettier — 4-space indent for TS, 2-space for YAML/MD
-- **Linter**: ESLint with `typescript-eslint` recommended rules
-- **Pre-commit**: Husky + lint-staged — runs Prettier on staged `*.{ts,js,json,yaml,yml,md}` files
+- **Formatter/Linter**: Biome — handles both formatting and linting
+- **Pre-commit**: Husky + lint-staged — runs Biome check on staged files
 - **Module system**: ESNext modules, `verbatimModuleSyntax: true`
-- **Path aliases**: `@config`, `@database`, `@services`, `@utils`, `@errors`, `@consts` — mapped in `tsconfig.json`, resolved by Bun bundler
+- **Path aliases**: `@config`, `@database`, `@services`, `@utils`, `@errors`, `@consts` — mapped in `tsconfig.json`, resolved by Bun
 
 ### Patterns
 
@@ -48,12 +48,13 @@
 
 ### Database
 
-- **ORM**: Prisma with SQLite
-- **Schema**: `prisma/schema.prisma` — 3 models: `History`, `Expire`, `MessageQueue`
-- **Migrations**: `prisma/migrations/` — run with `bun run prisma:migrate:deploy`
+- **ORM**: Drizzle ORM with bun:sqlite (synchronous)
+- **Schema**: `src/database/schema.ts` — 3 tables: `History`, `Expire`, `MessageQueue`
+- **Migrations**: `drizzle/` directory — generated with `bun run db:generate`, applied automatically on startup via `migrate()`
+- **Config**: `drizzle.config.ts` at project root
 
 ## Known Issues & Technical Debt
 
 ### Security
 
-- `new Function("obj", rule.matcher)` in `processRules` (`src/services/index.ts`) is effectively `eval`. RSS rule `type: func` allows arbitrary code execution from config. This is acceptable since config is trusted, but should never accept untrusted input.
+- `new Function("obj", rule.matcher)` in `processRules` (`src/services/index.ts`) is effectively `eval`. RSS rule `type: func` and remote matcher `func` allow arbitrary code execution from config. This is acceptable since config is trusted, but should never accept untrusted input.
