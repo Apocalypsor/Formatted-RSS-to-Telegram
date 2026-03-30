@@ -21,6 +21,8 @@ ENV DATABASE_URL="file:./config/db.sqlite"
 
 WORKDIR /app
 
+RUN apk add --no-cache libstdc++ libgcc
+
 # Copy binary and migration files
 COPY --from=builder /app/dist/fr2t ./fr2t
 COPY drizzle ./drizzle
