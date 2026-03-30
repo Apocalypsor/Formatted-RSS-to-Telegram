@@ -1,3 +1,3 @@
+export * from "./client";
 export * from "./helpers";
 export * from "./logger";
-export * from "./client";

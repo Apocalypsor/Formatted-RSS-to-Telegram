@@ -1,3 +1,2 @@
-bunx tsc --noEmit
-bun run lint
-bunx lint-staged
+bun typecheck
+bun lint-staged

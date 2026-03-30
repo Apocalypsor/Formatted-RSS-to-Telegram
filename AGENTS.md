@@ -1,5 +1,15 @@
 # AGENTS.md
 
+> **MANDATORY: Code Quality & Documentation**
+>
+> Before committing ANY changes, you MUST:
+>
+> 1. Run `bun check` — Biome lint + format check. Fix ALL errors and warnings. Do NOT use `biome-ignore` — fix the code instead.
+> 2. Run `bun typecheck` — TypeScript type checking. Fix ALL errors.
+> 3. Update **AGENTS.md** and **README.md** if your changes affect commands, conventions, architecture, or features. Do not forget README.md.
+>
+> These checks also run automatically on pre-commit hook (husky + lint-staged).
+
 ## Project Overview
 
 **Formatted-RSS-to-Telegram (FR2T)** is a self-hosted RSS-to-Telegram notification service. It periodically fetches RSS feeds, applies user-defined filters and rules, renders messages via Nunjucks templates, and sends them to Telegram chats through the Bot API. It runs as a long-lived process scheduled with `node-schedule`, backed by SQLite (via Prisma) for history deduplication and a persistent message queue.
@@ -9,55 +19,6 @@
 - **Database**: SQLite via Prisma ORM
 - **Deployment**: Docker (long-running container)
 
-## Architecture
-
-```
-src/
-├── index.ts              # Entry point: startup, scheduling, orchestration
-├── consts.ts             # Shared constants and enums
-├── errors.ts             # Custom error classes (config, sender, message errors)
-├── config/
-│   ├── index.ts          # Loads and exports config + rss at module level
-│   ├── config.ts         # Reads config.yaml → Config (Zod validated)
-│   ├── rss.ts            # Reads rss.yaml → RSS[] (Zod validated, expands arrays)
-│   └── schema.ts         # Zod schemas and inferred types for Config, RSS, Telegram, etc.
-├── database/
-│   ├── client.ts         # Prisma client singleton + initDatabase (WAL, PRAGMA tuning)
-│   ├── history.ts        # CRUD for History table (dedup, reserve/finalize, edit tracking)
-│   ├── expire.ts         # Upsert for Expire table (feed health tracking)
-│   ├── queue.ts          # CRUD for MessageQueue table (persistent task queue)
-│   └── index.ts          # Re-exports
-├── services/
-│   ├── index.ts          # processRSS: main pipeline (parse → filter → rule → render → enqueue)
-│   ├── parser.ts         # RSS feed fetching + parsing (rss-parser), FlareSolverr fallback
-│   ├── render.ts         # Nunjucks template rendering with Telegram Markdown escaping
-│   ├── sender.ts         # Telegram Bot API calls (send, edit, notify) via ky
-│   └── queue.ts          # MessageQueue class: p-queue based sequential processing + DB persistence
-└── utils/
-    ├── client.ts         # ky HTTP client factory with Bun native proxy support
-    ├── helpers.ts        # hash, getObj, extractMediaUrls, htmlDecode, isIntranet, getCachedRegex, etc.
-    ├── logger.ts         # Winston logger (console + file + daily rotate)
-    └── index.ts          # Re-exports
-```
-
-### Data Flow
-
-```
-Cron tick
-  → main()
-    → processRSS(rssItem) for each feed (parallel via Promise.allSettled)
-      → parseRSSFeed(url)           # fetch + parse XML, fallback to FlareSolverr
-      → processFilters(filters)     # regex-based include/exclude
-      → processRules(rules)         # regex or function transforms
-      → render(template, data)      # Nunjucks + Markdown escape
-      → getHistory(hash)            # dedup check against DB
-      → messageQueue.enqueueSend()  # or enqueueEdit() if content changed
-        → persisted to MessageQueue table
-        → processed sequentially via p-queue (1s interval, concurrency 1)
-        → on success: save/finalize History table entry
-        → on failure: mark as failed in DB, record in history with messageId=0
-```
-
 ### Key Design Decisions
 
 - **Config at module scope**: `config/index.ts` loads YAML synchronously at import time. Everything downstream imports `config` and `rss` as constants.
@@ -66,75 +27,6 @@ Cron tick
 - **Reserve/finalize pattern**: History entries are reserved (with `messageId=0`) before sending, then finalized with the real `messageId` after success. This prevents duplicate sends on crash recovery.
 - **First run handling**: On first run (no history in DB), items are saved directly to history without sending, to avoid flooding on initial setup.
 - **BigInt for Telegram IDs**: `chatId` and `messageId` use BigInt throughout, serialized as strings in JSON.
-
-## Setup
-
-```bash
-# Install dependencies
-bun install
-
-# Generate Prisma client
-bun run prisma:generate
-
-# Run database migrations
-bun run prisma:migrate:deploy
-
-# Development (hot reload)
-bun run dev
-
-# Production build
-bun run build
-bun run start
-```
-
-### Environment Variables
-
-| Variable       | Required | Description                                       |
-| -------------- | -------- | ------------------------------------------------- |
-| `DATABASE_URL` | Yes      | SQLite path, e.g. `file:./config/db.sqlite`       |
-| `CONFIG_PATH`  | No       | Config filename override (default: `config.yaml`) |
-| `RSS_PATH`     | No       | RSS filename override (default: `rss.yaml`)       |
-| `NODE_ENV`     | No       | Set to `development` for debug logging            |
-
-### Configuration Files
-
-Config files live in `./config/` (mounted as volume in Docker):
-
-- `config.yaml` — Global settings: proxy, Telegram bots, interval, FlareSolverr, etc. See `docs/config_sample.yaml`.
-- `rss.yaml` — RSS feed definitions with rules, filters, templates. See `docs/rss_sample.yaml`.
-
-Both are validated with Zod schemas at `src/config/schema.ts`.
-
-## Build & Run
-
-```bash
-# Type check (no emit)
-npx tsc --noEmit
-
-# Build (Bun bundler, externalizes node_modules)
-bun run build
-
-# Run production
-bun run start
-
-# Lint
-bun run lint
-bun run lint:fix
-```
-
-Build script: `scripts/build.ts` — uses `Bun.build()` with all dependencies externalized.
-
-## Testing
-
-```bash
-# Run all tests
-bun test
-
-# Run specific test file
-bun test src/services/render.spec.ts
-```
-
-Tests use Bun's built-in test runner. Tests are co-located with source files using `.spec.ts` suffix. No test files currently exist.
 
 ## Code Conventions
 

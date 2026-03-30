@@ -1,35 +1,34 @@
 {
-    "compilerOptions": {
-        "lib": ["ESNext"],
-        "target": "ESNext",
-        "module": "Preserve",
-        "moduleDetection": "force",
-        "jsx": "react-jsx",
-        "allowJs": true,
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
-        "verbatimModuleSyntax": true,
-        "noEmit": true,
-        "strict": true,
-        "skipLibCheck": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUncheckedIndexedAccess": true,
-        "noImplicitOverride": true,
-        "noUnusedLocals": false,
-        "noUnusedParameters": false,
-        "noPropertyAccessFromIndexSignature": false,
-        "outDir": "./dist",
-        "rootDir": "./src",
-        "baseUrl": "./src",
-        "paths": {
-            "@utils": ["./utils/index.ts"],
-            "@consts": ["./consts.ts"],
-            "@database": ["./database/index.ts"],
-            "@errors": ["./errors.ts"],
-            "@config": ["./config/index.ts"],
-            "@services": ["./services/index.ts"]
-        }
-    },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist", "prisma"]
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "@utils": ["./src/utils/index.ts"],
+      "@consts": ["./src/consts.ts"],
+      "@database": ["./src/database/index.ts"],
+      "@errors": ["./src/errors.ts"],
+      "@config": ["./src/config/index.ts"],
+      "@services": ["./src/services/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "prisma"]
 }

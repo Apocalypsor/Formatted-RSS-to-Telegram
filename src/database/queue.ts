@@ -1,55 +1,57 @@
-import { prisma } from "./client";
 import { QUEUE_CLEANUP_HOURS, QUEUE_STATUS } from "@consts";
+import { prisma } from "./client";
 
 export const enqueueMessage = async (
-    taskType: string,
-    taskData: string,
+  taskType: string,
+  taskData: string,
 ): Promise<number> => {
-    const task = await prisma.messageQueue.create({
-        data: {
-            task_type: taskType,
-            task_data: taskData,
-            status: QUEUE_STATUS.PENDING,
-        },
-    });
-    return task.id;
+  const task = await prisma.messageQueue.create({
+    data: {
+      task_type: taskType,
+      task_data: taskData,
+      status: QUEUE_STATUS.PENDING,
+    },
+  });
+  return task.id;
 };
 
 export const getPendingMessages = async () => {
-    return prisma.messageQueue.findMany({
-        where: {
-            status: QUEUE_STATUS.PENDING,
-        },
-        orderBy: {
-            created_at: "asc",
-        },
-    });
+  return prisma.messageQueue.findMany({
+    where: {
+      status: QUEUE_STATUS.PENDING,
+    },
+    orderBy: {
+      created_at: "asc",
+    },
+  });
 };
 
 export const updateMessageStatus = async (
-    id: number,
-    status: string,
-    error?: string,
+  id: number,
+  status: string,
+  error?: string,
 ) => {
-    return prisma.messageQueue.update({
-        where: { id },
-        data: {
-            status,
-            error,
-        },
-    });
+  return prisma.messageQueue.update({
+    where: { id },
+    data: {
+      status,
+      error,
+    },
+  });
 };
 
-export const deleteCompletedMessages = async (olderThanHours = QUEUE_CLEANUP_HOURS) => {
-    const cutoffDate = new Date();
-    cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);
+export const deleteCompletedMessages = async (
+  olderThanHours = QUEUE_CLEANUP_HOURS,
+) => {
+  const cutoffDate = new Date();
+  cutoffDate.setHours(cutoffDate.getHours() - olderThanHours);
 
-    await prisma.messageQueue.deleteMany({
-        where: {
-            status: QUEUE_STATUS.COMPLETED,
-            updated_at: {
-                lt: cutoffDate,
-            },
-        },
-    });
+  await prisma.messageQueue.deleteMany({
+    where: {
+      status: QUEUE_STATUS.COMPLETED,
+      updated_at: {
+        lt: cutoffDate,
+      },
+    },
+  });
 };

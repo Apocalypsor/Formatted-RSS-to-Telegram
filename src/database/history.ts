@@ -1,106 +1,106 @@
 import { prisma } from "./client";
 
 export const checkHistoryInitialized = async (): Promise<boolean> => {
-    const history = await prisma.history.findFirst();
-    return !!history;
+  const history = await prisma.history.findFirst();
+  return !!history;
 };
 
 export const getFirstHistoryByURL = async (url: string) => {
-    return prisma.history.findFirst({
-        where: {
-            url,
-        },
-    });
+  return prisma.history.findFirst({
+    where: {
+      url,
+    },
+  });
 };
 
 export const getHistory = async (uniqueHash: string) => {
-    return prisma.history.findFirst({
-        where: {
-            unique_hash: uniqueHash,
-        },
-    });
+  return prisma.history.findFirst({
+    where: {
+      unique_hash: uniqueHash,
+    },
+  });
 };
 
 export const addHistory = async (
-    uniqueHash: string,
-    url: string,
-    textHash: string,
-    telegramName: string,
-    telegramMessageId: bigint,
-    telegramChatId: bigint,
+  uniqueHash: string,
+  url: string,
+  textHash: string,
+  telegramName: string,
+  telegramMessageId: bigint,
+  telegramChatId: bigint,
 ) => {
-    return prisma.history.upsert({
-        where: { unique_hash: uniqueHash },
-        create: {
-            unique_hash: uniqueHash,
-            url: url,
-            text_hash: textHash,
-            telegram_name: telegramName,
-            telegram_message_id: telegramMessageId,
-            telegram_chat_id: telegramChatId,
-        },
-        update: {},
-    });
+  return prisma.history.upsert({
+    where: { unique_hash: uniqueHash },
+    create: {
+      unique_hash: uniqueHash,
+      url: url,
+      text_hash: textHash,
+      telegram_name: telegramName,
+      telegram_message_id: telegramMessageId,
+      telegram_chat_id: telegramChatId,
+    },
+    update: {},
+  });
 };
 
 export const reserveHistory = async (
-    uniqueHash: string,
-    url: string,
-    textHash: string,
-    telegramName: string,
-    telegramChatId: bigint,
+  uniqueHash: string,
+  url: string,
+  textHash: string,
+  telegramName: string,
+  telegramChatId: bigint,
 ) => {
-    return prisma.history.upsert({
-        where: { unique_hash: uniqueHash },
-        create: {
-            unique_hash: uniqueHash,
-            url: url,
-            text_hash: textHash,
-            telegram_name: telegramName,
-            telegram_message_id: BigInt(0),
-            telegram_chat_id: telegramChatId,
-        },
-        update: {},
-    });
+  return prisma.history.upsert({
+    where: { unique_hash: uniqueHash },
+    create: {
+      unique_hash: uniqueHash,
+      url: url,
+      text_hash: textHash,
+      telegram_name: telegramName,
+      telegram_message_id: BigInt(0),
+      telegram_chat_id: telegramChatId,
+    },
+    update: {},
+  });
 };
 
 export const finalizeHistory = async (
-    uniqueHash: string,
-    textHash: string,
-    telegramMessageId: bigint,
+  uniqueHash: string,
+  textHash: string,
+  telegramMessageId: bigint,
 ) => {
-    return prisma.history.update({
-        where: { unique_hash: uniqueHash },
-        data: {
-            text_hash: textHash,
-            telegram_message_id: telegramMessageId,
-        },
-    });
+  return prisma.history.update({
+    where: { unique_hash: uniqueHash },
+    data: {
+      text_hash: textHash,
+      telegram_message_id: telegramMessageId,
+    },
+  });
 };
 
 export const updateHistory = async (
-    id: number,
-    textHash: string,
-    telegramMessageId: bigint,
+  id: number,
+  textHash: string,
+  telegramMessageId: bigint,
 ) => {
-    return prisma.history.update({
-        where: { id },
-        data: {
-            text_hash: textHash,
-            telegram_message_id: telegramMessageId,
-        },
-    });
+  return prisma.history.update({
+    where: { id },
+    data: {
+      text_hash: textHash,
+      telegram_message_id: telegramMessageId,
+    },
+  });
 };
 
 export const clean = async (numberOfDays = 30) => {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - numberOfDays);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - numberOfDays);
 
-    await prisma.history.deleteMany({
-        where: {
-            created_at: {
-                lt: cutoffDate,
-            },
-        },
-    });
+  await prisma.history.deleteMany({
+    where: {
+      created_at: {
+        lt: cutoffDate,
+      },
+    },
+  });
 };

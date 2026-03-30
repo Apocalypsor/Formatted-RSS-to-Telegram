@@ -19,27 +19,27 @@ export const CONTENT_SNIPPET_LENGTH = 200;
 export const EXPIRE_NOTIFY_THRESHOLD = 16;
 
 export enum TASK_TYPE {
-    SEND = "send",
-    EDIT = "edit",
+  SEND = "send",
+  EDIT = "edit",
 }
 
 export enum MEDIA_TYPE {
-    PHOTO = "photo",
-    VIDEO = "video",
+  PHOTO = "photo",
+  VIDEO = "video",
 }
 
 export enum QUEUE_STATUS {
-    PENDING = "pending",
-    COMPLETED = "completed",
-    FAILED = "failed",
+  PENDING = "pending",
+  COMPLETED = "completed",
+  FAILED = "failed",
 }
 
 export enum RSS_RULE_TYPE {
-    REGEX = "regex",
-    FUNC = "func",
+  REGEX = "regex",
+  FUNC = "func",
 }
 
 export enum RSS_FILTER_TYPE {
-    OUT = "out",
-    IN = "in",
+  OUT = "out",
+  IN = "in",
 }
