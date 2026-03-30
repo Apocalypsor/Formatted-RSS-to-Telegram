@@ -53,10 +53,15 @@ export const RSSRuleSchema = z.object({
   dest: z.string(),
 });
 
+export const RemoteMatcherSchema = z.object({
+  url: z.string(),
+  func: z.string().optional(),
+});
+
 export const RSSFilterSchema = z.object({
   obj: z.string(),
   type: z.nativeEnum(RSS_FILTER_TYPE),
-  matcher: z.string(),
+  matcher: z.union([z.string(), RemoteMatcherSchema]),
 });
 
 export const RSSItemSchema = z.object({
@@ -79,3 +84,4 @@ export type Telegram = z.infer<typeof TelegramSchema>;
 export type RSS = z.infer<typeof RSSItemSchema>;
 export type RSSRule = z.infer<typeof RSSRuleSchema>;
 export type RSSFilter = z.infer<typeof RSSFilterSchema>;
+export type RemoteMatcher = z.infer<typeof RemoteMatcherSchema>;

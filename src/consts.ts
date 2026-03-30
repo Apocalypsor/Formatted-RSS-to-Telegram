@@ -15,6 +15,7 @@ export const QUEUE_CLEANUP_HOURS = 24;
 
 // RSS
 export const RSS_PARSER_TIMEOUT = 10000;
+export const REMOTE_MATCHER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 export const CONTENT_SNIPPET_LENGTH = 200;
 export const EXPIRE_NOTIFY_THRESHOLD = 16;
 

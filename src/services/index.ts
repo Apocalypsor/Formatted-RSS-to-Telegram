@@ -14,6 +14,7 @@ import {
 } from "@database";
 import { extractMediaUrls, getCachedRegex, getObj, hash, logger } from "@utils";
 import * as _ from "lodash-es";
+import { resolveMatcherPattern } from "./matcher";
 import { parseRSSFeed } from "./parser";
 import { messageQueue } from "./queue";
 import { render } from "./render";
@@ -66,7 +67,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
   );
 
   // process filters and rules
-  if (processFilters(rssItem.filters, itemObj)) return;
+  if (await processFilters(rssItem.filters, itemObj)) return;
   processRules(rssItem.rules, itemObj);
 
   // process media
@@ -185,23 +186,26 @@ const processRules = (rules: RSSRule[], content: unknown) => {
   }
 };
 
-const processFilters = (filters: RSSFilter[], content: unknown): boolean => {
+const processFilters = async (
+  filters: RSSFilter[],
+  content: unknown,
+): Promise<boolean> => {
   const contentObj = content as Record<string, unknown>;
 
   let filterOut = false;
   for (const filter of filters) {
     const obj = getObj(contentObj, filter.obj);
     if (!obj) continue;
+    const pattern = await resolveMatcherPattern(filter.matcher);
+    const regex = getCachedRegex(pattern);
     if (filter.type === RSS_FILTER_TYPE.IN) {
       filterOut = true;
-      const regex = getCachedRegex(filter.matcher);
       if (regex.exec(obj as string)) {
         filterOut = false;
         break;
       }
     } else if (filter.type === RSS_FILTER_TYPE.OUT) {
       filterOut = false;
-      const regex = getCachedRegex(filter.matcher);
       if (regex.exec(obj as string)) {
         filterOut = true;
         break;

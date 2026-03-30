@@ -28,7 +28,18 @@ rss:
     filters: # Optional, used to filter the rss feed
       - obj: title # Required, field of the rss feed to filter, 'path1.path2.path3' means rssItem.path1.path2.path3.
         type: out # Required, can be in or out, in means the field should match the matcher, out means the field should not match the matcher
-        matcher: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} # Required, regex to match the field
+        matcher: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} # Required, regex string or remote matcher object
+      - obj: title # Remote matcher: fetch URL content and use it directly as regex
+        type: in
+        matcher:
+          url: https://example.com/allowed-patterns.txt
+      - obj: title # Remote matcher with func: fetch URL content and transform it into regex
+        type: out
+        matcher:
+          url: https://example.com/blocklist.json
+          func: | # func receives fetched content as 'data', must return a regex string
+            const items = JSON.parse(data);
+            return items.map(i => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
     text:
       | # Required, template to render the message sent to the chat, using Nunjucks
       {{ title }}{{ author }}{{ link }}{{ content }}{{ contentSnippet }}
