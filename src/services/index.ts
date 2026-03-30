@@ -126,7 +126,7 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
         rssItem.url,
         text_hash,
         sender.name,
-        BigInt(-1),
+        -1,
         sender.chatId,
       );
     } else {
@@ -140,8 +140,8 @@ const processItem = async (rssItem: RSS, sender: Telegram, item: unknown) => {
       });
     }
   } else {
-    const messageId = existed.telegram_message_id;
-    if (messageId > 0 && text_hash !== existed.text_hash) {
+    const messageId = existed.telegramMessageId;
+    if (messageId > 0 && text_hash !== existed.textHash) {
       // Enqueue edit task (fire-and-forget) with deduplication
       messageQueue.enqueueEdit(tmpSender, messageId, text, {
         uniqueHash,

@@ -26,7 +26,7 @@ export interface SendTaskMetadata {
   textHash: string;
   url: string;
   senderName: string;
-  chatId: bigint;
+  chatId: number;
 }
 
 export interface EditTaskMetadata {
@@ -49,7 +49,7 @@ export interface SendMessageTaskData {
 export interface EditMessageTaskData {
   type: TASK_TYPE.EDIT;
   sender: Telegram;
-  messageId: string; // BigInt serialized as string
+  messageId: string; // number serialized as string
   text: string;
   metadata?: EditTaskMetadata;
 }
@@ -88,7 +88,7 @@ class MessageQueue {
 
   enqueueEdit(
     sender: Telegram,
-    messageId: bigint,
+    messageId: number,
     text: string,
     metadata?: EditTaskMetadata,
   ): void {
@@ -103,10 +103,7 @@ class MessageQueue {
 
   private async persistAndEnqueue(taskData: MessageTaskData): Promise<void> {
     try {
-      const dbId = await enqueueMessage(
-        taskData.type,
-        JSON.stringify(taskData),
-      );
+      const dbId = enqueueMessage(taskData.type, JSON.stringify(taskData));
       logger.debug(
         `Task enqueued (DB ID: ${dbId}). Queue size: ${this.getQueueSize()}, Type: ${taskData.type}`,
       );
@@ -125,7 +122,7 @@ class MessageQueue {
         );
 
         if (data.metadata) {
-          await reserveHistory(
+          reserveHistory(
             data.metadata.uniqueHash,
             data.metadata.url,
             data.metadata.textHash,
@@ -138,7 +135,7 @@ class MessageQueue {
 
         if (data.metadata) {
           try {
-            await finalizeHistory(
+            finalizeHistory(
               data.metadata.uniqueHash,
               data.metadata.textHash,
               messageId,
@@ -152,19 +149,19 @@ class MessageQueue {
         }
       } else {
         const data = task.data;
-        const messageIdBigInt = BigInt(data.messageId);
+        const messageId = Number(data.messageId);
         logger.debug(
           `Processing edit task (DB ID: ${task.dbId}) for ${data.sender.name}, message ${data.messageId}`,
         );
 
-        await edit(data.sender, messageIdBigInt, data.text);
+        await edit(data.sender, messageId, data.text);
 
         if (data.metadata) {
           try {
-            await updateHistory(
+            updateHistory(
               data.metadata.historyId,
               data.metadata.textHash,
-              messageIdBigInt,
+              messageId,
             );
             logger.debug(`Updated history for message ${data.messageId}`);
           } catch (e) {
@@ -176,12 +173,13 @@ class MessageQueue {
       }
 
       if (task.dbId) {
-        await updateMessageStatus(task.dbId, QUEUE_STATUS.COMPLETED).catch(
-          (e) =>
-            logger.error(
-              `Failed to update task status to completed (DB ID: ${task.dbId}): ${e}`,
-            ),
-        );
+        try {
+          updateMessageStatus(task.dbId, QUEUE_STATUS.COMPLETED);
+        } catch (e) {
+          logger.error(
+            `Failed to update task status to completed (DB ID: ${task.dbId}): ${e}`,
+          );
+        }
       }
     } catch (error) {
       const errorDetail =
@@ -189,40 +187,38 @@ class MessageQueue {
       logger.error(`Task (DB ID: ${task.dbId}) failed: ${errorDetail}`);
 
       if (task.dbId) {
-        await updateMessageStatus(
-          task.dbId,
-          QUEUE_STATUS.FAILED,
-          errorDetail,
-        ).catch((e) =>
+        try {
+          updateMessageStatus(task.dbId, QUEUE_STATUS.FAILED, errorDetail);
+        } catch (e) {
           logger.error(
             `Failed to update task status to failed (DB ID: ${task.dbId}): ${e}`,
-          ),
-        );
+          );
+        }
       }
 
       // Save failure to history
       if (task.data.type === TASK_TYPE.SEND && task.data.metadata) {
         const meta = task.data.metadata;
-        await addHistory(
-          meta.uniqueHash,
-          meta.url,
-          meta.textHash,
-          meta.senderName,
-          BigInt(0),
-          meta.chatId,
-        ).catch((e) =>
-          logger.error(`Failed to mark failed send task in history: ${e}`),
-        );
+        try {
+          addHistory(
+            meta.uniqueHash,
+            meta.url,
+            meta.textHash,
+            meta.senderName,
+            0,
+            meta.chatId,
+          );
+        } catch (e) {
+          logger.error(`Failed to mark failed send task in history: ${e}`);
+        }
       } else if (task.data.type === TASK_TYPE.EDIT && task.data.metadata) {
         const meta = task.data.metadata;
-        const messageIdBigInt = BigInt(task.data.messageId);
-        await updateHistory(
-          meta.historyId,
-          meta.textHash,
-          messageIdBigInt,
-        ).catch((e) =>
-          logger.error(`Failed to mark failed edit task in history: ${e}`),
-        );
+        const messageId = Number(task.data.messageId);
+        try {
+          updateHistory(meta.historyId, meta.textHash, messageId);
+        } catch (e) {
+          logger.error(`Failed to mark failed edit task in history: ${e}`);
+        }
       }
     }
   }
@@ -254,9 +250,9 @@ class MessageQueue {
     }
   }
 
-  async recoverPendingTasks(): Promise<void> {
+  recoverPendingTasks(): void {
     logger.info("Recovering pending tasks from database...");
-    const pendingTasks = await getPendingMessages();
+    const pendingTasks = getPendingMessages();
 
     if (pendingTasks.length === 0) {
       logger.info("No pending tasks to recover");
@@ -267,21 +263,22 @@ class MessageQueue {
 
     for (const dbTask of pendingTasks) {
       try {
-        const taskData: MessageTaskData = JSON.parse(dbTask.task_data);
+        const taskData: MessageTaskData = JSON.parse(dbTask.taskData);
 
         // Skip send tasks whose history already has a real messageId (already sent)
         if (taskData.type === TASK_TYPE.SEND && taskData.metadata?.uniqueHash) {
-          const existing = await getHistory(taskData.metadata.uniqueHash);
-          if (existing && existing.telegram_message_id > 0) {
+          const existing = getHistory(taskData.metadata.uniqueHash);
+          if (existing && existing.telegramMessageId > 0) {
             logger.info(
-              `Task ${dbTask.id} already sent (messageId: ${existing.telegram_message_id}), marking completed`,
+              `Task ${dbTask.id} already sent (messageId: ${existing.telegramMessageId}), marking completed`,
             );
-            await updateMessageStatus(dbTask.id, QUEUE_STATUS.COMPLETED).catch(
-              (e) =>
-                logger.error(
-                  `Failed to mark already-sent task ${dbTask.id} as completed: ${e}`,
-                ),
-            );
+            try {
+              updateMessageStatus(dbTask.id, QUEUE_STATUS.COMPLETED);
+            } catch (e) {
+              logger.error(
+                `Failed to mark already-sent task ${dbTask.id} as completed: ${e}`,
+              );
+            }
             continue;
           }
         }
@@ -291,28 +288,24 @@ class MessageQueue {
         );
       } catch (error) {
         logger.error(`Failed to recover task ${dbTask.id}: ${error}`);
-        await updateMessageStatus(
-          dbTask.id,
-          QUEUE_STATUS.FAILED,
-          String(error),
-        ).catch((e) =>
+        try {
+          updateMessageStatus(dbTask.id, QUEUE_STATUS.FAILED, String(error));
+        } catch (e) {
           logger.error(
             `Failed to mark corrupted task ${dbTask.id} as failed: ${e}`,
-          ),
-        );
+          );
+        }
       }
     }
 
     logger.info(`Recovered ${pendingTasks.length} tasks into queue`);
   }
 
-  async cleanupCompletedTasks(
-    olderThanHours = QUEUE_CLEANUP_HOURS,
-  ): Promise<void> {
+  cleanupCompletedTasks(olderThanHours = QUEUE_CLEANUP_HOURS): void {
     logger.info(
       `Cleaning up completed tasks older than ${olderThanHours} hours`,
     );
-    await deleteCompletedMessages(olderThanHours);
+    deleteCompletedMessages(olderThanHours);
   }
 }
 

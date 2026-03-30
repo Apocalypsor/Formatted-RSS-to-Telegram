@@ -1,5 +1,9 @@
-// Re-export all database operations
-export * from "./client";
+export { db, initDatabase } from "./client";
 export * from "./expire";
 export * from "./history";
-export * from "./queue";
+export {
+  deleteCompletedMessages,
+  enqueueMessage,
+  getPendingMessages,
+  updateMessageStatus,
+} from "./queue";

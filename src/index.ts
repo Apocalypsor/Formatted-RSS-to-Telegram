@@ -1,24 +1,8 @@
 import { config, rss } from "@config";
-import {
-  checkHistoryInitialized,
-  clean,
-  initDatabase,
-  prisma,
-} from "@database";
+import { checkHistoryInitialized, clean, initDatabase } from "@database";
 import processRSS, { messageQueue, setFirstRun } from "@services";
 import { createDirIfNotExists, getHostIPInfo, logger, mapError } from "@utils";
 import { gracefulShutdown, scheduleJob } from "node-schedule";
-
-// workaround for BigInt serialization
-declare global {
-  interface BigInt {
-    toJSON: () => string;
-  }
-}
-
-BigInt.prototype.toJSON = function () {
-  return this.toString();
-};
 
 const main = async () => {
   const isFirstRun = !(await checkHistoryInitialized());
@@ -59,7 +43,6 @@ const shutdown = async (signal: string) => {
   logger.info(`Received ${signal}, shutting down gracefully...`);
   await gracefulShutdown();
   await messageQueue.drain();
-  await prisma.$disconnect();
   logger.info("Shutdown complete");
   process.exit(0);
 };
@@ -68,9 +51,9 @@ process.on("SIGINT", () => void shutdown("SIGINT"));
 process.on("SIGTERM", () => void shutdown("SIGTERM"));
 
 // Initialize database with optimized PRAGMA settings and recover pending tasks
-initDatabase()
-  .then(() => messageQueue.recoverPendingTasks())
-  .then(() => main())
+initDatabase();
+messageQueue.recoverPendingTasks();
+main()
   .then(() => {
     logger.info("Initial RSS processing finished");
     logger.info(`Schedule job started, interval: ${config.interval} minutes`);
@@ -90,6 +73,6 @@ initDatabase()
       logger.info("Finished cleaning completed queue tasks");
     });
   })
-  .catch((e) => {
+  .catch((e: Error) => {
     logger.error(`Failed to start the initial RSS processing: ${e.message}`);
   });

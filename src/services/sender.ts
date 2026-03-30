@@ -33,7 +33,7 @@ export const send = async (
     type: MEDIA_TYPE;
     url: string;
   }[],
-): Promise<bigint> => {
+): Promise<number> => {
   let sendByText = true;
   let payload: Record<string, unknown> = {};
   let endpoint: string = "";
@@ -103,7 +103,7 @@ export const send = async (
         `${sender.name}: unexpected response structure, missing message_id`,
       );
     }
-    const messageId = BigInt(rawId);
+    const messageId = Number(rawId);
     logger.info(`Message ${messageId} sent to ${sender.name}.`);
     return messageId;
   } else {
@@ -111,7 +111,7 @@ export const send = async (
   }
 };
 
-const editText = async (sender: Telegram, messageId: bigint, text: string) => {
+const editText = async (sender: Telegram, messageId: number, text: string) => {
   const endpoint = tgEndpoint(sender.token, "editMessageText");
   const payload = {
     chat_id: sender.chatId,
@@ -130,7 +130,7 @@ const editText = async (sender: Telegram, messageId: bigint, text: string) => {
 
 const editCaption = async (
   sender: Telegram,
-  messageId: bigint,
+  messageId: number,
   caption: string,
 ) => {
   const endpoint = tgEndpoint(sender.token, "editMessageCaption");
@@ -163,7 +163,7 @@ const getTelegramErrorDescription = async (
 
 export const edit = async (
   sender: Telegram,
-  messageId: bigint,
+  messageId: number,
   text: string,
 ) => {
   try {

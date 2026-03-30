@@ -43,14 +43,14 @@ export class SendMessageFailedError extends Error {
 }
 
 export class MessageNotFoundError extends Error {
-  constructor(messageId: bigint, sender: string) {
+  constructor(messageId: number, sender: string) {
     super(`Message ${messageId} not found on ${sender}`);
     this.name = "MessageNotFoundError";
   }
 }
 
 export class FailedToEditMessageError extends Error {
-  constructor(messageId: bigint, sender: string) {
+  constructor(messageId: number, sender: string) {
     super(`Failed to edit message ${messageId} on ${sender}`);
     this.name = "FailedToEditMessageError";
   }

@@ -10,16 +10,15 @@ RUN apk add --no-cache openssl \
 
 # Copy dependency files first for better caching
 COPY package.json bun.lock* ./
-COPY prisma ./prisma
 
-# Install production dependencies + generate Prisma client
+# Install production dependencies
 RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
     && bun install --production --frozen-lockfile \
-    && bunx prisma generate \
     && rm -rf /root/.bun/install/cache
 
-# Copy source code and config
+# Copy source code, config, and migrations
 COPY src ./src
+COPY drizzle ./drizzle
 COPY tsconfig.json ./
 
 # Copy entrypoint script

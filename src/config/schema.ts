@@ -25,7 +25,7 @@ export const ProxySchema = z.union([EnabledProxySchema, DisabledProxySchema]);
 export const TelegramSchema = z.object({
   name: z.string(),
   token: z.string(),
-  chatId: z.number().transform((val) => BigInt(val)),
+  chatId: z.number(),
   parseMode: z.string().default("Markdown"),
   disableNotification: z.boolean().default(false),
   disableWebPagePreview: z.boolean().default(false),

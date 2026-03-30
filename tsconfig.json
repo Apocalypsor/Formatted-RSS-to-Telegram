@@ -21,6 +21,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "paths": {
+      "bun:sqlite": ["./node_modules/bun-types/sqlite.d.ts"],
       "@utils": ["./src/utils/index.ts"],
       "@consts": ["./src/consts.ts"],
       "@database": ["./src/database/index.ts"],
