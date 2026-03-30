@@ -17,7 +17,7 @@ RUN bun build --compile --target=bun src/index.ts --outfile dist/fr2t
 FROM oven/bun:alpine
 
 ENV NODE_ENV=production
-ENV DATABASE_URL="file:../config/db.sqlite"
+ENV DATABASE_URL="file:./config/db.sqlite"
 
 WORKDIR /app
 
