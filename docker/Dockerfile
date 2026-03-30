@@ -11,10 +11,10 @@ RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
 COPY src ./src
 COPY tsconfig.json ./
 
-RUN bun build --compile --target=bun src/index.ts --outfile dist/fr2t
+RUN NODE_ENV=production bun build --compile --target=bun src/index.ts --outfile dist/fr2t
 
 # Production stage
-FROM oven/bun:alpine
+FROM alpine:latest
 
 ENV NODE_ENV=production
 ENV DATABASE_URL="file:./config/db.sqlite"
