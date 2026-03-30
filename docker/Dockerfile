@@ -1,3 +1,19 @@
+# Build stage
+FROM oven/bun:alpine AS builder
+
+WORKDIR /app
+
+COPY package.json bun.lock* ./
+
+RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
+    && bun install --frozen-lockfile
+
+COPY src ./src
+COPY tsconfig.json ./
+
+RUN bun build --compile --target=bun src/index.ts --outfile dist/fr2t
+
+# Production stage
 FROM oven/bun:alpine
 
 ENV NODE_ENV=production
@@ -5,21 +21,9 @@ ENV DATABASE_URL="file:../config/db.sqlite"
 
 WORKDIR /app
 
-RUN apk add --no-cache openssl \
-    && rm -rf /root/.cache /tmp/*
-
-# Copy dependency files first for better caching
-COPY package.json bun.lock* ./
-
-# Install production dependencies
-RUN sed -i 's/"prepare": ".*"/"prepare": ""/' package.json \
-    && bun install --production --frozen-lockfile \
-    && rm -rf /root/.bun/install/cache
-
-# Copy source code, config, and migrations
-COPY src ./src
+# Copy binary and migration files
+COPY --from=builder /app/dist/fr2t ./fr2t
 COPY drizzle ./drizzle
-COPY tsconfig.json ./
 
 # Copy entrypoint script
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
