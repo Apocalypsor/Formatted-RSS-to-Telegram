@@ -19,6 +19,16 @@ interface TelegramResponse {
   result?: { message_id?: number } | { message_id?: number }[];
 }
 
+interface MediaItem {
+  type: MEDIA_TYPE;
+  url: string;
+}
+
+interface TgRequest {
+  endpoint: string;
+  payload: Record<string, unknown>;
+}
+
 const tgEndpoint = (token: string, method: string) =>
   `${TELEGRAM_API_BASE}${token}/${method}`;
 
@@ -26,61 +36,86 @@ export const getSender = (sender: string): Telegram | undefined => {
   return config.telegram.find((s) => s.name === sender);
 };
 
+const buildTextPayload = (sender: Telegram, text: string): TgRequest => ({
+  endpoint: tgEndpoint(sender.token, "sendMessage"),
+  payload: {
+    chat_id: sender.chatId,
+    text,
+    parse_mode: sender.parseMode,
+    disable_web_page_preview: sender.disableWebPagePreview,
+    disable_notification: sender.disableNotification,
+  },
+});
+
+const buildSingleMediaPayload = (
+  sender: Telegram,
+  text: string,
+  media: MediaItem,
+): TgRequest => ({
+  endpoint: tgEndpoint(sender.token, `send${_.capitalize(media.type)}`),
+  payload: {
+    chat_id: sender.chatId,
+    [media.type]: media.url,
+    caption: text,
+    parse_mode: sender.parseMode,
+    disable_notification: sender.disableNotification,
+  },
+});
+
+const buildMediaGroupPayload = (
+  sender: Telegram,
+  text: string,
+  medias: MediaItem[],
+): TgRequest => ({
+  endpoint: tgEndpoint(sender.token, "sendMediaGroup"),
+  payload: {
+    chat_id: sender.chatId,
+    media: medias.map((item, index) => ({
+      type: item.type,
+      media: item.url,
+      caption: index === 0 ? text : undefined,
+      parse_mode: sender.parseMode,
+    })),
+    disable_notification: sender.disableNotification,
+  },
+});
+
+const buildSendRequest = (
+  sender: Telegram,
+  text: string,
+  mediaUrls?: MediaItem[],
+): TgRequest => {
+  if (mediaUrls?.[0]) {
+    if (mediaUrls.length === 1) {
+      return buildSingleMediaPayload(sender, text, mediaUrls[0]);
+    }
+    if (mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT) {
+      return buildMediaGroupPayload(sender, text, mediaUrls);
+    }
+    // Too many for a media group — fall back to plain text.
+  }
+  return buildTextPayload(sender, text);
+};
+
+const parseMessageId = (resp: TelegramResponse, senderName: string): number => {
+  const result = resp.result;
+  const rawId = Array.isArray(result)
+    ? result[0]?.message_id
+    : result?.message_id;
+  if (rawId == null) {
+    throw new SendMessageFailedError(
+      `${senderName}: unexpected response structure, missing message_id`,
+    );
+  }
+  return Number(rawId);
+};
+
 export const send = async (
   sender: Telegram,
   text: string,
-  mediaUrls?: {
-    type: MEDIA_TYPE;
-    url: string;
-  }[],
+  mediaUrls?: MediaItem[],
 ): Promise<number> => {
-  let sendByText = true;
-  let payload: Record<string, unknown> = {};
-  let endpoint: string = "";
-
-  if (mediaUrls) {
-    if (
-      mediaUrls.length > 1 &&
-      mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT
-    ) {
-      sendByText = false;
-      payload = {
-        chat_id: sender.chatId,
-        media: mediaUrls.map((item, index) => ({
-          type: item.type,
-          media: item.url,
-          caption: index === 0 ? text : undefined,
-          parse_mode: sender.parseMode,
-        })),
-        disable_notification: sender.disableNotification,
-      };
-      endpoint = tgEndpoint(sender.token, "sendMediaGroup");
-    } else if (mediaUrls.length === 1 && mediaUrls[0]) {
-      sendByText = false;
-      payload = {
-        chat_id: sender.chatId,
-        caption: text,
-        parse_mode: sender.parseMode,
-        disable_notification: sender.disableNotification,
-      };
-      payload[mediaUrls[0].type] = mediaUrls[0].url;
-      endpoint = tgEndpoint(
-        sender.token,
-        `send${_.capitalize(mediaUrls[0].type)}`,
-      );
-    }
-  }
-
-  if (sendByText) {
-    payload = {
-      chat_id: sender.chatId,
-      text: text,
-      parse_mode: sender.parseMode,
-      disable_web_page_preview: sender.disableWebPagePreview,
-      disable_notification: sender.disableNotification,
-    };
-    endpoint = tgEndpoint(sender.token, "sendMessage");
-  }
+  const { endpoint, payload } = buildSendRequest(sender, text, mediaUrls);
 
   logger.debug(
     `Sending ${
@@ -93,22 +128,13 @@ export const send = async (
     .post(endpoint, { json: payload })
     .json<TelegramResponse>();
 
-  if (resp?.ok) {
-    const result = resp.result;
-    const rawId = Array.isArray(result)
-      ? result[0]?.message_id
-      : result?.message_id;
-    if (rawId == null) {
-      throw new SendMessageFailedError(
-        `${sender.name}: unexpected response structure, missing message_id`,
-      );
-    }
-    const messageId = Number(rawId);
-    logger.info(`Message ${messageId} sent to ${sender.name}.`);
-    return messageId;
-  } else {
+  if (!resp?.ok) {
     throw new SendMessageFailedError(sender.name);
   }
+
+  const messageId = parseMessageId(resp, sender.name);
+  logger.info(`Message ${messageId} sent to ${sender.name}.`);
+  return messageId;
 };
 
 const editText = async (sender: Telegram, messageId: number, text: string) => {

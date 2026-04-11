@@ -1,60 +1,30 @@
 # AGENTS.md
 
-> **MANDATORY: Code Quality & Documentation**
->
-> Before committing ANY changes, you MUST:
->
-> 1. Run `bun check` — Biome lint + format check. Fix ALL errors and warnings. Do NOT use `biome-ignore` — fix the code instead.
-> 2. Run `bun typecheck` — TypeScript type checking. Fix ALL errors.
-> 3. Update **AGENTS.md** and **README.md** if your changes affect commands, conventions, architecture, or features. Do not forget README.md.
->
-> These checks also run automatically on pre-commit hook (husky + lint-staged).
+## Before committing
 
-## Project Overview
+1. `bun check` — Biome lint + format. Fix every error and warning; never reach for `biome-ignore`.
+2. `bun typecheck` — TypeScript. Fix every error.
+3. Update **README.md** / **AGENTS.md** if you change commands, conventions, or user-facing features.
 
-**Formatted-RSS-to-Telegram (FR2T)** is a self-hosted RSS-to-Telegram notification service. It periodically fetches RSS feeds, applies user-defined filters and rules, renders messages via Nunjucks templates, and sends them to Telegram chats through the Bot API. It runs as a long-lived process scheduled with `node-schedule`, backed by SQLite (via Drizzle ORM + bun:sqlite) for history deduplication and a persistent message queue.
+Husky + lint-staged runs `bun check` on staged files at commit time.
 
-- **Runtime**: Bun
-- **Language**: TypeScript (strict mode)
-- **Database**: SQLite via Drizzle ORM + bun:sqlite
-- **Deployment**: Docker (compiled to standalone binary)
+## Stack
 
-### Key Design Decisions
+Bun · TypeScript (strict, `verbatimModuleSyntax`) · SQLite via Drizzle ORM + bun:sqlite · Zod · Winston · Docker (compiled to a standalone binary).
 
-- **Config at module scope**: `config/index.ts` loads YAML synchronously at import time. Everything downstream imports `config` and `rss` as constants.
-- **Lazy client init**: `initClients()` is async (to break circular dep with config), returns cached ky instances via a promise.
-- **p-queue based processing**: `MessageQueue` uses `p-queue` with `concurrency: 1` and `intervalCap: 1` for rate limiting. DB table provides crash recovery — on startup, pending DB tasks are recovered into the p-queue.
-- **Reserve/finalize pattern**: History entries are reserved (with `messageId=0`) before sending, then finalized with the real `messageId` after success. This prevents duplicate sends on crash recovery.
-- **First run handling**: On first run (no history in DB), items are saved directly to history without sending, to avoid flooding on initial setup.
-- **Synchronous database**: All database operations are synchronous (bun:sqlite is a synchronous driver). No `async`/`await` on database functions.
-- **Remote matchers**: RSS filters support remote URL matchers with optional `func` transforms, cached with a configurable TTL.
+Path aliases (`tsconfig.json`): `@config` · `@database` · `@services` · `@utils` · `@errors` · `@consts`.
 
-## Code Conventions
+## Footguns
 
-### Style
+- **Database calls are synchronous.** bun:sqlite has no async API. Do NOT add `async`/`await` to functions in `src/database/` — it runs but is wrong, and tsc raises hint `80007`.
+- **`new Function(...)` in `services/pipeline.ts` is `eval`.** Both RSS rule `type: func` and remote matcher `func` execute config-supplied JS. Config is trusted; never let untrusted input reach `rules` or `matcher.func`.
+- **Config is loaded at module import.** `config/index.ts` parses YAML synchronously at first import. `config` and `rss` are constants for the lifetime of the process — there is no reload.
+- **`@utils` is for generic helpers only.** No `helpers.ts` / `utils.ts` dumping grounds. If something depends on `RSS` / `Telegram` / `MEDIA_TYPE` or other domain types, it belongs in `services/`, not `utils/`.
 
-- **Formatter/Linter**: Biome — handles both formatting and linting
-- **Pre-commit**: Husky + lint-staged — runs Biome check on staged files
-- **Module system**: ESNext modules, `verbatimModuleSyntax: true`
-- **Path aliases**: `@config`, `@database`, `@services`, `@utils`, `@errors`, `@consts` — mapped in `tsconfig.json`, resolved by Bun
+## Architectural notes
 
-### Patterns
-
-- **Barrel exports**: Each module directory has an `index.ts` re-exporting public API
-- **Error classes**: Custom error classes in `src/errors.ts`, extending `Error` with descriptive `name`
-- **Zod validation**: Config and RSS schemas use Zod for parse-time validation with defaults and transforms
-- **Enums**: Native TypeScript enums in `consts.ts` for task types, media types, queue status, etc.
-- **Logging**: Use `logger` from `@utils` (Winston). Levels: `error`, `warn`, `info`, `debug`
-
-### Database
-
-- **ORM**: Drizzle ORM with bun:sqlite (synchronous)
-- **Schema**: `src/database/schema.ts` — 3 tables: `History`, `Expire`, `MessageQueue`
-- **Migrations**: `drizzle/` directory — generated with `bun run db:generate`, applied automatically on startup via `migrate()`
-- **Config**: `drizzle.config.ts` at project root
-
-## Known Issues & Technical Debt
-
-### Security
-
-- `new Function("obj", rule.matcher)` in `processRules` (`src/services/index.ts`) is effectively `eval`. RSS rule `type: func` and remote matcher `func` allow arbitrary code execution from config. This is acceptable since config is trusted, but should never accept untrusted input.
+- **Reserve/finalize history.** Send tasks insert a history row with `messageId=0` *before* posting, then finalize with the real id after success. This is what prevents duplicate sends on crash recovery — don't bypass it.
+- **Crash-recoverable queue.** `MessageQueue` (`services/queue.ts`) is backed by the `MessageQueue` DB table. On startup, `recoverPendingTasks()` re-enqueues anything left as `PENDING` into the in-memory p-queue. Rate limiting comes from `concurrency: 1` + `intervalCap: 1`.
+- **First-run flag.** `setFirstRun(true)` makes the processor save items directly to history *without sending*. `src/index.ts` uses it on initial DB setup to avoid flooding the chat.
+- **Closure-scoped processor state.** `services/index.ts` wraps `firstRun` and the per-feed init cache inside `createProcessor()`. There is no module-level mutable state — keep it that way.
+- **Lazy client init.** `getClient()` returns a cached promise. The async wrapper exists solely to break a circular import with `@config`.

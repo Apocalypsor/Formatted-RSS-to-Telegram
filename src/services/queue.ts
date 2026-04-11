@@ -116,110 +116,122 @@ class MessageQueue {
   private async execute(task: TaskWithDbId): Promise<void> {
     try {
       if (task.data.type === TASK_TYPE.SEND) {
-        const data = task.data;
-        logger.debug(
-          `Processing send task (DB ID: ${task.dbId}) for ${data.sender.name}`,
-        );
-
-        if (data.metadata) {
-          reserveHistory(
-            data.metadata.uniqueHash,
-            data.metadata.url,
-            data.metadata.textHash,
-            data.metadata.senderName,
-            data.metadata.chatId,
-          );
-        }
-
-        const messageId = await send(data.sender, data.text, data.mediaUrls);
-
-        if (data.metadata) {
-          try {
-            finalizeHistory(
-              data.metadata.uniqueHash,
-              data.metadata.textHash,
-              messageId,
-            );
-            logger.debug(`Saved history for message ${messageId}`);
-          } catch (e) {
-            logger.error(
-              `Failed to finalize history for message ${messageId}: ${e}`,
-            );
-          }
-        }
+        await this.executeSend(task.dbId, task.data);
       } else {
-        const data = task.data;
-        const messageId = Number(data.messageId);
-        logger.debug(
-          `Processing edit task (DB ID: ${task.dbId}) for ${data.sender.name}, message ${data.messageId}`,
-        );
-
-        await edit(data.sender, messageId, data.text);
-
-        if (data.metadata) {
-          try {
-            updateHistory(
-              data.metadata.historyId,
-              data.metadata.textHash,
-              messageId,
-            );
-            logger.debug(`Updated history for message ${data.messageId}`);
-          } catch (e) {
-            logger.error(
-              `Failed to update history for message ${data.messageId}: ${e}`,
-            );
-          }
-        }
+        await this.executeEdit(task.dbId, task.data);
       }
 
-      if (task.dbId) {
-        try {
-          updateMessageStatus(task.dbId, QUEUE_STATUS.COMPLETED);
-        } catch (e) {
-          logger.error(
-            `Failed to update task status to completed (DB ID: ${task.dbId}): ${e}`,
-          );
-        }
-      }
+      this.markStatus(task.dbId, QUEUE_STATUS.COMPLETED);
     } catch (error) {
       const errorDetail =
         error instanceof Error ? error.message : String(error);
       logger.error(`Task (DB ID: ${task.dbId}) failed: ${errorDetail}`);
 
-      if (task.dbId) {
-        try {
-          updateMessageStatus(task.dbId, QUEUE_STATUS.FAILED, errorDetail);
-        } catch (e) {
-          logger.error(
-            `Failed to update task status to failed (DB ID: ${task.dbId}): ${e}`,
-          );
-        }
-      }
+      this.markStatus(task.dbId, QUEUE_STATUS.FAILED, errorDetail);
+      this.persistFailureToHistory(task.data);
+    }
+  }
 
-      // Save failure to history
-      if (task.data.type === TASK_TYPE.SEND && task.data.metadata) {
-        const meta = task.data.metadata;
-        try {
-          addHistory(
-            meta.uniqueHash,
-            meta.url,
-            meta.textHash,
-            meta.senderName,
-            0,
-            meta.chatId,
-          );
-        } catch (e) {
-          logger.error(`Failed to mark failed send task in history: ${e}`);
-        }
-      } else if (task.data.type === TASK_TYPE.EDIT && task.data.metadata) {
-        const meta = task.data.metadata;
-        const messageId = Number(task.data.messageId);
-        try {
-          updateHistory(meta.historyId, meta.textHash, messageId);
-        } catch (e) {
-          logger.error(`Failed to mark failed edit task in history: ${e}`);
-        }
+  private async executeSend(
+    dbId: number | undefined,
+    data: SendMessageTaskData,
+  ): Promise<void> {
+    logger.debug(
+      `Processing send task (DB ID: ${dbId}) for ${data.sender.name}`,
+    );
+
+    if (data.metadata) {
+      reserveHistory(
+        data.metadata.uniqueHash,
+        data.metadata.url,
+        data.metadata.textHash,
+        data.metadata.senderName,
+        data.metadata.chatId,
+      );
+    }
+
+    const messageId = await send(data.sender, data.text, data.mediaUrls);
+
+    if (data.metadata) {
+      try {
+        finalizeHistory(
+          data.metadata.uniqueHash,
+          data.metadata.textHash,
+          messageId,
+        );
+        logger.debug(`Saved history for message ${messageId}`);
+      } catch (e) {
+        logger.error(
+          `Failed to finalize history for message ${messageId}: ${e}`,
+        );
       }
+    }
+  }
+
+  private async executeEdit(
+    dbId: number | undefined,
+    data: EditMessageTaskData,
+  ): Promise<void> {
+    const messageId = Number(data.messageId);
+    logger.debug(
+      `Processing edit task (DB ID: ${dbId}) for ${data.sender.name}, message ${data.messageId}`,
+    );
+
+    await edit(data.sender, messageId, data.text);
+
+    if (data.metadata) {
+      try {
+        updateHistory(
+          data.metadata.historyId,
+          data.metadata.textHash,
+          messageId,
+        );
+        logger.debug(`Updated history for message ${data.messageId}`);
+      } catch (e) {
+        logger.error(
+          `Failed to update history for message ${data.messageId}: ${e}`,
+        );
+      }
+    }
+  }
+
+  private markStatus(
+    dbId: number | undefined,
+    status: QUEUE_STATUS,
+    detail?: string,
+  ): void {
+    if (!dbId) return;
+    try {
+      updateMessageStatus(dbId, status, detail);
+    } catch (e) {
+      logger.error(
+        `Failed to update task status to ${status} (DB ID: ${dbId}): ${e}`,
+      );
+    }
+  }
+
+  private persistFailureToHistory(data: MessageTaskData): void {
+    if (!data.metadata) return;
+
+    try {
+      if (data.type === TASK_TYPE.SEND) {
+        const meta = data.metadata;
+        addHistory(
+          meta.uniqueHash,
+          meta.url,
+          meta.textHash,
+          meta.senderName,
+          0,
+          meta.chatId,
+        );
+      } else {
+        const meta = data.metadata;
+        updateHistory(meta.historyId, meta.textHash, Number(data.messageId));
+      }
+    } catch (e) {
+      logger.error(
+        `Failed to record failed ${data.type} task in history: ${e}`,
+      );
     }
   }
 

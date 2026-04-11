@@ -1,9 +1,23 @@
 import fs from "node:fs";
 import { DEFAULT_DATA_PATH, DEFAULT_RSS_FILE } from "@consts";
 import { LoadRSSFileError, RSSFileNotFoundError } from "@errors";
-import { expandArrayInObject } from "@utils";
+import * as _ from "lodash-es";
 import { parse } from "yaml";
 import { type RSS, RSSItemSchema } from "./schema";
+
+// Expand one item whose `key` is an array into N items, one per array value.
+// Used to let a single RSS config entry fan out across multiple URLs / senders.
+const expandArrayInObject = (
+  obj: unknown,
+  key: string | number,
+): Record<string, unknown>[] => {
+  if (!obj) return [];
+  const rec = obj as Record<string, unknown>;
+  const val = rec[key];
+  if (!Array.isArray(val)) return [{ ...rec }];
+  const rest = _.omit(rec, [key]);
+  return val.map((item: unknown) => ({ ...rest, [key]: item }));
+};
 
 const parseRSS = (rss: unknown): RSS[] => {
   if (!rss || !Array.isArray(rss) || rss.length === 0) {

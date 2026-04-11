@@ -1,6 +1,6 @@
 import { HTTP_TIMEOUT } from "@consts";
 import ky, { type KyInstance } from "ky";
-import { mapError } from "./helpers";
+import { mapError } from "./error";
 import { logger } from "./logger";
 
 const buildProxyUrl = (proxy: {
