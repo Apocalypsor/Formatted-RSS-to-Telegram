@@ -1,6 +1,15 @@
 import { RSS_FILTER_TYPE, RSS_RULE_TYPE, UA } from "@consts";
 import { z } from "zod";
 
+export const ParseModeSchema = z.enum([
+  "Markdown",
+  "MarkdownV2",
+  "HTML",
+  "RichHTML",
+]);
+
+export type ParseMode = z.infer<typeof ParseModeSchema>;
+
 // Proxy schemas
 export const EnabledProxySchema = z.object({
   enabled: z.literal(true),
@@ -26,7 +35,7 @@ export const TelegramSchema = z.object({
   name: z.string(),
   token: z.string(),
   chatId: z.number(),
-  parseMode: z.string().default("Markdown"),
+  parseMode: ParseModeSchema.default("Markdown"),
   disableNotification: z.boolean().default(false),
   disableWebPagePreview: z.boolean().default(false),
 });
@@ -68,6 +77,7 @@ export const RSSItemSchema = z.object({
   name: z.string(),
   url: z.string(),
   sendTo: z.string(),
+  parseMode: ParseModeSchema.optional(),
   disableNotification: z.boolean().default(false),
   disableWebPagePreview: z.boolean().default(false),
   fullText: z.boolean().default(false),

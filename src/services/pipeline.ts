@@ -74,11 +74,19 @@ export const extractFilteredMedia = (rssItem: RSS, content: string) =>
     ),
   );
 
+const normalizeConfiguredParseMode = (
+  parseMode: Telegram["parseMode"],
+): Telegram["parseMode"] =>
+  parseMode === "Markdown" ? "MarkdownV2" : parseMode;
+
 export const buildEffectiveSender = (
   rssItem: RSS,
   sender: Telegram,
 ): Telegram => ({
   ...sender,
+  parseMode: normalizeConfiguredParseMode(
+    rssItem.parseMode ?? sender.parseMode,
+  ),
   disableNotification:
     rssItem.disableNotification || sender.disableNotification,
   disableWebPagePreview:
