@@ -61,9 +61,10 @@ const initClients = async (): Promise<{
   return { base, proxy: proxyClient };
 };
 
-const clients = initClients();
+let clients: ReturnType<typeof initClients> | undefined;
 
 export const getClient = async (proxy = false): Promise<KyInstance> => {
+  clients ??= initClients();
   const c = await clients;
   return proxy ? c.proxy : c.base;
 };
