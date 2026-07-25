@@ -1,9 +1,5 @@
 import type { RSS, Telegram } from "@config";
-import {
-  EXPIRE_NOTIFY_THRESHOLD,
-  type MEDIA_TYPE,
-  TELEGRAM_MESSAGE_LIMIT,
-} from "@consts";
+import { EXPIRE_NOTIFY_THRESHOLD, TELEGRAM_MESSAGE_LIMIT } from "@consts";
 import {
   addHistory,
   getFirstHistoryByURL,
@@ -15,8 +11,8 @@ import * as _ from "lodash-es";
 import { parseRSSFeed } from "./parser";
 import {
   buildEffectiveSender,
-  extractFilteredMedia,
   normalizeItem,
+  prepareMessageContent,
   processFilters,
   processRules,
 } from "./pipeline";
@@ -42,10 +38,17 @@ const createProcessor = () => {
     if (await processFilters(rssItem.filters, itemObj)) return;
     processRules(rssItem.rules, itemObj);
 
-    const mediaUrls: { type: MEDIA_TYPE; url: string }[] | undefined =
-      rssItem.embedMedia
-        ? extractFilteredMedia(rssItem, itemObj.content as string)
-        : undefined;
+    const effectiveSender = buildEffectiveSender(rssItem, sender);
+    const prepared = prepareMessageContent(
+      rssItem,
+      effectiveSender,
+      typeof itemObj.content === "string" ? itemObj.content : "",
+      typeof itemObj.link === "string" ? itemObj.link : undefined,
+    );
+
+    if (prepared.richContent !== undefined) {
+      itemObj.rich_content = prepared.richContent;
+    }
 
     if (itemObj.contentSnippet) {
       itemObj.contentSnippet = _.truncate(itemObj.contentSnippet as string, {
@@ -57,12 +60,11 @@ const createProcessor = () => {
     itemObj.rss_url = rssItem.url;
 
     const uniqueHash = hash(rssItem.url) + hash(itemObj.link as string);
-    const text = render(rssItem.text, itemObj, sender.parseMode);
+    const text = render(rssItem.text, itemObj, effectiveSender.parseMode);
     const textHash = hash(text);
 
     const initialized = isUrlInitialized(rssItem.url);
     const existed = getHistory(uniqueHash);
-    const effectiveSender = buildEffectiveSender(rssItem, sender);
 
     logger.debug(`Processing item: ${JSON.stringify(itemObj)}`);
     logger.debug(`Sender: ${JSON.stringify(effectiveSender)}`);
@@ -81,7 +83,7 @@ const createProcessor = () => {
           sender.chatId,
         );
       } else {
-        messageQueue.enqueueSend(effectiveSender, text, mediaUrls, {
+        messageQueue.enqueueSend(effectiveSender, text, prepared.mediaUrls, {
           uniqueHash,
           textHash,
           url: rssItem.url,
