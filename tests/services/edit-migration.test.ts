@@ -35,7 +35,7 @@ interface TelegramReply {
 
 const replies: TelegramReply[] = [];
 const requests: Array<{ endpoint: string; payload: unknown }> = [];
-const telegramClient = ky.create({
+const telegramHttpClient = ky.create({
   retry: 0,
   fetch: async (input) => {
     const request = input instanceof Request ? input : new Request(input);
@@ -56,16 +56,16 @@ const telegramClient = ky.create({
   },
 });
 
-const actualKyClient = await import("../../src/clients/ky");
-const getClientSpy = spyOn(actualKyClient, "getClient").mockImplementation(
-  async () => telegramClient,
+const { kyClient } = await import("../../src/clients/ky");
+const getInstanceSpy = spyOn(kyClient, "getInstance").mockImplementation(
+  async () => telegramHttpClient,
 );
 
 const { addHistory, getHistory, initDatabase } = await import(
   "../../src/database/index"
 );
 const { messageQueue } = await import("../../src/services/queue");
-const { edit } = await import("../../src/clients/telegram");
+const { telegramClient } = await import("../../src/clients/telegram");
 
 initDatabase();
 
@@ -93,7 +93,7 @@ beforeEach(() => {
 
 afterAll(async () => {
   await messageQueue.drain();
-  getClientSpy.mockRestore();
+  getInstanceSpy.mockRestore();
   for (const [key, value] of Object.entries(previousEnvironment)) {
     if (value === undefined) {
       delete process.env[key];
@@ -111,7 +111,9 @@ describe("edit", () => {
       body: { ok: true, result: { message_id: 41 } },
     });
 
-    expect(await edit(richSender, 41, "<p>Updated</p>")).toBe(41);
+    expect(await telegramClient.edit(richSender, 41, "<p>Updated</p>")).toBe(
+      41,
+    );
   });
 
   test("replaces a RichHTML media message and returns the new message ID", async () => {
@@ -120,7 +122,9 @@ describe("edit", () => {
       body: { ok: true, result: { message_id: 99 } },
     });
 
-    expect(await edit(richSender, 41, "<p>Updated</p>")).toBe(99);
+    expect(await telegramClient.edit(richSender, 41, "<p>Updated</p>")).toBe(
+      99,
+    );
     expect(requests).toEqual([
       {
         endpoint: "https://api.telegram.org/botsecret/editMessageText",
@@ -151,7 +155,7 @@ describe("edit", () => {
       body: { ok: true, result: { message_id: 41 } },
     });
 
-    expect(await edit(standardSender, 41, "Updated")).toBe(41);
+    expect(await telegramClient.edit(standardSender, 41, "Updated")).toBe(41);
     expect(requests).toEqual([
       {
         endpoint: "https://api.telegram.org/botsecret/editMessageText",

@@ -1,5 +1,5 @@
-import { fetchWithFlareSolver } from "@clients/flaresolverr";
-import { getClient } from "@clients/ky";
+import { flareSolverrClient } from "@clients/flaresolverr";
+import { kyClient } from "@clients/ky";
 import { config } from "@config";
 import { CONTENT_SNIPPET_LENGTH, RSS_PARSER_TIMEOUT } from "@consts";
 import {
@@ -29,7 +29,7 @@ const fetchFullContent = async (url: string): Promise<string | null> => {
   try {
     logger.debug(`Fetching full content directly for ${url}`);
     const ip = await parseIPFromURL(url);
-    const client = await getClient(!isIntranet(ip));
+    const client = await kyClient.getInstance(!isIntranet(ip));
     const text = await client.get(url).text();
     if (text.includes("<html")) {
       return text;
@@ -39,7 +39,7 @@ const fetchFullContent = async (url: string): Promise<string | null> => {
   } catch (e) {
     // If direct fetch fails, try FlareSolver
     logger.debug(`Direct fetch failed, trying FlareSolver for ${url}`);
-    const result = await fetchWithFlareSolver(url);
+    const result = await flareSolverrClient.fetch(url);
     if (!result) {
       logger.warn(`Failed to fetch full content for ${url}: ${mapError(e)}`);
       return null;
@@ -86,7 +86,7 @@ export const parseRSSFeed = async (url: string, full = false) => {
 
     const ip = await parseIPFromURL(url);
     logger.debug(`Parsed IP for ${url}: ${ip}`);
-    const client = await getClient(!isIntranet(ip));
+    const client = await kyClient.getInstance(!isIntranet(ip));
     const htmlResp = await client.get(url).text();
 
     const feed = await parser.parseString(htmlResp);
@@ -97,7 +97,7 @@ export const parseRSSFeed = async (url: string, full = false) => {
       `Failed to parse RSS feed ${url}: ${mapError(e)}, falling back to FlareSolver`,
     );
 
-    const html = await fetchWithFlareSolver(url);
+    const html = await flareSolverrClient.fetch(url);
     if (!html) {
       logger.warn("FlareSolver returned no content");
       return null;

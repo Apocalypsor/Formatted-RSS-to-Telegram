@@ -1,4 +1,4 @@
-import { edit, send } from "@clients/telegram";
+import { telegramClient } from "@clients/telegram";
 import type { Telegram } from "@config";
 import {
   type MEDIA_TYPE,
@@ -150,7 +150,11 @@ class MessageQueue {
       );
     }
 
-    const messageId = await send(data.sender, data.text, data.mediaUrls);
+    const messageId = await telegramClient.send(
+      data.sender,
+      data.text,
+      data.mediaUrls,
+    );
 
     if (data.metadata) {
       try {
@@ -177,7 +181,11 @@ class MessageQueue {
       `Processing edit task (DB ID: ${dbId}) for ${data.sender.name}, message ${data.messageId}`,
     );
 
-    const effectiveMessageId = await edit(data.sender, messageId, data.text);
+    const effectiveMessageId = await telegramClient.edit(
+      data.sender,
+      messageId,
+      data.text,
+    );
 
     if (data.metadata) {
       try {

@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  buildEditTextRequest,
-  buildExpirationNotificationRequest,
-  buildSendRequest,
-} from "../../src/clients/telegram";
+import { telegramClient } from "../../src/clients/telegram";
 import type { Telegram } from "../../src/config/schema";
 
 const sender: Telegram = {
@@ -18,7 +14,7 @@ const sender: Telegram = {
 describe("Telegram rich-message requests", () => {
   test("builds sendRichMessage and ignores separate media", () => {
     expect(
-      buildSendRequest(sender, "<h1>Title</h1>", [
+      telegramClient.buildSendRequest(sender, "<h1>Title</h1>", [
         { type: "photo", url: "https://example.com/duplicate.jpg" },
       ]),
     ).toEqual({
@@ -32,7 +28,9 @@ describe("Telegram rich-message requests", () => {
   });
 
   test("builds a rich_message edit payload", () => {
-    expect(buildEditTextRequest(sender, 456, "<p>Updated</p>")).toEqual({
+    expect(
+      telegramClient.buildEditTextRequest(sender, 456, "<p>Updated</p>"),
+    ).toEqual({
       endpoint: "https://api.telegram.org/botsecret/editMessageText",
       payload: {
         chat_id: 123,
@@ -45,7 +43,9 @@ describe("Telegram rich-message requests", () => {
   test("preserves a recovered legacy Markdown request", () => {
     const recovered = { ...sender, parseMode: "Markdown" } as Telegram;
 
-    expect(buildSendRequest(recovered, "*legacy*").payload).toEqual({
+    expect(
+      telegramClient.buildSendRequest(recovered, "*legacy*").payload,
+    ).toEqual({
       chat_id: 123,
       text: "*legacy*",
       parse_mode: "Markdown",
@@ -57,7 +57,7 @@ describe("Telegram rich-message requests", () => {
 
 test("builds an expiration notification request", () => {
   expect(
-    buildExpirationNotificationRequest(
+    telegramClient.buildExpirationNotificationRequest(
       sender,
       999,
       "https://example.com/feed.xml",
@@ -80,7 +80,7 @@ describe("standard Telegram requests", () => {
   };
 
   test("builds a MarkdownV2 text request", () => {
-    expect(buildSendRequest(markdownSender, "*Title*")).toEqual({
+    expect(telegramClient.buildSendRequest(markdownSender, "*Title*")).toEqual({
       endpoint: "https://api.telegram.org/botsecret/sendMessage",
       payload: {
         chat_id: 123,
@@ -95,21 +95,23 @@ describe("standard Telegram requests", () => {
   test("builds an HTML text request", () => {
     const htmlSender: Telegram = { ...sender, parseMode: "HTML" };
 
-    expect(buildSendRequest(htmlSender, "<b>Title</b>")).toEqual({
-      endpoint: "https://api.telegram.org/botsecret/sendMessage",
-      payload: {
-        chat_id: 123,
-        text: "<b>Title</b>",
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-        disable_notification: true,
+    expect(telegramClient.buildSendRequest(htmlSender, "<b>Title</b>")).toEqual(
+      {
+        endpoint: "https://api.telegram.org/botsecret/sendMessage",
+        payload: {
+          chat_id: 123,
+          text: "<b>Title</b>",
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+          disable_notification: true,
+        },
       },
-    });
+    );
   });
 
   test("builds a single-photo request", () => {
     expect(
-      buildSendRequest(markdownSender, "Caption", [
+      telegramClient.buildSendRequest(markdownSender, "Caption", [
         { type: "photo", url: "https://example.com/photo.jpg" },
       ]),
     ).toEqual({
@@ -126,7 +128,7 @@ describe("standard Telegram requests", () => {
 
   test("builds a mixed media-group request", () => {
     expect(
-      buildSendRequest(markdownSender, "Album", [
+      telegramClient.buildSendRequest(markdownSender, "Album", [
         { type: "photo", url: "https://example.com/one.jpg" },
         { type: "video", url: "https://example.com/two.mp4" },
       ]),
@@ -155,7 +157,7 @@ describe("standard Telegram requests", () => {
 
   test("falls back to text when media exceeds Telegram's group limit", () => {
     expect(
-      buildSendRequest(markdownSender, "Too many", [
+      telegramClient.buildSendRequest(markdownSender, "Too many", [
         { type: "photo", url: "https://example.com/01.jpg" },
         { type: "photo", url: "https://example.com/02.jpg" },
         { type: "photo", url: "https://example.com/03.jpg" },

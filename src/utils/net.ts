@@ -1,5 +1,5 @@
 import dns from "node:dns";
-import { getClient } from "@clients/ky";
+import { kyClient } from "@clients/ky";
 
 export const parseIPFromURL = async (url: string | URL): Promise<string> => {
   const parsed = new URL(url);
@@ -41,7 +41,7 @@ export const isIntranet = (ip: string): boolean => {
 };
 
 export const getHostIPInfo = async (): Promise<string | null> => {
-  const client = await getClient(true);
+  const client = await kyClient.getInstance(true);
   try {
     const resp = await client
       .get("https://api.dov.moe/ip")

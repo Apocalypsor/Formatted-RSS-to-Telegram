@@ -1,4 +1,4 @@
-import { sendExpirationNotification } from "@clients/telegram";
+import { telegramClient } from "@clients/telegram";
 import { config, type RSS, type Telegram } from "@config";
 import { EXPIRE_NOTIFY_THRESHOLD, TELEGRAM_MESSAGE_LIMIT } from "@consts";
 import {
@@ -30,7 +30,7 @@ const notifyExpiredFeed = async (url: string): Promise<void> => {
     logger.warn("No Telegram sender for notification configured, skipping.");
     return;
   }
-  await sendExpirationNotification(sender, chatId, url);
+  await telegramClient.sendExpirationNotification(sender, chatId, url);
 };
 
 const createProcessor = () => {

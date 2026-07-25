@@ -20,9 +20,9 @@ test("builds Telegram requests without loading filesystem config", () => {
       process.execPath,
       "-e",
       `
-        import { buildSendRequest } from "./src/clients/telegram.ts";
+        import { telegramClient } from "./src/clients/telegram.ts";
 
-        const request = buildSendRequest(
+        const request = telegramClient.buildSendRequest(
           {
             name: "isolated",
             token: "secret",
