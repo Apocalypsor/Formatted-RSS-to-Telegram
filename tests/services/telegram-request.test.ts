@@ -1,9 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { Telegram } from "../../src/config/schema";
 import {
   buildEditTextRequest,
+  buildExpirationNotificationRequest,
   buildSendRequest,
-} from "../../src/services/telegram-request";
+} from "../../src/clients/telegram";
+import type { Telegram } from "../../src/config/schema";
 
 const sender: Telegram = {
   name: "default",
@@ -51,6 +52,24 @@ describe("Telegram rich-message requests", () => {
       disable_web_page_preview: true,
       disable_notification: true,
     });
+  });
+});
+
+test("builds an expiration notification request", () => {
+  expect(
+    buildExpirationNotificationRequest(
+      sender,
+      999,
+      "https://example.com/feed.xml",
+    ),
+  ).toEqual({
+    endpoint: "https://api.telegram.org/botsecret/sendMessage",
+    payload: {
+      chat_id: 999,
+      text: "*FR2T detected a link expired*\n\nhttps://example.com/feed.xml",
+      parse_mode: "Markdown",
+      disable_web_page_preview: true,
+    },
   });
 });
 

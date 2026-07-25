@@ -1,3 +1,4 @@
+import { edit, send } from "@clients/telegram";
 import type { Telegram } from "@config";
 import {
   type MEDIA_TYPE,
@@ -19,7 +20,6 @@ import {
 } from "@database";
 import { logger } from "@utils";
 import PQueue from "p-queue";
-import { edit, send } from "./sender";
 
 export interface SendTaskMetadata {
   uniqueHash: string;

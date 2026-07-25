@@ -1,4 +1,5 @@
-import type { RSS, Telegram } from "@config";
+import { sendExpirationNotification } from "@clients/telegram";
+import { config, type RSS, type Telegram } from "@config";
 import { EXPIRE_NOTIFY_THRESHOLD, TELEGRAM_MESSAGE_LIMIT } from "@consts";
 import {
   addHistory,
@@ -18,7 +19,19 @@ import {
 } from "./pipeline";
 import { messageQueue } from "./queue";
 import { render } from "./render";
-import { getSender, notify } from "./sender";
+
+const getSender = (name: string): Telegram | undefined =>
+  config.telegram.find((sender) => sender.name === name);
+
+const notifyExpiredFeed = async (url: string): Promise<void> => {
+  const sender = config.telegram[0];
+  const chatId = config.notifyTelegramChatId;
+  if (!sender || !chatId) {
+    logger.warn("No Telegram sender for notification configured, skipping.");
+    return;
+  }
+  await sendExpirationNotification(sender, chatId, url);
+};
 
 const createProcessor = () => {
   const initCache = new Map<string, boolean>();
@@ -125,7 +138,7 @@ const createProcessor = () => {
         expireCount >= EXPIRE_NOTIFY_THRESHOLD &&
         Math.log2(expireCount) % 1 === 0
       ) {
-        await notify(rssItem.url);
+        await notifyExpiredFeed(rssItem.url);
       }
     } else {
       updateExpire(rssItem.url, true);

@@ -65,7 +65,7 @@ const { addHistory, getHistory, initDatabase } = await import(
   "../../src/database/index"
 );
 const { messageQueue } = await import("../../src/services/queue");
-const { edit } = await import("../../src/services/sender");
+const { edit } = await import("../../src/clients/telegram");
 
 initDatabase();
 
