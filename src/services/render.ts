@@ -3,6 +3,10 @@ import nunjucks from "nunjucks";
 
 nunjucks.configure({ autoescape: false });
 
+const richHtmlEnvironment = new nunjucks.Environment(undefined, {
+  autoescape: true,
+});
+
 const HTML_ENTITIES: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
@@ -22,6 +26,10 @@ export const render = (
   data: object,
   parseMode = "markdown",
 ): string => {
+  if (parseMode.toLowerCase() === "richhtml") {
+    return richHtmlEnvironment.renderString(template, data);
+  }
+
   return decodeHtmlEntities(
     nunjucks.renderString(
       escapeTemplate(template, parseMode),
