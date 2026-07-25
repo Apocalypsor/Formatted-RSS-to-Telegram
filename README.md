@@ -115,7 +115,9 @@ telegram:
   - name: default
     token: YOUR_BOT_TOKEN
     chatId: YOUR_CHAT_ID
-    parseMode: MarkdownV2 # Markdown or MarkdownV2
+    # Optional, default is Markdown. Accepted: Markdown, MarkdownV2, HTML, RichHTML.
+    # Markdown is rendered and sent as MarkdownV2 for new messages.
+    parseMode: MarkdownV2
     disableNotification: false
     disableWebPagePreview: false
 ```
@@ -185,6 +187,40 @@ rss:
 
       _Tags: {{ tag }}_
 ```
+
+#### Rich HTML messages
+
+`parseMode` on a sender is the default for every feed sent through that sender.
+Set `parseMode: RichHTML` on an individual RSS entry to override that default
+for just that feed. RichHTML sends a `rich_message` instead of Telegram's
+standard text or media request.
+
+```yaml
+rss:
+  - name: Rich Article Feed
+    url: https://example.com/feed.xml
+    sendTo: default
+    parseMode: RichHTML
+    embedMedia: true
+    embedMediaExclude:
+      - https://example.com/images/emoji/.+
+    text: |
+      <h1>{{ title }}</h1>
+      <p><a href="{{ link }}">Read the original article</a></p>
+      {{ rich_content | safe }}
+      <footer>#{{ rss_name | replace(" ", "_") }}</footer>
+```
+
+In RichHTML templates, ordinary fields such as `title` and `link` are
+HTML-escaped. `rich_content` contains application-sanitized article HTML and
+must be inserted with `{{ rich_content | safe }}` to preserve its markup.
+RichHTML templates are HTML templates: Markdown in the template is not
+converted to HTML.
+
+When `embedMedia` is enabled for a RichHTML feed, eligible article media is
+included inline in `rich_content`; `embedMediaExclude` filters matching media
+URLs. RichHTML does not send a separate photo, video, or media-group request.
+`disableWebPagePreview` has no effect on `sendRichMessage`.
 
 ### Available Template Variables
 

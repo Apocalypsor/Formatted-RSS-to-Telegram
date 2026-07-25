@@ -8,6 +8,10 @@ rss:
     # sendTo:
     #   - default
     #   - test
+    # Optional, overrides the selected sender's parseMode for this feed. Accepted: Markdown, MarkdownV2, HTML, RichHTML.
+    # RichHTML templates escape ordinary fields; use {{ rich_content | safe }} for sanitized article HTML.
+    # RichHTML does not convert Markdown templates, embeds eligible media inline, and ignores disableWebPagePreview.
+    # parseMode: RichHTML
     disableNotification: false # Optional, default is false, if true, telegram notification will be disabled
     disableWebPagePreview: false # Optional, default is false, if true, telegram web page preview will be disabled
     fullText: true # Optional, default is false, if true, rss will be parsed as full text
@@ -44,3 +48,17 @@ rss:
       | # Required, template to render the message sent to the chat, using Nunjucks
       {{ title }}{{ author }}{{ link }}{{ content }}{{ contentSnippet }}
       {{ tag }}{{ new_tag }}{{ rss_name }}{{ rss_url }}
+
+  # Focused RichHTML example. parseMode overrides the default configured on sender "default".
+  - name: Rich Article Feed
+    url: https://example.com/feed.xml
+    sendTo: default
+    parseMode: RichHTML
+    embedMedia: true # Eligible article media is included inline in rich_content, not sent separately.
+    embedMediaExclude:
+      - https://example.com/images/emoji/.+
+    text: |
+      <h1>{{ title }}</h1>
+      <p><a href="{{ link }}">Read the original article</a></p>
+      {{ rich_content | safe }}
+      <footer>#{{ rss_name | replace(" ", "_") }}</footer>
