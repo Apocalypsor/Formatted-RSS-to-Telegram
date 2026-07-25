@@ -1,10 +1,6 @@
 import type { Telegram } from "@config";
 import { config } from "@config";
-import {
-  type MEDIA_TYPE,
-  TELEGRAM_API_BASE,
-  TELEGRAM_MEDIA_GROUP_LIMIT,
-} from "@consts";
+import { TELEGRAM_API_BASE } from "@consts";
 import {
   FailedToEditMessageError,
   MessageNotFoundError,
@@ -12,21 +8,16 @@ import {
 } from "@errors";
 import { getClient, logger } from "@utils";
 import { HTTPError } from "ky";
-import * as _ from "lodash-es";
+import {
+  buildEditCaptionRequest,
+  buildEditTextRequest,
+  buildSendRequest,
+  type MediaItem,
+} from "./telegram-request";
 
 interface TelegramResponse {
   ok?: boolean;
   result?: { message_id?: number } | { message_id?: number }[];
-}
-
-interface MediaItem {
-  type: MEDIA_TYPE;
-  url: string;
-}
-
-interface TgRequest {
-  endpoint: string;
-  payload: Record<string, unknown>;
 }
 
 const tgEndpoint = (token: string, method: string) =>
@@ -34,67 +25,6 @@ const tgEndpoint = (token: string, method: string) =>
 
 export const getSender = (sender: string): Telegram | undefined => {
   return config.telegram.find((s) => s.name === sender);
-};
-
-const buildTextPayload = (sender: Telegram, text: string): TgRequest => ({
-  endpoint: tgEndpoint(sender.token, "sendMessage"),
-  payload: {
-    chat_id: sender.chatId,
-    text,
-    parse_mode: sender.parseMode,
-    disable_web_page_preview: sender.disableWebPagePreview,
-    disable_notification: sender.disableNotification,
-  },
-});
-
-const buildSingleMediaPayload = (
-  sender: Telegram,
-  text: string,
-  media: MediaItem,
-): TgRequest => ({
-  endpoint: tgEndpoint(sender.token, `send${_.capitalize(media.type)}`),
-  payload: {
-    chat_id: sender.chatId,
-    [media.type]: media.url,
-    caption: text,
-    parse_mode: sender.parseMode,
-    disable_notification: sender.disableNotification,
-  },
-});
-
-const buildMediaGroupPayload = (
-  sender: Telegram,
-  text: string,
-  medias: MediaItem[],
-): TgRequest => ({
-  endpoint: tgEndpoint(sender.token, "sendMediaGroup"),
-  payload: {
-    chat_id: sender.chatId,
-    media: medias.map((item, index) => ({
-      type: item.type,
-      media: item.url,
-      caption: index === 0 ? text : undefined,
-      parse_mode: sender.parseMode,
-    })),
-    disable_notification: sender.disableNotification,
-  },
-});
-
-const buildSendRequest = (
-  sender: Telegram,
-  text: string,
-  mediaUrls?: MediaItem[],
-): TgRequest => {
-  if (mediaUrls?.[0]) {
-    if (mediaUrls.length === 1) {
-      return buildSingleMediaPayload(sender, text, mediaUrls[0]);
-    }
-    if (mediaUrls.length <= TELEGRAM_MEDIA_GROUP_LIMIT) {
-      return buildMediaGroupPayload(sender, text, mediaUrls);
-    }
-    // Too many for a media group — fall back to plain text.
-  }
-  return buildTextPayload(sender, text);
 };
 
 const parseMessageId = (resp: TelegramResponse, senderName: string): number => {
@@ -138,15 +68,7 @@ export const send = async (
 };
 
 const editText = async (sender: Telegram, messageId: number, text: string) => {
-  const endpoint = tgEndpoint(sender.token, "editMessageText");
-  const payload = {
-    chat_id: sender.chatId,
-    message_id: messageId,
-    text: text,
-    parse_mode: sender.parseMode,
-    disable_web_page_preview: sender.disableWebPagePreview,
-    disable_notification: sender.disableNotification,
-  };
+  const { endpoint, payload } = buildEditTextRequest(sender, messageId, text);
   const client = await getClient();
   const resp = await client
     .post(endpoint, { json: payload })
@@ -159,13 +81,11 @@ const editCaption = async (
   messageId: number,
   caption: string,
 ) => {
-  const endpoint = tgEndpoint(sender.token, "editMessageCaption");
-  const payload = {
-    chat_id: sender.chatId,
-    message_id: messageId,
-    caption: caption,
-    parse_mode: sender.parseMode,
-  };
+  const { endpoint, payload } = buildEditCaptionRequest(
+    sender,
+    messageId,
+    caption,
+  );
   const client = await getClient();
   const resp = await client
     .post(endpoint, { json: payload })
@@ -196,7 +116,10 @@ export const edit = async (
     // Try editing as text first, fall back to caption for media messages
     const edited = await editText(sender, messageId, text).catch(async (e) => {
       const desc = await getTelegramErrorDescription(e);
-      if (desc?.includes("there is no text in the message to edit")) {
+      if (
+        sender.parseMode !== "RichHTML" &&
+        desc?.includes("there is no text in the message to edit")
+      ) {
         return editCaption(sender, messageId, text);
       }
       throw e;
