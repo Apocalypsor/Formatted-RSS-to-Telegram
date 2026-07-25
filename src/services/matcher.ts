@@ -1,6 +1,7 @@
+import { getClient } from "@clients/ky";
 import type { RemoteMatcher } from "@config";
 import { REMOTE_MATCHER_CACHE_TTL } from "@consts";
-import { getClient, logger } from "@utils";
+import { logger } from "@utils";
 
 interface CachedPattern {
   pattern: string;

@@ -56,8 +56,8 @@ const telegramClient = ky.create({
   },
 });
 
-const actualUtils = await import("../../src/utils/index");
-const getClientSpy = spyOn(actualUtils, "getClient").mockImplementation(
+const actualKyClient = await import("../../src/clients/ky");
+const getClientSpy = spyOn(actualKyClient, "getClient").mockImplementation(
   async () => telegramClient,
 );
 

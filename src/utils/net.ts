@@ -1,5 +1,5 @@
 import dns from "node:dns";
-import { getClient } from "./client";
+import { getClient } from "@clients/ky";
 
 export const parseIPFromURL = async (url: string | URL): Promise<string> => {
   const parsed = new URL(url);

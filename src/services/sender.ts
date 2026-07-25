@@ -1,3 +1,4 @@
+import { getClient } from "@clients/ky";
 import type { Telegram } from "@config";
 import { config } from "@config";
 import { TELEGRAM_API_BASE } from "@consts";
@@ -6,7 +7,7 @@ import {
   MessageNotFoundError,
   SendMessageFailedError,
 } from "@errors";
-import { getClient, logger } from "@utils";
+import { logger } from "@utils";
 import { HTTPError } from "ky";
 import {
   buildEditCaptionRequest,

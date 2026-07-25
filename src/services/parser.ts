@@ -1,8 +1,8 @@
+import { fetchWithFlareSolver } from "@clients/flaresolverr";
+import { getClient } from "@clients/ky";
 import { config } from "@config";
 import { CONTENT_SNIPPET_LENGTH, RSS_PARSER_TIMEOUT } from "@consts";
 import {
-  fetchWithFlareSolver,
-  getClient,
   htmlDecode,
   isIntranet,
   logger,

@@ -1,7 +1,6 @@
 import { HTTP_TIMEOUT } from "@consts";
 import ky, { type KyInstance } from "ky";
-import { mapError } from "./error";
-import { logger } from "./logger";
+import { logger } from "../utils/logger";
 
 const buildProxyUrl = (proxy: {
   protocol: string;
@@ -67,35 +66,4 @@ const clients = initClients();
 export const getClient = async (proxy = false): Promise<KyInstance> => {
   const c = await clients;
   return proxy ? c.proxy : c.base;
-};
-
-/**
- * Fetch content using FlareSolver
- */
-export const fetchWithFlareSolver = async (
-  url: string,
-): Promise<string | null> => {
-  const { config } = await import("@config");
-
-  if (!config.flaresolverr) {
-    return null;
-  }
-
-  try {
-    logger.debug(`Fetching with FlareSolver for ${url}`);
-    const client = await getClient();
-    const resp = await client
-      .post(`${config.flaresolverr}/v1`, {
-        json: {
-          cmd: "request.get",
-          url: url,
-          maxTimeout: HTTP_TIMEOUT,
-        },
-      })
-      .json<{ solution?: { response?: string } }>();
-    return resp?.solution?.response ?? null;
-  } catch (e) {
-    logger.warn(`FlareSolver failed for ${url}: ${mapError(e)}`);
-    return null;
-  }
 };
