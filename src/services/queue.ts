@@ -177,19 +177,19 @@ class MessageQueue {
       `Processing edit task (DB ID: ${dbId}) for ${data.sender.name}, message ${data.messageId}`,
     );
 
-    await edit(data.sender, messageId, data.text);
+    const effectiveMessageId = await edit(data.sender, messageId, data.text);
 
     if (data.metadata) {
       try {
         updateHistory(
           data.metadata.historyId,
           data.metadata.textHash,
-          messageId,
+          effectiveMessageId,
         );
-        logger.debug(`Updated history for message ${data.messageId}`);
+        logger.debug(`Updated history for message ${effectiveMessageId}`);
       } catch (e) {
         logger.error(
-          `Failed to update history for message ${data.messageId}: ${e}`,
+          `Failed to update history for message ${effectiveMessageId}: ${e}`,
         );
       }
     }
@@ -211,23 +211,18 @@ class MessageQueue {
   }
 
   private persistFailureToHistory(data: MessageTaskData): void {
-    if (!data.metadata) return;
+    if (!data.metadata || data.type !== TASK_TYPE.SEND) return;
 
     try {
-      if (data.type === TASK_TYPE.SEND) {
-        const meta = data.metadata;
-        addHistory(
-          meta.uniqueHash,
-          meta.url,
-          meta.textHash,
-          meta.senderName,
-          0,
-          meta.chatId,
-        );
-      } else {
-        const meta = data.metadata;
-        updateHistory(meta.historyId, meta.textHash, Number(data.messageId));
-      }
+      const meta = data.metadata;
+      addHistory(
+        meta.uniqueHash,
+        meta.url,
+        meta.textHash,
+        meta.senderName,
+        0,
+        meta.chatId,
+      );
     } catch (e) {
       logger.error(
         `Failed to record failed ${data.type} task in history: ${e}`,

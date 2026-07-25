@@ -53,3 +53,111 @@ describe("Telegram rich-message requests", () => {
     });
   });
 });
+
+describe("standard Telegram requests", () => {
+  const markdownSender: Telegram = {
+    ...sender,
+    parseMode: "MarkdownV2",
+  };
+
+  test("builds a MarkdownV2 text request", () => {
+    expect(buildSendRequest(markdownSender, "*Title*")).toEqual({
+      endpoint: "https://api.telegram.org/botsecret/sendMessage",
+      payload: {
+        chat_id: 123,
+        text: "*Title*",
+        parse_mode: "MarkdownV2",
+        disable_web_page_preview: true,
+        disable_notification: true,
+      },
+    });
+  });
+
+  test("builds an HTML text request", () => {
+    const htmlSender: Telegram = { ...sender, parseMode: "HTML" };
+
+    expect(buildSendRequest(htmlSender, "<b>Title</b>")).toEqual({
+      endpoint: "https://api.telegram.org/botsecret/sendMessage",
+      payload: {
+        chat_id: 123,
+        text: "<b>Title</b>",
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+        disable_notification: true,
+      },
+    });
+  });
+
+  test("builds a single-photo request", () => {
+    expect(
+      buildSendRequest(markdownSender, "Caption", [
+        { type: "photo", url: "https://example.com/photo.jpg" },
+      ]),
+    ).toEqual({
+      endpoint: "https://api.telegram.org/botsecret/sendPhoto",
+      payload: {
+        chat_id: 123,
+        photo: "https://example.com/photo.jpg",
+        caption: "Caption",
+        parse_mode: "MarkdownV2",
+        disable_notification: true,
+      },
+    });
+  });
+
+  test("builds a mixed media-group request", () => {
+    expect(
+      buildSendRequest(markdownSender, "Album", [
+        { type: "photo", url: "https://example.com/one.jpg" },
+        { type: "video", url: "https://example.com/two.mp4" },
+      ]),
+    ).toEqual({
+      endpoint: "https://api.telegram.org/botsecret/sendMediaGroup",
+      payload: {
+        chat_id: 123,
+        media: [
+          {
+            type: "photo",
+            media: "https://example.com/one.jpg",
+            caption: "Album",
+            parse_mode: "MarkdownV2",
+          },
+          {
+            type: "video",
+            media: "https://example.com/two.mp4",
+            caption: undefined,
+            parse_mode: "MarkdownV2",
+          },
+        ],
+        disable_notification: true,
+      },
+    });
+  });
+
+  test("falls back to text when media exceeds Telegram's group limit", () => {
+    expect(
+      buildSendRequest(markdownSender, "Too many", [
+        { type: "photo", url: "https://example.com/01.jpg" },
+        { type: "photo", url: "https://example.com/02.jpg" },
+        { type: "photo", url: "https://example.com/03.jpg" },
+        { type: "photo", url: "https://example.com/04.jpg" },
+        { type: "photo", url: "https://example.com/05.jpg" },
+        { type: "photo", url: "https://example.com/06.jpg" },
+        { type: "photo", url: "https://example.com/07.jpg" },
+        { type: "photo", url: "https://example.com/08.jpg" },
+        { type: "photo", url: "https://example.com/09.jpg" },
+        { type: "photo", url: "https://example.com/10.jpg" },
+        { type: "photo", url: "https://example.com/11.jpg" },
+      ]),
+    ).toEqual({
+      endpoint: "https://api.telegram.org/botsecret/sendMessage",
+      payload: {
+        chat_id: 123,
+        text: "Too many",
+        parse_mode: "MarkdownV2",
+        disable_web_page_preview: true,
+        disable_notification: true,
+      },
+    });
+  });
+});

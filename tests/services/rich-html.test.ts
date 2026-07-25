@@ -47,4 +47,54 @@ describe("buildRichContent", () => {
 
     expect(result).toBe("<p>Text</p>");
   });
+
+  test("resolves a relative link against the article URL", () => {
+    const result = buildRichContent('<a href="../details?q=1#top">Read</a>', {
+      baseUrl: "https://example.com/articles/current/",
+      embedMedia: false,
+      mediaExclude: [],
+    });
+
+    expect(result).toBe(
+      '<a href="https://example.com/articles/details?q=1#top">Read</a>',
+    );
+  });
+
+  test("keeps supported absolute and in-document link schemes", () => {
+    const result = buildRichContent(
+      '<a href="http://example.com/page">HTTP</a><a href="https://example.com/page">HTTPS</a><a href="mailto:reader@example.com">Mail</a><a href="tel:+15551234567">Call</a><a href="tg://resolve?domain=telegram">Telegram</a><a href="#section">Section</a>',
+      { embedMedia: false, mediaExclude: [] },
+    );
+
+    expect(result).toBe(
+      '<a href="http://example.com/page">HTTP</a><a href="https://example.com/page">HTTPS</a><a href="mailto:reader@example.com">Mail</a><a href="tel:+15551234567">Call</a><a href="tg://resolve?domain=telegram">Telegram</a><a href="#section">Section</a>',
+    );
+  });
+
+  test("removes dangerous link targets without removing readable text", () => {
+    const result = buildRichContent(
+      '<p><a href="javascript:alert(1)">Unsafe</a><a href="data:text/html,bad">Data</a></p>',
+      { embedMedia: false, mediaExclude: [] },
+    );
+
+    expect(result).toBe("<p><a>Unsafe</a><a>Data</a></p>");
+  });
+
+  test("removes entity-encoded dangerous link targets after parsing", () => {
+    const result = buildRichContent(
+      '<a href="&#x6a;avascript:alert(1)">Encoded</a>',
+      { embedMedia: false, mediaExclude: [] },
+    );
+
+    expect(result).toBe("<a>Encoded</a>");
+  });
+
+  test("removes comment and directive nodes at every nesting level", () => {
+    const result = buildRichContent(
+      "<!directive><!--root--><p>Before<!--inside--><b>After<!--deep--></b></p>",
+      { embedMedia: false, mediaExclude: [] },
+    );
+
+    expect(result).toBe("<p>Before<b>After</b></p>");
+  });
 });

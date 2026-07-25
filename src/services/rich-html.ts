@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { isTag } from "domhandler";
+import { type AnyNode, hasChildren, isTag } from "domhandler";
 
 export interface RichHtmlOptions {
   baseUrl?: string;
@@ -9,6 +9,13 @@ export interface RichHtmlOptions {
 
 const REMOVED_ELEMENTS = "script,style,noscript,iframe,svg,canvas,object,embed";
 const MEDIA_ELEMENTS = "img,video,audio";
+const ALLOWED_LINK_PROTOCOLS = new Set([
+  "http:",
+  "https:",
+  "mailto:",
+  "tel:",
+  "tg:",
+]);
 
 const ALLOWED_ELEMENTS = new Set([
   "a",
@@ -93,6 +100,33 @@ const resolveHttpUrl = (value: string, baseUrl?: string): string | null => {
   }
 };
 
+const resolveLinkUrl = (value: string, baseUrl?: string): string | null => {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("#")) {
+    return trimmed;
+  }
+
+  try {
+    const url = baseUrl ? new URL(trimmed, baseUrl) : new URL(trimmed);
+    return ALLOWED_LINK_PROTOCOLS.has(url.protocol) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
+const removeNonContentNodes = (
+  $: cheerio.CheerioAPI,
+  nodes: AnyNode[],
+): void => {
+  for (const node of [...nodes]) {
+    if (node.type === "comment" || node.type === "directive") {
+      $(node).remove();
+    } else if (hasChildren(node)) {
+      removeNonContentNodes($, node.children);
+    }
+  }
+};
+
 const isExcluded = (url: string, patterns: string[]): boolean =>
   patterns.some((pattern) => new RegExp(pattern).test(url));
 
@@ -101,6 +135,7 @@ export const buildRichContent = (
   options: RichHtmlOptions,
 ): string => {
   const $ = cheerio.load(content, { xml: false }, false);
+  removeNonContentNodes($, $.root().get());
   $(REMOVED_ELEMENTS).remove();
 
   $(MEDIA_ELEMENTS).each((_, element) => {
@@ -153,6 +188,18 @@ export const buildRichContent = (
       for (const attribute of Object.keys(element.attribs)) {
         if (!allowed.has(attribute)) {
           node.removeAttr(attribute);
+        }
+      }
+
+      if (tag === "a") {
+        const href = node.attr("href");
+        if (href !== undefined) {
+          const resolved = resolveLinkUrl(href, options.baseUrl);
+          if (resolved) {
+            node.attr("href", resolved);
+          } else {
+            node.removeAttr("href");
+          }
         }
       }
     });

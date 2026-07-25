@@ -107,38 +107,58 @@ const getTelegramErrorDescription = async (
   return null;
 };
 
+const throwEditError = async (
+  error: unknown,
+  messageId: number,
+  sender: Telegram,
+  knownDescription?: string | null,
+): Promise<never> => {
+  const desc = knownDescription ?? (await getTelegramErrorDescription(error));
+  if (!desc) throw error;
+
+  if (
+    desc.includes("message to edit not found") ||
+    desc.includes("MESSAGE_ID_INVALID")
+  ) {
+    throw new MessageNotFoundError(messageId, sender.name);
+  }
+  throw new FailedToEditMessageError(messageId, sender.name);
+};
+
 export const edit = async (
   sender: Telegram,
   messageId: number,
   text: string,
-) => {
+): Promise<number> => {
   try {
-    // Try editing as text first, fall back to caption for media messages
-    const edited = await editText(sender, messageId, text).catch(async (e) => {
-      const desc = await getTelegramErrorDescription(e);
-      if (
-        sender.parseMode !== "RichHTML" &&
-        desc?.includes("there is no text in the message to edit")
-      ) {
-        return editCaption(sender, messageId, text);
-      }
-      throw e;
-    });
-
+    const edited = await editText(sender, messageId, text);
     if (edited) {
       logger.info(`Message ${messageId} edited for ${sender.name}.`);
     }
+    return messageId;
   } catch (e) {
     const desc = await getTelegramErrorDescription(e);
-    if (!desc) throw e;
+    if (desc?.includes("there is no text in the message to edit")) {
+      if (sender.parseMode === "RichHTML") {
+        const replacementId = await send(sender, text);
+        logger.info(
+          `Message ${replacementId} sent as a RichHTML replacement for ${messageId} on ${sender.name}.`,
+        );
+        return replacementId;
+      }
 
-    if (
-      desc.includes("message to edit not found") ||
-      desc.includes("MESSAGE_ID_INVALID")
-    ) {
-      throw new MessageNotFoundError(messageId, sender.name);
+      try {
+        const edited = await editCaption(sender, messageId, text);
+        if (edited) {
+          logger.info(`Message ${messageId} edited for ${sender.name}.`);
+        }
+        return messageId;
+      } catch (captionError) {
+        return throwEditError(captionError, messageId, sender);
+      }
     }
-    throw new FailedToEditMessageError(messageId, sender.name);
+
+    return throwEditError(e, messageId, sender, desc);
   }
 };
 
