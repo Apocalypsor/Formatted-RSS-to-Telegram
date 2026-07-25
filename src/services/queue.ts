@@ -1,3 +1,4 @@
+import { telegramClient } from "@clients/telegram";
 import type { Telegram } from "@config";
 import {
   type MEDIA_TYPE,
@@ -19,7 +20,6 @@ import {
 } from "@database";
 import { logger } from "@utils";
 import PQueue from "p-queue";
-import { edit, send } from "./sender";
 
 export interface SendTaskMetadata {
   uniqueHash: string;
@@ -150,7 +150,11 @@ class MessageQueue {
       );
     }
 
-    const messageId = await send(data.sender, data.text, data.mediaUrls);
+    const messageId = await telegramClient.send(
+      data.sender,
+      data.text,
+      data.mediaUrls,
+    );
 
     if (data.metadata) {
       try {
@@ -177,19 +181,23 @@ class MessageQueue {
       `Processing edit task (DB ID: ${dbId}) for ${data.sender.name}, message ${data.messageId}`,
     );
 
-    await edit(data.sender, messageId, data.text);
+    const effectiveMessageId = await telegramClient.edit(
+      data.sender,
+      messageId,
+      data.text,
+    );
 
     if (data.metadata) {
       try {
         updateHistory(
           data.metadata.historyId,
           data.metadata.textHash,
-          messageId,
+          effectiveMessageId,
         );
-        logger.debug(`Updated history for message ${data.messageId}`);
+        logger.debug(`Updated history for message ${effectiveMessageId}`);
       } catch (e) {
         logger.error(
-          `Failed to update history for message ${data.messageId}: ${e}`,
+          `Failed to update history for message ${effectiveMessageId}: ${e}`,
         );
       }
     }
@@ -211,23 +219,18 @@ class MessageQueue {
   }
 
   private persistFailureToHistory(data: MessageTaskData): void {
-    if (!data.metadata) return;
+    if (!data.metadata || data.type !== TASK_TYPE.SEND) return;
 
     try {
-      if (data.type === TASK_TYPE.SEND) {
-        const meta = data.metadata;
-        addHistory(
-          meta.uniqueHash,
-          meta.url,
-          meta.textHash,
-          meta.senderName,
-          0,
-          meta.chatId,
-        );
-      } else {
-        const meta = data.metadata;
-        updateHistory(meta.historyId, meta.textHash, Number(data.messageId));
-      }
+      const meta = data.metadata;
+      addHistory(
+        meta.uniqueHash,
+        meta.url,
+        meta.textHash,
+        meta.senderName,
+        0,
+        meta.chatId,
+      );
     } catch (e) {
       logger.error(
         `Failed to record failed ${data.type} task in history: ${e}`,

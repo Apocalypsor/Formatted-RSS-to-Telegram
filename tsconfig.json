@@ -27,7 +27,8 @@
       "@database": ["./src/database/index.ts"],
       "@errors": ["./src/errors.ts"],
       "@config": ["./src/config/index.ts"],
-      "@services": ["./src/services/index.ts"]
+      "@services": ["./src/services/index.ts"],
+      "@clients/*": ["./src/clients/*"]
     }
   },
   "include": ["src/**/*"],

@@ -12,7 +12,7 @@ Husky + lint-staged runs `bun check` on staged files at commit time.
 
 Bun · TypeScript (strict, `verbatimModuleSyntax`) · SQLite via Drizzle ORM + bun:sqlite · Zod · Winston · Docker (compiled to a standalone binary).
 
-Path aliases (`tsconfig.json`): `@config` · `@database` · `@services` · `@utils` · `@errors` · `@consts`.
+Path aliases (`tsconfig.json`): `@config` · `@database` · `@clients/*` · `@services` · `@utils` · `@errors` · `@consts`.
 
 ## Footguns
 
@@ -23,8 +23,11 @@ Path aliases (`tsconfig.json`): `@config` · `@database` · `@services` · `@uti
 
 ## Architectural notes
 
+- **`src/clients/` owns external transports.** Import specific modules through
+  `@clients/*`; do not add a client barrel. Client modules must not choose RSS
+  senders or own feed-processing decisions.
 - **Reserve/finalize history.** Send tasks insert a history row with `messageId=0` *before* posting, then finalize with the real id after success. This is what prevents duplicate sends on crash recovery — don't bypass it.
 - **Crash-recoverable queue.** `MessageQueue` (`services/queue.ts`) is backed by the `MessageQueue` DB table. On startup, `recoverPendingTasks()` re-enqueues anything left as `PENDING` into the in-memory p-queue. Rate limiting comes from `concurrency: 1` + `intervalCap: 1`.
 - **First-run flag.** `setFirstRun(true)` makes the processor save items directly to history *without sending*. `src/index.ts` uses it on initial DB setup to avoid flooding the chat.
 - **Closure-scoped processor state.** `services/index.ts` wraps `firstRun` and the per-feed init cache inside `createProcessor()`. There is no module-level mutable state — keep it that way.
-- **Lazy client init.** `getClient()` returns a cached promise. The async wrapper exists solely to break a circular import with `@config`.
+- **Client instances.** Clients under `src/clients/` expose singleton class instances and accept constructor-injected dependencies. Constructors must not load config; `kyClient.getInstance()` lazily initializes and caches the HTTP clients to break the circular import with `@config`.

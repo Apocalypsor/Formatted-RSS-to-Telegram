@@ -3,6 +3,7 @@ import { MEDIA_TYPE, RSS_FILTER_TYPE, RSS_RULE_TYPE } from "@consts";
 import { getCachedRegex, logger, mapError } from "@utils";
 import * as _ from "lodash-es";
 import { resolveMatcherPattern } from "./matcher";
+import { buildRichContent } from "./rich-html";
 
 export type ItemObj = Record<string, unknown>;
 
@@ -74,11 +75,47 @@ export const extractFilteredMedia = (rssItem: RSS, content: string) =>
     ),
   );
 
+export interface PreparedMessageContent {
+  richContent?: string;
+  mediaUrls?: { type: MEDIA_TYPE; url: string }[];
+}
+
+export const prepareMessageContent = (
+  rssItem: RSS,
+  sender: Telegram,
+  content: string,
+  articleUrl?: string,
+): PreparedMessageContent => {
+  if (sender.parseMode === "RichHTML") {
+    return {
+      richContent: buildRichContent(content, {
+        baseUrl: articleUrl,
+        embedMedia: rssItem.embedMedia,
+        mediaExclude: rssItem.embedMediaExclude,
+      }),
+    };
+  }
+
+  return {
+    mediaUrls: rssItem.embedMedia
+      ? extractFilteredMedia(rssItem, content)
+      : undefined,
+  };
+};
+
+const normalizeConfiguredParseMode = (
+  parseMode: Telegram["parseMode"],
+): Telegram["parseMode"] =>
+  parseMode === "Markdown" ? "MarkdownV2" : parseMode;
+
 export const buildEffectiveSender = (
   rssItem: RSS,
   sender: Telegram,
 ): Telegram => ({
   ...sender,
+  parseMode: normalizeConfiguredParseMode(
+    rssItem.parseMode ?? sender.parseMode,
+  ),
   disableNotification:
     rssItem.disableNotification || sender.disableNotification,
   disableWebPagePreview:

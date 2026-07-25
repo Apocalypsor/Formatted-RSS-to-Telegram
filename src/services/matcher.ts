@@ -1,6 +1,7 @@
+import { kyClient } from "@clients/ky";
 import type { RemoteMatcher } from "@config";
 import { REMOTE_MATCHER_CACHE_TTL } from "@consts";
-import { getClient, logger } from "@utils";
+import { logger } from "@utils";
 
 interface CachedPattern {
   pattern: string;
@@ -12,7 +13,7 @@ const cache = new Map<string, CachedPattern>();
 const NEVER_MATCH = "(?!.*)";
 
 const fetchAndTransform = async (matcher: RemoteMatcher): Promise<string> => {
-  const client = await getClient();
+  const client = await kyClient.getInstance();
   const data = await client.get(matcher.url).text();
 
   if (!matcher.func) return data.trim();
