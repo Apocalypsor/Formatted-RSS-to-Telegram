@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "customManagers:biomeVersions"],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am"],
+  "minimumReleaseAge": "14 days",
+  "internalChecksFilter": "strict",
+  "constraints": {
+    "bun": ">=1.3.0"
+  },
+  "automergeType": "pr",
+  "platformAutomerge": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am"]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Lockfile maintenance is driven by package managers and cannot be age-gated by Renovate.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null,
+      "prBodyNotes": [
+        "Renovate cannot validate `minimumReleaseAge` for lockfile maintenance because package managers perform the lockfile refresh."
+      ],
+      "automerge": true
+    }
+  ]
+}
