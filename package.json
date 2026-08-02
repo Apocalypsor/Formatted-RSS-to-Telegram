@@ -24,7 +24,7 @@
   "dependencies": {
     "cheerio": "^1.2.0",
     "drizzle-orm": "^0.45.2",
-    "ky": "^1.14.3",
+    "ky": "^2.0.0",
     "lodash-es": "^4.17.23",
     "node-schedule": "^2.1.1",
     "nunjucks": "^3.2.4",

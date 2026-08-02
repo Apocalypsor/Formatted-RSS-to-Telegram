@@ -47,7 +47,7 @@ export class KyClient {
       },
       hooks: {
         beforeError: [
-          (error) => {
+          ({ error }) => {
             logger.error(`Error: ${error.message}`);
             return error;
           },

@@ -315,13 +315,9 @@ export class TelegramClient {
   private async getTelegramErrorDescription(
     error: unknown,
   ): Promise<string | null> {
-    if (error instanceof HTTPError && error.response) {
-      try {
-        const body = (await error.response.json()) as { description?: string };
-        return body?.description ?? null;
-      } catch {
-        return null;
-      }
+    if (error instanceof HTTPError) {
+      const data = error.data as { description?: unknown } | undefined;
+      return typeof data?.description === "string" ? data.description : null;
     }
     return null;
   }
