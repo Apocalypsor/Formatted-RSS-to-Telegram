@@ -33,7 +33,7 @@
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^4.7.1",
     "yaml": "^2.8.2",
-    "zod": "^3.25.76"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.9",
