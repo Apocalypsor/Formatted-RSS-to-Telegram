@@ -36,7 +36,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.4",
+    "@biomejs/biome": "2.5.6",
     "@types/bun": "latest",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^26.0.0",
