@@ -1,3 +1,5 @@
+
+
 # Formatted RSS to Telegram
 
 A highly customizable, production-ready RSS to Telegram bot with persistent message queue, rate limiting, and advanced content processing capabilities.
@@ -66,19 +68,22 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 
 ### Local Development
 
-```bash
-# Install Bun (if not installed)
-curl -fsSL https://bun.sh/install | bash
+1. **Prepare Configuration:** Ensure `./config/config.yaml` and `./config/rss.yaml` exist. You can copy the samples from `./docs/` (e.g., `cp ./docs/config_sample.yaml ./config/config.yaml`) and update them with your credentials.
 
-# Install dependencies
-bun install
+2. **Run the application:**
+   ```bash
+   # Install Bun (if not installed)
+   curl -fsSL https://bun.sh/install | bash
 
-# Start development server with hot reload
-bun run dev
+   # Install dependencies
+   bun install
 
-# Run production
-bun start
-```
+   # Start development server with hot reload
+   bun run dev
+
+   # Run production
+   bun start
+   ```
 
 ## Configuration
 
