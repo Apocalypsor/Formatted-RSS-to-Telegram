@@ -1,5 +1,3 @@
-
-
 # Formatted RSS to Telegram
 
 A highly customizable, production-ready RSS to Telegram bot with persistent message queue, rate limiting, and advanced content processing capabilities.
