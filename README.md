@@ -66,6 +66,8 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 
 ### Local Development
 
+Requires Bun 1.4.3 or newer for native TypeScript checking.
+
 1. **Prepare Configuration:** Ensure `./config/config.yaml` and `./config/rss.yaml` exist. You can copy the samples from `./docs/` (e.g., `cp ./docs/config_sample.yaml ./config/config.yaml`) and update them with your credentials.
 
 2. **Run the application:**
@@ -82,6 +84,21 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
    # Run production
    bun start
    ```
+
+3. **Check changes before committing:**
+   ```bash
+   # Biome lint and formatting (applies safe fixes)
+   bun run lint
+
+   # Native TypeScript checking (also available as bun run typecheck)
+   bun check
+
+   # Run tests
+   bun test
+   ```
+
+   `bun check` uses `tsconfig.json` and does not require the `typescript` package.
+   The Biome script is named `lint` so it does not shadow Bun's native command.
 
 ## Configuration
 

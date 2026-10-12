@@ -2,13 +2,16 @@
   "name": "formatted-rss-to-telegram",
   "version": "0.0.1",
   "description": "A highly customizable, self-hosted RSS to Telegram notification service",
+  "engines": {
+    "bun": ">=1.4.3"
+  },
   "scripts": {
     "start": "bun src/index.ts",
     "dev": "NODE_ENV=development bun --watch ./src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "check": "biome check --no-errors-on-unmatched --files-ignore-unknown=true --write",
-    "typecheck": "tsc --noEmit",
+    "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true --write",
+    "typecheck": "bun check",
     "prepare": "husky"
   },
   "repository": {
@@ -45,8 +48,7 @@
     "drizzle-kit": "^0.31.10",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.0",
-    "prettier": "^3.8.1",
-    "typescript": "^7.0.0"
+    "prettier": "^3.8.1"
   },
   "lint-staged": {
     "*": [

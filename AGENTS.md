@@ -2,21 +2,22 @@
 
 ## Before committing
 
-1. `bun check` — Biome lint + format. Fix every error and warning; never reach for `biome-ignore`.
-2. `bun typecheck` — TypeScript. Fix every error.
+1. `bun run lint` — Biome lint + format. Fix every error and warning; never reach for `biome-ignore`.
+2. `bun check` (or `bun run typecheck`) — Bun's native TypeScript check. Fix every error.
 3. Update **README.md** / **AGENTS.md** if you change commands, conventions, or user-facing features.
 
-Husky + lint-staged runs `bun check` on staged files at commit time.
+Husky runs `bun run typecheck`, then lint-staged runs Biome on staged files at commit time.
+Keep `check` out of package scripts so it cannot shadow Bun's native command.
 
 ## Stack
 
-Bun · TypeScript (strict, `verbatimModuleSyntax`) · SQLite via Drizzle ORM + bun:sqlite · Zod · Winston · Docker (compiled to a standalone binary).
+Bun >= 1.4.3 · TypeScript (strict, `verbatimModuleSyntax`, checked with `bun check`) · SQLite via Drizzle ORM + bun:sqlite · Zod · Winston · Docker (compiled to a standalone binary).
 
 Path aliases (`tsconfig.json`): `@config` · `@database` · `@clients/*` · `@services` · `@utils` · `@errors` · `@consts`.
 
 ## Footguns
 
-- **Database calls are synchronous.** bun:sqlite has no async API. Do NOT add `async`/`await` to functions in `src/database/` — it runs but is wrong, and tsc raises hint `80007`.
+- **Database calls are synchronous.** bun:sqlite has no async API. Do NOT add `async`/`await` to functions in `src/database/` — awaiting synchronous calls is unnecessary.
 - **`new Function(...)` in `services/pipeline.ts` is `eval`.** Both RSS rule `type: func` and remote matcher `func` execute config-supplied JS. Config is trusted; never let untrusted input reach `rules` or `matcher.func`.
 - **Config is loaded at module import.** `config/index.ts` parses YAML synchronously at first import. `config` and `rss` are constants for the lifetime of the process — there is no reload.
 - **`@utils` is for generic helpers only.** No `helpers.ts` / `utils.ts` dumping grounds. If something depends on `RSS` / `Telegram` / `MEDIA_TYPE` or other domain types, it belongs in `services/`, not `utils/`.
