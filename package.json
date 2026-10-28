@@ -31,7 +31,7 @@
     "lodash-es": "^4.17.23",
     "node-schedule": "^2.1.1",
     "nunjucks": "^3.2.4",
-    "p-queue": "^9.1.0",
+    "p-queue": "^10.0.0",
     "rss-parser": "^3.13.0",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0",
