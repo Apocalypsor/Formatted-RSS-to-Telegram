@@ -10,7 +10,6 @@ individual RSS subscription can override it with `parseMode: RichHTML`.
 
 Newly loaded configuration accepts `Markdown`, `MarkdownV2`, `HTML`, and
 `RichHTML`.
-
 - `Markdown` is a compatibility alias for `MarkdownV2`. Newly rendered
   messages use MarkdownV2 escaping and are sent with `parse_mode: MarkdownV2`.
 - `MarkdownV2` uses the existing `sendMessage`, media-message, and
@@ -65,7 +64,6 @@ item's `content`. A focused service parses and normalizes the fragment before
 template rendering.
 
 The normalizer:
-
 - removes executable or non-content elements such as `script`, `style`,
   `noscript`, `iframe`, and `svg`;
 - keeps Telegram Rich HTML block and inline elements and unwraps unsupported
@@ -80,7 +78,6 @@ The normalizer:
   Telegram Rich HTML.
 
 RSS configuration continues to control media behavior:
-
 - for standard modes, `embedMedia: true` extracts media and uses the existing
   single-media or media-group sender;
 - for RichHTML, `embedMedia: true` retains media at its original position in
@@ -111,7 +108,6 @@ template.
 ## Telegram requests
 
 Standard modes preserve the existing request selection:
-
 - no media: `sendMessage`;
 - one media item: `sendPhoto` or `sendVideo`; and
 - two to ten media items: `sendMediaGroup`.
@@ -147,7 +143,6 @@ invalid rich document.
 ## Testing
 
 Tests use Bun's built-in test runner and cover:
-
 - configuration normalization from `Markdown` to `MarkdownV2`;
 - per-RSS `parseMode` override resolution;
 - HTML escaping for ordinary RichHTML template variables;

@@ -95,13 +95,11 @@ describe("buildEffectiveSender", () => {
 ```
 
 The first test catches removal of the Markdown compatibility alias. The second catches loss of the RSS-over-sender precedence.
-
 - [ ] **Step 2: Run the tests and verify the intended failures**
 
 Run: `bun test tests/services/pipeline.test.ts`
 
 Expected: the first assertion receives `Markdown`; the second receives `MarkdownV2` because `RSSItemSchema` currently discards `parseMode`.
-
 - [ ] **Step 3: Add the validated parse modes and override resolution**
 
 Add to `src/config/schema.ts`:
@@ -159,7 +157,6 @@ Expected: 2 tests pass.
 Run: `bun typecheck`
 
 Expected: exit 0.
-
 - [ ] **Step 5: Commit the configuration behavior**
 
 ```bash
@@ -188,7 +185,7 @@ import { buildRichContent } from "../../src/services/rich-html";
 describe("buildRichContent", () => {
   test("keeps readable supported markup and removes executable markup", () => {
     const result = buildRichContent(
-      '<script>alert(1)</script><div><p>Hello <b>world</b></p></div>',
+      "<script>alert(1)</script><div><p>Hello <b>world</b></p></div>",
       { embedMedia: true, mediaExclude: [] },
     );
 
@@ -235,13 +232,11 @@ describe("buildRichContent", () => {
 ```
 
 These tests catch executable markup leakage, broken relative media, lost element ordering, ignored exclusion rules, and media being retained against configuration.
-
 - [ ] **Step 2: Run the sanitizer tests and verify the missing-module failure**
 
 Run: `bun test tests/services/rich-html.test.ts`
 
 Expected: FAIL because `src/services/rich-html.ts` does not exist.
-
 - [ ] **Step 3: Implement the focused Rich HTML normalizer**
 
 Create `src/services/rich-html.ts` with these constants and public contract:
@@ -259,13 +254,58 @@ const REMOVED_ELEMENTS = "script,style,noscript,iframe,svg,canvas,object,embed";
 const MEDIA_ELEMENTS = "img,video,audio";
 
 const ALLOWED_ELEMENTS = new Set([
-  "a", "b", "strong", "i", "em", "u", "ins", "s", "strike", "del",
-  "code", "mark", "sub", "sup", "tg-spoiler", "tg-reference",
-  "tg-emoji", "tg-time", "tg-math", "br", "h1", "h2", "h3", "h4",
-  "h5", "h6", "p", "pre", "footer", "hr", "ul", "ol", "li",
-  "blockquote", "aside", "cite", "img", "video", "audio", "figure",
-  "figcaption", "tg-map", "tg-collage", "tg-slideshow", "table",
-  "caption", "tr", "th", "td", "details", "summary", "tg-math-block",
+  "a",
+  "b",
+  "strong",
+  "i",
+  "em",
+  "u",
+  "ins",
+  "s",
+  "strike",
+  "del",
+  "code",
+  "mark",
+  "sub",
+  "sup",
+  "tg-spoiler",
+  "tg-reference",
+  "tg-emoji",
+  "tg-time",
+  "tg-math",
+  "br",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "pre",
+  "footer",
+  "hr",
+  "ul",
+  "ol",
+  "li",
+  "blockquote",
+  "aside",
+  "cite",
+  "img",
+  "video",
+  "audio",
+  "figure",
+  "figcaption",
+  "tg-map",
+  "tg-collage",
+  "tg-slideshow",
+  "table",
+  "caption",
+  "tr",
+  "th",
+  "td",
+  "details",
+  "summary",
+  "tg-math-block",
 ]);
 
 const ALLOWED_ATTRIBUTES: Record<string, Set<string>> = {
@@ -336,18 +376,16 @@ export const buildRichContent = (
     const tag = element.tagName.toLowerCase();
     const lazyImageSource =
       tag === "img"
-        ? media.attr("data-src") ??
+        ? (media.attr("data-src") ??
           media.attr("data-lazy-src") ??
-          media.attr("data-original")
+          media.attr("data-original"))
         : undefined;
     const childSource =
       tag === "video" || tag === "audio"
         ? media.find("source[src]").first().attr("src")
         : undefined;
     const source = media.attr("src") ?? lazyImageSource ?? childSource;
-    const resolved = source
-      ? resolveHttpUrl(source, options.baseUrl)
-      : null;
+    const resolved = source ? resolveHttpUrl(source, options.baseUrl) : null;
 
     if (!resolved || isExcluded(resolved, options.mediaExclude)) {
       media.remove();
@@ -393,7 +431,6 @@ weaken assertions to snapshots or broad truthiness.
 Run: `bun typecheck`
 
 Expected: exit 0.
-
 - [ ] **Step 5: Commit Rich HTML normalization**
 
 ```bash
@@ -437,13 +474,11 @@ test("autoescapes RichHTML fields while preserving sanitized rich_content", () =
 ```
 
 This test catches disabling autoescape and accidentally escaping the already sanitized body.
-
 - [ ] **Step 2: Run the test and verify raw title markup leaks**
 
 Run: `bun test tests/services/render.test.ts`
 
 Expected: FAIL because the result contains raw `& <Deals>`.
-
 - [ ] **Step 3: Add a separate autoescaped Nunjucks environment**
 
 In `src/services/render.ts`, create:
@@ -465,7 +500,6 @@ if (parseMode.toLowerCase() === "richhtml") {
 Do not pass RichHTML output through `decodeHtmlEntities`, because that would
 turn escaped user fields back into markup. Leave MarkdownV2 and HTML behavior
 unchanged.
-
 - [ ] **Step 4: Run focused and existing tests**
 
 Run: `bun test tests/services/render.test.ts tests/services/pipeline.test.ts`
@@ -475,7 +509,6 @@ Expected: all tests pass.
 Run: `bun typecheck`
 
 Expected: exit 0.
-
 - [ ] **Step 5: Commit rendering support**
 
 ```bash
@@ -551,13 +584,11 @@ test("keeps standard media extraction for MarkdownV2", () => {
 ```
 
 The tests catch RichHTML accidentally sending duplicate media and standard formats losing existing embedding.
-
 - [ ] **Step 2: Run the pipeline tests and verify the missing-export failure**
 
 Run: `bun test tests/services/pipeline.test.ts`
 
 Expected: FAIL because `prepareMessageContent` is not exported.
-
 - [ ] **Step 3: Implement the pure preparation boundary**
 
 In `src/services/pipeline.ts`, import `buildRichContent`, export the prepared
@@ -614,7 +645,6 @@ if (prepared.richContent !== undefined) {
 Render with `effectiveSender.parseMode`, and pass `prepared.mediaUrls` to
 `messageQueue.enqueueSend()`. Remove the later duplicate declaration of
 `effectiveSender` and the direct `extractFilteredMedia` import.
-
 - [ ] **Step 5: Run processor-boundary tests and typecheck**
 
 Run: `bun test tests/services/pipeline.test.ts tests/services/rich-html.test.ts tests/services/render.test.ts`
@@ -624,7 +654,6 @@ Expected: all tests pass.
 Run: `bun typecheck`
 
 Expected: exit 0.
-
 - [ ] **Step 6: Commit processor integration**
 
 ```bash
@@ -710,13 +739,11 @@ describe("Telegram rich-message requests", () => {
 
 The tests catch selecting the wrong Telegram endpoint, duplicating media,
 emitting unsupported rich-message fields, and breaking old persisted tasks.
-
 - [ ] **Step 2: Run request tests and verify the missing-module failure**
 
 Run: `bun test tests/services/telegram-request.test.ts`
 
 Expected: FAIL because `src/services/telegram-request.ts` does not exist.
-
 - [ ] **Step 3: Move existing pure request construction into the new module**
 
 Create `src/services/telegram-request.ts`. Import `Telegram` directly from
@@ -889,7 +916,6 @@ export const buildEditCaptionRequest = (
 Run: `bun test tests/services/telegram-request.test.ts`
 
 Expected: 3 tests pass.
-
 - [ ] **Step 5: Wire sender HTTP calls to request builders**
 
 In `src/services/sender.ts`, import `MediaItem`, `buildSendRequest`,
@@ -909,7 +935,6 @@ if (
 ```
 
 Keep response parsing, history behavior, and Telegram error mapping unchanged.
-
 - [ ] **Step 6: Run all tests and typecheck**
 
 Run: `bun test`
@@ -919,7 +944,6 @@ Expected: all tests pass.
 Run: `bun typecheck`
 
 Expected: exit 0.
-
 - [ ] **Step 7: Commit Telegram request support**
 
 ```bash
@@ -945,7 +969,6 @@ git commit -m "feat: send and edit telegram rich messages"
 In `README.md` and `docs/config_sample.yaml`, list accepted modes as
 `Markdown`, `MarkdownV2`, `HTML`, and `RichHTML`. Explain that configured
 `Markdown` is treated as MarkdownV2 for newly rendered messages.
-
 - [ ] **Step 2: Add a per-feed RichHTML example**
 
 Add this focused example to `README.md` and adapt it into
@@ -970,7 +993,6 @@ rss:
 State that ordinary fields are HTML-escaped, `rich_content` is sanitized by
 the application, RichHTML does not convert Markdown templates, and
 `disableWebPagePreview` has no effect on `sendRichMessage`.
-
 - [ ] **Step 3: Run the complete verification suite**
 
 Run: `bun test`
@@ -988,14 +1010,12 @@ Expected: exit 0.
 Run: `git diff --check`
 
 Expected: no whitespace errors.
-
 - [ ] **Step 4: Review the final diff for scope and compatibility**
 
 Run: `git diff main...HEAD -- src tests README.md docs/config_sample.yaml docs/rss_sample.yaml`
 
 Verify that database files, queue reserve/finalize behavior, unrelated parser
 behavior, and the user's RSS configuration are unchanged.
-
 - [ ] **Step 5: Commit documentation**
 
 ```bash

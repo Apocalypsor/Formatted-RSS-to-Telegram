@@ -25,8 +25,7 @@ rss:
         dest: tag # Required, destination field to save the processed field, can be used in text
       - obj: title # Required
         type: func # Required
-        matcher:
-          | # Required, function to process the field, the input is obj, you need to return the processed field
+        matcher: | # Required, function to process the field, the input is obj, you need to return the processed field
           return obj.replace(/(\[.+?\])?(.+?)$/, '$2');
         dest: new_tag # Required
     filters: # Optional, used to filter the rss feed
@@ -44,8 +43,7 @@ rss:
           func: | # func receives fetched content as 'data', must return a regex string
             const items = JSON.parse(data);
             return items.map(i => i.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-    text:
-      | # Required, template to render the message sent to the chat, using Nunjucks
+    text: | # Required, template to render the message sent to the chat, using Nunjucks
       {{ title }}{{ author }}{{ link }}{{ content }}{{ contentSnippet }}
       {{ tag }}{{ new_tag }}{{ rss_name }}{{ rss_url }}
 

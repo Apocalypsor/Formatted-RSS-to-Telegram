@@ -62,13 +62,11 @@ const getClientSpy = spyOn(actualKyClient, "getClient").mockImplementation(
 
 This remains a real sender/queue/history integration test; only the external
 HTTP-client boundary is replaced.
-
 - [ ] **Step 2: Run the integration test and observe RED**
 
 Run: `bun test tests/services/edit-migration.test.ts`
 
 Expected: FAIL because `../../src/clients/ky` does not exist.
-
 - [ ] **Step 3: Add the direct client alias**
 
 Add to `tsconfig.json` paths:
@@ -78,7 +76,6 @@ Add to `tsconfig.json` paths:
 ```
 
 Do not add `src/clients/index.ts`.
-
 - [ ] **Step 4: Create the ky client**
 
 Move the ky-specific content from `src/utils/client.ts` into
@@ -108,7 +105,6 @@ const buildProxyUrl = (proxy: {
 Keep `initClients()`, `const clients = initClients()`, and `getClient()`
 behavior exactly as in the old file, including the dynamic config import and
 base/proxy selection. Do not include FlareSolverr in this module.
-
 - [ ] **Step 5: Create the FlareSolverr client**
 
 Create `src/clients/flaresolverr.ts`:
@@ -161,7 +157,6 @@ import { getClient } from "@clients/ky";
 Remove `getClient` and `fetchWithFlareSolver` from the respective `@utils`
 imports. Remove `export * from "./client"` from `src/utils/index.ts`, then
 delete `src/utils/client.ts`.
-
 - [ ] **Step 7: Run focused and full verification**
 
 Run: `bun test tests/services/edit-migration.test.ts`
@@ -171,7 +166,6 @@ Expected: 5 tests pass.
 Run: `bun test && bun check && bun typecheck && git diff --check`
 
 Expected: 27 tests pass and all commands exit 0.
-
 - [ ] **Step 8: Commit ky and FlareSolverr migration**
 
 ```bash
@@ -222,7 +216,13 @@ Add a literal notification payload test to
 
 ```ts
 test("builds an expiration notification request", () => {
-  expect(buildExpirationNotificationRequest(sender, 999, "https://example.com/feed.xml")).toEqual({
+  expect(
+    buildExpirationNotificationRequest(
+      sender,
+      999,
+      "https://example.com/feed.xml",
+    ),
+  ).toEqual({
     endpoint: "https://api.telegram.org/botsecret/sendMessage",
     payload: {
       chat_id: 999,
@@ -235,13 +235,11 @@ test("builds an expiration notification request", () => {
 ```
 
 Import `buildExpirationNotificationRequest` from the new client.
-
 - [ ] **Step 2: Run Telegram tests and observe RED**
 
 Run: `bun test tests/services/telegram-request.test.ts tests/services/edit-migration.test.ts`
 
 Expected: FAIL because `../../src/clients/telegram` does not exist.
-
 - [ ] **Step 3: Create the unified Telegram client**
 
 Create `src/clients/telegram.ts` by moving the complete request-builder content
@@ -252,7 +250,11 @@ Use these imports:
 
 ```ts
 import type { Telegram } from "@config";
-import { TELEGRAM_API_BASE, TELEGRAM_MEDIA_GROUP_LIMIT, MEDIA_TYPE } from "@consts";
+import {
+  TELEGRAM_API_BASE,
+  TELEGRAM_MEDIA_GROUP_LIMIT,
+  MEDIA_TYPE,
+} from "@consts";
 import {
   FailedToEditMessageError,
   MessageNotFoundError,
@@ -336,7 +338,6 @@ Replace `notify(rssItem.url)` with `notifyExpiredFeed(rssItem.url)`.
 
 In `src/services/queue.ts`, import `edit` and `send` from
 `@clients/telegram`. Remove the old sender import.
-
 - [ ] **Step 5: Delete old Telegram transport files**
 
 Delete:
@@ -355,7 +356,6 @@ Expected: 14 tests pass, including the new notification builder test.
 Run: `bun test && bun check && bun typecheck && git diff --check`
 
 Expected: 28 tests pass and all commands exit 0.
-
 - [ ] **Step 7: Commit Telegram migration**
 
 ```bash
@@ -401,7 +401,6 @@ rg --files src/clients src/services src/utils
 
 Expected: the clients directory contains exactly `ky.ts`, `flaresolverr.ts`,
 and `telegram.ts`; the three legacy files are absent.
-
 - [ ] **Step 3: Run final verification**
 
 Run: `bun test`
@@ -419,7 +418,6 @@ Expected: exit 0.
 Run: `git diff --check`
 
 Expected: no output.
-
 - [ ] **Step 4: Commit architecture guidance**
 
 ```bash

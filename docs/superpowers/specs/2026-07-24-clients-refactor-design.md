@@ -32,7 +32,6 @@ Any Telegram import could initialize proxy/configuration code unnecessarily.
 ### `src/clients/telegram.ts`
 
 This module owns Telegram Bot API transport:
-
 - `MediaItem` and `TgRequest` types;
 - standard and RichHTML send/edit request builders;
 - `send()` and `edit()`;
@@ -90,7 +89,6 @@ Use direct imports such as `@clients/ky`, `@clients/flaresolverr`, and
 Telegram/config side effects out of ky-only consumers.
 
 After call sites move, remove:
-
 - `src/utils/client.ts`;
 - `src/services/sender.ts`; and
 - `src/services/telegram-request.ts`.
@@ -101,7 +99,6 @@ remain unchanged.
 ## Compatibility
 
 The refactor must preserve:
-
 - the four configured parse modes and per-feed override;
 - exact standard and RichHTML Telegram request payloads;
 - recovered legacy Markdown requests;
