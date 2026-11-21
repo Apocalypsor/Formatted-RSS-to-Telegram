@@ -68,6 +68,7 @@ A highly customizable, production-ready RSS to Telegram bot with persistent mess
 ### Local Development
 
 Requires Bun 1.4.3 or newer for native TypeScript checking.
+
 1. **Prepare Configuration:** Ensure `./config/config.yaml` and `./config/rss.yaml` exist. You can copy the samples from `./docs/` (e.g., `cp ./docs/config_sample.yaml ./config/config.yaml`) and update them with your credentials.
 
 2. **Run the application:**
@@ -247,11 +248,13 @@ URLs. RichHTML does not send a separate photo, video, or media-group request.
 ### Available Template Variables
 
 From RSS feed (via [rss-parser](https://github.com/rbren/rss-parser)):
+
 - `title`, `link`, `content`, `contentSnippet`
 - `author`, `pubDate`, `guid`
 - Any custom fields from your RSS feed
 
 Custom variables:
+
 - `rss_name` - Name of the RSS feed
 - `rss_url` - URL of the RSS feed
 - Any fields created by `rules` (e.g., `tag`, `processed_content`)
